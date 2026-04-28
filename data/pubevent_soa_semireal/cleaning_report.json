@@ -1,0 +1,14 @@
+{
+  "total_records": 3,
+  "cleaned_records": 3,
+  "skipped_records": 0,
+  "emails_removed": 1,
+  "phones_removed": 1,
+  "id_numbers_removed": 1,
+  "handles_removed": 0,
+  "profile_urls_removed": 4,
+  "author_aliases_created": 3,
+  "errors": [],
+  "input_path": "data\\pubevent_soa_semireal\\evidence_raw.jsonl",
+  "output_path": "data\\pubevent_soa_semireal\\evidence_clean.jsonl"
+}
