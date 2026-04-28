@@ -1,0 +1,52 @@
+{
+  "num_annotator_a": 0,
+  "num_annotator_b": 0,
+  "num_common_items": 0,
+  "missing_from_annotator_a": [],
+  "missing_from_annotator_b": [],
+  "field_agreement": {
+    "stakeholder": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0,
+      "cohens_kappa": null
+    },
+    "opinion": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0
+    },
+    "sentiment": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0,
+      "cohens_kappa": null
+    },
+    "rationale": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0
+    },
+    "event_chain": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0
+    },
+    "evidence_ids": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0
+    },
+    "support_score": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0
+    },
+    "verified": {
+      "exact_agreement": null,
+      "matches": 0,
+      "total": 0,
+      "cohens_kappa": null
+    }
+  }
+}

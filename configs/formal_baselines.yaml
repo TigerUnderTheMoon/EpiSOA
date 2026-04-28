@@ -1,0 +1,74 @@
+seed: 42
+run_id: pubevent-soa-formal-baselines-v1
+mode: real
+
+data:
+  evidence_path: data/pubevent_soa_formal/evidence.jsonl
+  gold_path: data/pubevent_soa_formal/gold_tuples.jsonl
+  event_query_path: data/pubevent_soa_formal/events.jsonl
+  dataset_name: pubevent_soa_formal
+  gold_event_chains_path: data/pubevent_soa_formal/gold_event_chains.jsonl
+  require_formal_validation: true
+  validation_report_path: outputs/dataset_validation_formal.json
+
+output:
+  run_dir: outputs/runs/{run_id}
+
+model:
+  mode: real
+  llm_mode: real
+  llm_model: gpt-4o-mini
+  embedding_model: BAAI/bge-small-en-v1.5
+  reranker_model: BAAI/bge-reranker-base
+  api_key_env: OPENAI_API_KEY
+  base_url: https://api.openai.com/v1
+  timeout_seconds: 60
+  max_retries: 2
+  temperature: 0
+  prompt_version: formal-baseline-v1
+
+retrieval:
+  top_k: 5
+  candidate_k: 5
+  use_diversity: true
+  embedding_mode: sentence_transformers
+  reranker_mode: bge_reranker
+  cache_dir: outputs/cache/embeddings
+
+graph:
+  enabled: true
+
+event_chain:
+  max_depth: 2
+  top_k: 3
+  enabled: true
+
+verifier:
+  threshold: 0.75
+  enabled: true
+
+ablation:
+  disable_fsm: false
+  disable_diversity: false
+  disable_graph: false
+  disable_event_chain: false
+  disable_verifier: false
+  disable_temporal_edges: false
+  disable_stakeholder_constraint: false
+
+methods:
+  direct_llm:
+    top_k: 5
+  few_shot_llm:
+    top_k: 5
+  vanilla_rag:
+    top_k: 5
+  graph_rag_style:
+    top_k: 5
+    depth: 2
+  event_only_retrieval:
+    top_k: 5
+  episoa_full:
+    top_k_evidence: 5
+    eventrag_depth: 2
+    eventrag_top_k: 3
