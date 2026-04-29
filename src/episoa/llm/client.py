@@ -217,6 +217,7 @@ class LLMClient:
 
 def config_from_dict(raw: dict[str, Any]) -> LLMClientConfig:
     """Build LLMClientConfig from YAML-compatible config."""
+    _load_dotenv()
     mode = raw.get("llm_mode") or raw.get("mode") or os.getenv("EPISOA_LLM_MODE", "mock")
     if mode not in {"mock", "real", "openai_compatible", "local"}:
         raise ValueError("llm.mode must be one of: mock, real, openai_compatible, local")
@@ -227,9 +228,9 @@ def config_from_dict(raw: dict[str, Any]) -> LLMClientConfig:
 
     return LLMClientConfig(
         mode=mode,
-        model=str(raw.get("model", "mock-attribution")),
-        base_url=str(raw.get("base_url", "http://localhost:8000/v1")),
-        api_key=raw.get("api_key"),
+        model=str(raw.get("model") or raw.get("llm_model") or os.getenv("OPENAI_MODEL") or "mock-attribution"),
+        base_url=str(raw.get("base_url") or os.getenv("OPENAI_BASE_URL") or "http://localhost:8000/v1"),
+        api_key=raw.get("api_key") or os.getenv(str(raw.get("api_key_env", "OPENAI_API_KEY"))),
         api_key_env=str(raw.get("api_key_env", "OPENAI_API_KEY")),
         timeout_seconds=float(raw.get("timeout_seconds", 30.0)),
         max_retries=int(raw.get("max_retries", 2)),
@@ -246,6 +247,22 @@ def build_llm_client(config: dict[str, Any] | None = None) -> LLMClient:
     if "llm_mode" in raw and "llm_mode" not in llm_config and "mode" not in llm_config:
         llm_config["llm_mode"] = raw["llm_mode"]
     return LLMClient(llm_config)
+
+
+def _load_dotenv(path: str | Path = ".env") -> None:
+    """Load simple KEY=VALUE pairs from .env without overriding the process env."""
+    dotenv_path = Path(path)
+    if not dotenv_path.exists():
+        return
+    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def _response_format_for_schema(schema: Any) -> dict[str, Any]:

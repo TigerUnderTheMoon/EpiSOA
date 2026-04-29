@@ -194,3 +194,64 @@ def test_validate_dataset_rejects_silver_in_gold(tmp_path: Path) -> None:
     report = module.validate_dataset(events, evidence, tuples, chains)
 
     assert any("llm_silver" in error for error in report["errors"])
+
+
+def test_check_paper_readiness_blocks_empty_formal_dataset(tmp_path: Path, monkeypatch) -> None:
+    module = load_script("scripts/check_paper_readiness.py", "check_paper_readiness")
+    events = tmp_path / "events.jsonl"
+    evidence = tmp_path / "evidence.jsonl"
+    tuples = tmp_path / "gold_tuples.jsonl"
+    chains = tmp_path / "gold_event_chains.jsonl"
+    for path in (events, evidence, tuples, chains):
+        path.write_text("", encoding="utf-8")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    report = module.build_readiness_report(
+        events_path=events,
+        evidence_path=evidence,
+        gold_tuples_path=tuples,
+        gold_event_chains_path=chains,
+        annotation_sheet_path=tmp_path / "annotation_sheet_formal.csv",
+        filled_annotation_sheet_path=tmp_path / "annotation_sheet_formal_filled.csv",
+        results_dir=tmp_path / "results",
+    )
+
+    assert report["status"] == "blocked"
+    assert report["dataset"]["is_formal_dataset"] is False
+    assert report["real_experiments_can_run"] is False
+    assert any("events.jsonl" in item for item in report["missing_items"])
+    assert any("OPENAI_API_KEY" in item for item in report["missing_items"])
+
+
+def test_validate_dataset_rejects_gold_chain_unknown_event(tmp_path: Path) -> None:
+    module = load_script("scripts/validate_dataset.py", "validate_gold_chain_event")
+    events = tmp_path / "events.jsonl"
+    evidence = tmp_path / "evidence.jsonl"
+    tuples = tmp_path / "gold_tuples.jsonl"
+    chains = tmp_path / "gold_event_chains.jsonl"
+
+    write_jsonl(events, [{"event_id": "evt-1", "target_event": "Formal event", "event_chain": ["a"]}])
+    write_jsonl(evidence, [{"evidence_id": "ev-1", "event_id": "evt-1", "url": "https://news.test/a", "text": "text"}])
+    write_jsonl(
+        tuples,
+        [
+            {
+                "event_id": "evt-1",
+                "stakeholder": "residents",
+                "opinion": "opinion",
+                "sentiment": "negative",
+                "rationale": "rationale",
+                "event_chain": ["a"],
+                "evidence_ids": ["ev-1"],
+                "support_score": 0.9,
+                "support_label": "supported",
+                "verified": True,
+            }
+        ],
+    )
+    write_jsonl(chains, [{"event_id": "evt-missing", "event_chain": ["a"], "evidence_ids": ["ev-missing"]}])
+
+    report = module.validate_dataset(events, evidence, tuples, chains)
+
+    assert any("gold_event_chains:1 references unknown event_id" in error for error in report["errors"])
+    assert any("gold_event_chains:1 references unknown evidence_id" in error for error in report["errors"])

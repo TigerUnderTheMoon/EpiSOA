@@ -75,3 +75,38 @@ def test_unsupported_evidence_sets_verified_false() -> None:
 
     assert verified.verified is False
     assert verified.support_score < 0.75
+
+
+def test_file_based_verify_tuples_updates_support_label(tmp_path) -> None:
+    from episoa.experimental_pipeline import verify_tuples
+
+    tuples = tmp_path / "candidate.jsonl"
+    evidence = tmp_path / "evidence.jsonl"
+    output = tmp_path / "verified.jsonl"
+    tuples.write_text(
+        AttributionTuple(
+            event="Transit hearing",
+            stakeholder="Riders",
+            opinion="Riders opposed the fare increase.",
+            sentiment="negative",
+            rationale="Supported by evidence.",
+            event_chain=["Transit hearing", "Riders"],
+            evidence=[
+                make_evidence(
+                    "ev-1",
+                    "Riders opposed the fare increase.",
+                    "Riders",
+                    "negative",
+                    "Transit hearing",
+                )
+            ],
+            support_score=0.8,
+            verified=False,
+        ).model_dump_json()
+        + "\n",
+        encoding="utf-8",
+    )
+    evidence.write_text("", encoding="utf-8")
+
+    assert verify_tuples(tuples, evidence, output) == 1
+    assert '"verified":true' in output.read_text(encoding="utf-8")

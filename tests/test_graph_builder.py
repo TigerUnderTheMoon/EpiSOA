@@ -132,3 +132,18 @@ def test_build_evidence_graph_preserves_time_stage_and_source_scope_metadata() -
 
     assert evidence_node["time_stage"] == "trigger"
     assert evidence_node["source_scope"] == "forum"
+
+
+def test_file_based_graph_builder_validates_missing_fields(tmp_path) -> None:
+    from episoa.experimental_pipeline import build_graph
+
+    evidence = tmp_path / "normalized_evidence.jsonl"
+    evidence.write_text('{"evidence_id":"ev-1"}\n', encoding="utf-8")
+
+    try:
+        build_graph(evidence, tmp_path / "nodes.jsonl", tmp_path / "edges.jsonl")
+    except ValueError as exc:
+        assert "failed schema validation" in str(exc)
+        assert "event_id" in str(exc)
+    else:
+        raise AssertionError("build_graph should fail on invalid evidence schema")

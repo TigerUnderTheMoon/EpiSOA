@@ -222,9 +222,17 @@ def validate_dataset(
             errors.append(f"silver_tuples:{index} confidence must be between 0 and 1")
 
     for index, record in enumerate(gold_event_chains, start=1):
+        event_id = record.get("event_id")
+        if not isinstance(event_id, str) or event_id not in event_ids:
+            errors.append(f"gold_event_chains:{index} references unknown event_id: {event_id!r}")
         event_chain = record.get("event_chain")
         if not isinstance(event_chain, list) or not event_chain or not all(isinstance(item, str) and item for item in event_chain):
             errors.append(f"gold_event_chains:{index} event_chain must be a non-empty list of strings")
+        chain_evidence_ids = record.get("evidence_ids")
+        if isinstance(chain_evidence_ids, list):
+            for evidence_id in chain_evidence_ids:
+                if evidence_id not in evidence_ids:
+                    errors.append(f"gold_event_chains:{index} references unknown evidence_id: {evidence_id!r}")
 
     has_mock_marker = any(
         contains_marker(record)

@@ -1,0 +1,1 @@
+{"event_id":"example-event-001","target_event":"Example public hearing for schema demonstration","time_window":{"start":"2026-01-01","end":"2026-01-31"},"event_chain":["Example notice issued","Example hearing held"],"title":"Example hearing","source":"example only","notes":"Example file only; do not copy into formal data."}
