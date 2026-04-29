@@ -12,6 +12,7 @@ from episoa.collector.fsm_graph import build_collector_graph
 from episoa.config import load_runtime_config
 from episoa.evaluation.case_study import write_case_study_examples
 from episoa.evaluation.faithfulness_metrics import evaluate_jsonl
+from episoa.evaluation.metrics import ensure_paper_metric_keys
 from episoa.eventrag.path_reranking import retrieve_event_chains
 from episoa.experiment import (
     RunContext,
@@ -132,6 +133,13 @@ def run_pipeline(
             collector_input,
             config={"recursion_limit": int(collector_config.get("recursion_limit", 30))},
         )
+        _write_json_file(run_context.run_dir / "collector_coverage.json", {
+            "coverage_status": collector_state.get("coverage_status", {}),
+            "visited_states": collector_state.get("visited_states", []),
+            "coverage_attempts": collector_state.get("coverage_attempts", 0),
+            "query_plan": collector_state.get("query_plan", []),
+            "selected_sources": collector_state.get("selected_sources", []),
+        })
         if evidence_pool is None:
             evidence_pool = _evidence_from_collector_state(event_description, collector_state)
     else:
@@ -159,12 +167,18 @@ def run_pipeline(
         log_step("2/8 Running relevance-only evidence retrieval")
         candidate_evidence = _relevance_only_retrieve(event_description, evidence_pool, top_k_evidence, relevance_scorer)
     log_step(f"Selected {len(candidate_evidence)} candidate evidence records")
+    write_jsonl(candidate_evidence, run_context.run_dir / "selected_evidence.jsonl")
 
     evidence_graph = None
     if ablation_config["use_evidence_graph"]:
         log_step("3/8 Building Stakeholder-centered Evidence Graph")
-        evidence_graph = build_evidence_graph(candidate_evidence)
+        evidence_graph = build_evidence_graph(
+            candidate_evidence,
+            include_temporal_edges=ablation_config["use_temporal_information"],
+            include_stakeholder_edges=not ablation_config.get("disable_stakeholder_constraint", False),
+        )
         log_step(f"Evidence graph has {evidence_graph.node_count} nodes and {evidence_graph.edge_count} edges")
+        _write_json_file(run_context.run_dir / "graph_summary.json", _graph_summary(evidence_graph))
     else:
         log_step("3/8 Skipping Stakeholder-centered Evidence Graph")
 
@@ -173,8 +187,11 @@ def run_pipeline(
         event_chains = retrieve_event_chains(
             event_description,
             evidence_graph,
-            depth=int(pipeline_config.get("eventrag_depth", 2)),
-            top_k=int(pipeline_config.get("eventrag_top_k", 3)),
+            depth=int(config.get("event_chain", {}).get("max_depth", pipeline_config.get("eventrag_depth", 2))),
+            top_k=int(config.get("event_chain", {}).get("top_k", pipeline_config.get("eventrag_top_k", 3))),
+            scoring_weights=dict(config.get("event_chain", {}).get("scoring_weights", {})),
+            use_stakeholder_constraint=not ablation_config.get("disable_stakeholder_constraint", False),
+            use_temporal_information=ablation_config["use_temporal_information"],
         )
     else:
         log_step("4/8 Skipping EventRAG-style Event-chain Retriever")
@@ -182,6 +199,7 @@ def run_pipeline(
     if not event_chains:
         event_chains = [_fallback_event_chain(event_description, candidate_evidence)]
     log_step(f"Generated {len(event_chains)} event evidence packages")
+    write_jsonl(event_chains, run_context.run_dir / "event_chain_candidates.jsonl")
 
     log_step("5/8 Running Schema-constrained Attribution Reasoner")
     raw_attributions: list[AttributionTuple] = []
@@ -210,6 +228,7 @@ def run_pipeline(
     else:
         log_step("6/8 Skipping Evidence Verifier")
         verified_attributions = raw_attributions
+    _write_json_file(run_context.run_dir / "verification_report.json", _verification_report(verified_attributions))
 
     log_step("7/8 Writing JSONL output")
     write_jsonl(verified_attributions, run_context.predictions_path)
@@ -237,6 +256,44 @@ def write_jsonl(attributions: list[AttributionTuple], output_path: str | Path) -
     with path.open("w", encoding="utf-8") as file:
         for attribution in attributions:
             file.write(json.dumps(attribution.model_dump(mode="json"), ensure_ascii=False) + "\n")
+
+
+def _write_json_file(output_path: str | Path, payload: dict[str, Any]) -> None:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _graph_summary(evidence_graph) -> dict[str, Any]:
+    node_type_counts: dict[str, int] = {}
+    edge_type_counts: dict[str, int] = {}
+    for _, attrs in evidence_graph.graph.nodes(data=True):
+        node_type = str(attrs.get("node_type", "unknown"))
+        node_type_counts[node_type] = node_type_counts.get(node_type, 0) + 1
+    for _, _, attrs in evidence_graph.graph.edges(data=True):
+        edge_type = str(attrs.get("edge_type", "unknown"))
+        edge_type_counts[edge_type] = edge_type_counts.get(edge_type, 0) + 1
+    return {
+        "node_count": evidence_graph.node_count,
+        "edge_count": evidence_graph.edge_count,
+        "node_type_counts": node_type_counts,
+        "edge_type_counts": edge_type_counts,
+    }
+
+
+def _verification_report(attributions: list[AttributionTuple]) -> dict[str, Any]:
+    total = len(attributions)
+    verified = sum(item.verified for item in attributions)
+    failure_reasons: dict[str, int] = {}
+    for item in attributions:
+        reason = item.failure_reason or "verified"
+        failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+    return {
+        "total": total,
+        "verified": verified,
+        "verified_rate": 0.0 if total == 0 else verified / total,
+        "failure_reasons": failure_reasons,
+    }
 
 
 def _ablation_flags(config: dict[str, Any]) -> dict[str, bool]:
@@ -271,6 +328,8 @@ def _write_or_compute_metrics(config: dict[str, Any], run_context: RunContext) -
             run_context.metrics_path,
             k=int(evaluation_config.get("k", 5)),
         )
+        metrics = ensure_paper_metric_keys(metrics)
+        _write_json_file(run_context.metrics_path, metrics)
         log_step(f"Wrote metrics to {run_context.metrics_path}: {metrics}")
         return
 

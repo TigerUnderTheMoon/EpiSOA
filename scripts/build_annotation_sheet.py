@@ -25,6 +25,7 @@ FIELDNAMES = [
     "annotated_rationale",
     "annotated_event_chain",
     "annotated_evidence_ids",
+    "support_label",
     "support_score",
     "verified",
     "notes",
@@ -64,6 +65,7 @@ def build_rows(events_path: str | Path, evidence_path: str | Path) -> list[dict[
                 "annotated_rationale": "",
                 "annotated_event_chain": ";".join(str(item) for item in event_chain),
                 "annotated_evidence_ids": record.get("evidence_id", ""),
+                "support_label": "",
                 "support_score": "",
                 "verified": "",
                 "notes": "",
@@ -72,8 +74,53 @@ def build_rows(events_path: str | Path, evidence_path: str | Path) -> list[dict[
     return rows
 
 
-def write_annotation_sheet(events_path: str | Path, evidence_path: str | Path, output_path: str | Path) -> int:
-    rows = build_rows(events_path, evidence_path)
+def build_rows_from_candidate_pairs(events_path: str | Path, candidate_pairs_path: str | Path) -> list[dict[str, Any]]:
+    """Build annotation rows from silver-generated evidence-pair candidates."""
+    events = {record.get("event_id"): record for record in load_jsonl(Path(events_path))}
+    rows: list[dict[str, Any]] = []
+    for record in load_jsonl(Path(candidate_pairs_path)):
+        event = events.get(record.get("event_id"), {})
+        event_chain = record.get("candidate_event_chain") or event.get("event_chain") or []
+        if not isinstance(event_chain, list):
+            event_chain = [str(event_chain)]
+        rows.append(
+            {
+                "event_id": record.get("event_id", ""),
+                "evidence_id": record.get("evidence_id", ""),
+                "platform": record.get("platform", ""),
+                "url": record.get("url", ""),
+                "timestamp": record.get("timestamp", ""),
+                "source_type": record.get("source_type", ""),
+                "text": record.get("text", ""),
+                "suggested_stakeholder": record.get("candidate_stakeholder", ""),
+                "suggested_sentiment": record.get("candidate_sentiment", ""),
+                "annotated_stakeholder": record.get("candidate_stakeholder", ""),
+                "annotated_opinion": record.get("candidate_opinion", ""),
+                "annotated_sentiment": record.get("candidate_sentiment", ""),
+                "annotated_rationale": record.get("candidate_rationale", ""),
+                "annotated_event_chain": ";".join(str(item) for item in event_chain if str(item).strip()),
+                "annotated_evidence_ids": record.get("evidence_id", ""),
+                "support_label": "",
+                "support_score": "",
+                "verified": "",
+                "notes": f"candidate_id={record.get('candidate_id', '')}; label_source={record.get('label_source', '')}",
+            }
+        )
+    return rows
+
+
+def write_annotation_sheet(
+    events_path: str | Path,
+    evidence_path: str | Path,
+    output_path: str | Path,
+    *,
+    candidate_pairs_path: str | Path | None = None,
+) -> int:
+    rows = (
+        build_rows_from_candidate_pairs(events_path, candidate_pairs_path)
+        if candidate_pairs_path is not None
+        else build_rows(events_path, evidence_path)
+    )
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="") as handle:
@@ -87,6 +134,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build an EpiSOA annotation CSV sheet.")
     parser.add_argument("--events", required=True)
     parser.add_argument("--evidence", required=True)
+    parser.add_argument("--candidate-pairs")
     parser.add_argument("--output", required=True)
     return parser
 
@@ -94,7 +142,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
-    row_count = write_annotation_sheet(args.events, args.evidence, args.output)
+    row_count = write_annotation_sheet(args.events, args.evidence, args.output, candidate_pairs_path=args.candidate_pairs)
     print(f"wrote annotation sheet with {row_count} rows: {args.output}")
     return 0
 

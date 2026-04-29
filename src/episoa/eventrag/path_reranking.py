@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from episoa.eventrag.evidence_backtracking import EvidenceBackedPath
 from episoa.eventrag.evidence_backtracking import backtrack_evidence
@@ -38,12 +39,14 @@ def score_path(
     lambda_4: float = 0.7,
     lambda_5: float = 0.7,
     lambda_6: float = 0.4,
+    use_stakeholder_constraint: bool = True,
+    use_temporal_information: bool = True,
 ) -> ScoredEventPath:
     """Score a path with the requested EventRAG formula."""
     relevance = _path_relevance(query, evidence_graph, path)
     evidence_support = min(1.0, len(path.evidence) / max(1, len(path.path.node_ids)))
-    stakeholder_coverage = min(1.0, len(set(path.stakeholders)) / 3)
-    temporal_coherence = _temporal_coherence(path)
+    stakeholder_coverage = min(1.0, len(set(path.stakeholders)) / 3) if use_stakeholder_constraint else 0.0
+    temporal_coherence = _temporal_coherence(path) if use_temporal_information else 0.0
     causal_plausibility = _causal_plausibility(path)
     redundancy = _redundancy(path)
     score = (
@@ -72,9 +75,28 @@ def rerank_paths(
     evidence_graph: EvidenceGraph,
     paths: list[EvidenceBackedPath],
     top_k: int = 5,
+    scoring_weights: dict[str, Any] | None = None,
+    use_stakeholder_constraint: bool = True,
+    use_temporal_information: bool = True,
 ) -> list[ScoredEventPath]:
     """Rank evidence-backed paths by path-level score."""
-    scored = [score_path(query, evidence_graph, path) for path in paths]
+    weights = scoring_weights or {}
+    scored = [
+        score_path(
+            query,
+            evidence_graph,
+            path,
+            lambda_1=float(weights.get("lambda_1", 1.0)),
+            lambda_2=float(weights.get("lambda_2", 1.0)),
+            lambda_3=float(weights.get("lambda_3", 0.5)),
+            lambda_4=float(weights.get("lambda_4", 0.7)),
+            lambda_5=float(weights.get("lambda_5", 0.7)),
+            lambda_6=float(weights.get("lambda_6", 0.4)),
+            use_stakeholder_constraint=use_stakeholder_constraint,
+            use_temporal_information=use_temporal_information,
+        )
+        for path in paths
+    ]
     return sorted(scored, key=lambda item: item.score, reverse=True)[: max(top_k, 0)]
 
 
@@ -88,7 +110,16 @@ def scored_path_to_event_chain(evidence_graph: EvidenceGraph, scored_path: Score
         target_event=event_labels[0],
         event_chain=event_labels,
         stakeholders=list(scored_path.path.stakeholders) or ["unknown"],
-        candidate_rationales=[f"path_score={scored_path.score:.3f}"],
+        candidate_rationales=[
+            (
+                f"path_score={scored_path.score:.3f}; relevance={scored_path.relevance:.3f}; "
+                f"evidence_support={scored_path.evidence_support:.3f}; "
+                f"stakeholder_coverage={scored_path.stakeholder_coverage:.3f}; "
+                f"temporal_coherence={scored_path.temporal_coherence:.3f}; "
+                f"causal_plausibility={scored_path.causal_plausibility:.3f}; "
+                f"redundancy={scored_path.redundancy:.3f}"
+            )
+        ],
         evidence=list(scored_path.path.evidence),
     )
 
@@ -100,13 +131,24 @@ def retrieve_event_chains(
     depth: int = 2,
     top_k: int = 5,
     anchor_top_k: int = 3,
+    scoring_weights: dict[str, Any] | None = None,
+    use_stakeholder_constraint: bool = True,
+    use_temporal_information: bool = True,
 ) -> list[EventChain]:
     """Run the complete EventRAG retrieval pipeline and return EventChain schemas."""
     query_event = parse_query_to_event(query)
     anchors = select_anchor_events(query_event, evidence_graph, top_k=anchor_top_k)
     paths = expand_event_chains(evidence_graph, anchors, depth=depth)
     evidence_backed_paths = [backtrack_evidence(evidence_graph, path) for path in paths]
-    scored_paths = rerank_paths(query, evidence_graph, evidence_backed_paths, top_k=top_k)
+    scored_paths = rerank_paths(
+        query,
+        evidence_graph,
+        evidence_backed_paths,
+        top_k=top_k,
+        scoring_weights=scoring_weights,
+        use_stakeholder_constraint=use_stakeholder_constraint,
+        use_temporal_information=use_temporal_information,
+    )
     return [scored_path_to_event_chain(evidence_graph, scored_path) for scored_path in scored_paths]
 
 

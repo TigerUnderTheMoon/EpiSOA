@@ -10,6 +10,7 @@ from episoa.schemas.evidence import EvidenceRecord
 
 
 SentimentLabel = Literal["positive", "negative", "neutral", "mixed", "unknown"]
+SupportLabel = Literal["supported", "partially_supported", "unsupported", "insufficient_evidence"]
 
 
 class AttributionTuple(BaseModel):
@@ -26,6 +27,7 @@ class AttributionTuple(BaseModel):
     evidence: list[EvidenceRecord] = Field(..., min_length=1, description="Evidence supporting the attribution tuple.")
     support_score: float = Field(..., ge=0.0, le=1.0, description="Confidence score in the range [0, 1].")
     verified: bool = Field(False, description="Whether the tuple passed verification checks.")
+    support_label: SupportLabel = Field("supported", description="Paper-facing evidence support label.")
     failure_reason: str | None = Field(None, description="Reason the tuple failed verification, if any.")
 
     @field_validator("event", "stakeholder", "opinion", "rationale", mode="before")

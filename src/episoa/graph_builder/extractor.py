@@ -27,7 +27,13 @@ class MockEvidenceGraphExtractor:
 
     default_event: str = "target_event"
 
-    def extract(self, evidence_records: list[EvidenceRecord]) -> EvidenceGraph:
+    def extract(
+        self,
+        evidence_records: list[EvidenceRecord],
+        *,
+        include_temporal_edges: bool = True,
+        include_stakeholder_edges: bool = True,
+    ) -> EvidenceGraph:
         """Build an EvidenceGraph from normalized evidence records."""
         evidence_graph = EvidenceGraph()
 
@@ -41,6 +47,8 @@ class MockEvidenceGraphExtractor:
             trigger_event = _metadata_text(record, "trigger_event", "")
             responds_to_event = _metadata_text(record, "responds_to", "")
             amplifies_event = _metadata_text(record, "amplifies", "")
+            time_stage = _metadata_text(record, "time_stage", "")
+            source_scope = _metadata_text(record, "source_scope", _metadata_text(record, "source_family", ""))
 
             event_node = _node_id("event", event)
             stakeholder_node = _node_id("stakeholder", stakeholder)
@@ -64,18 +72,22 @@ class MockEvidenceGraphExtractor:
                 text=record.text,
                 author_alias=record.author_alias,
                 source_type=record.source_type,
+                time_stage=time_stage,
+                source_scope=source_scope,
                 metadata=record.metadata,
             )
             evidence_graph.add_node(time_node, "Time", label=record.timestamp.isoformat())
 
-            evidence_graph.add_edge(stakeholder_node, opinion_node, "expresses", evidence_id=record.evidence_id)
+            if include_stakeholder_edges:
+                evidence_graph.add_edge(stakeholder_node, opinion_node, "expresses", evidence_id=record.evidence_id)
             evidence_graph.add_edge(opinion_node, sentiment_node, "has_sentiment", evidence_id=record.evidence_id)
             evidence_graph.add_edge(opinion_node, rationale_node, "caused_by", evidence_id=record.evidence_id)
             evidence_graph.add_edge(opinion_node, evidence_node, "evidenced_by", evidence_id=record.evidence_id)
-            evidence_graph.add_edge(evidence_node, time_node, "appears_at", evidence_id=record.evidence_id)
+            if include_temporal_edges:
+                evidence_graph.add_edge(evidence_node, time_node, "appears_at", evidence_id=record.evidence_id)
             evidence_graph.add_edge(event_node, evidence_node, "evidenced_by", evidence_id=record.evidence_id)
 
-            if previous_event_node and previous_event_node != event_node:
+            if include_temporal_edges and previous_event_node and previous_event_node != event_node:
                 evidence_graph.add_edge(previous_event_node, event_node, "precedes", evidence_id=record.evidence_id)
 
             if trigger_event:
@@ -98,6 +110,15 @@ class MockEvidenceGraphExtractor:
         return evidence_graph
 
 
-def build_evidence_graph(evidence_records: list[EvidenceRecord]) -> EvidenceGraph:
+def build_evidence_graph(
+    evidence_records: list[EvidenceRecord],
+    *,
+    include_temporal_edges: bool = True,
+    include_stakeholder_edges: bool = True,
+) -> EvidenceGraph:
     """Build a stakeholder-centered evidence graph with the default mock extractor."""
-    return MockEvidenceGraphExtractor().extract(evidence_records)
+    return MockEvidenceGraphExtractor().extract(
+        evidence_records,
+        include_temporal_edges=include_temporal_edges,
+        include_stakeholder_edges=include_stakeholder_edges,
+    )

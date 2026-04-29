@@ -12,11 +12,13 @@ from episoa.evaluation.faithfulness_metrics import evaluate_jsonl
 PAPER_METRIC_KEYS = [
     "tuple_f1",
     "stakeholder_f1",
+    "opinion_f1",
     "sentiment_macro_f1",
     "evidence_recall_at_k",
     "evidence_support_rate",
     "unsupported_tuple_rate",
     "path_recall_at_k",
+    "temporal_order_accuracy",
 ]
 
 

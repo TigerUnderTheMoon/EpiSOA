@@ -45,3 +45,28 @@ def test_runtime_config_keeps_existing_pipeline_compatibility() -> None:
     assert runtime["pipeline"]["eventrag_depth"] == 2
     assert runtime["verifier"]["threshold"] == 0.75
     assert runtime["output"]["run_dir"] == "outputs/runs/pubevent-soa-lite-mock"
+
+
+def test_formal_configs_load_with_collector_defaults() -> None:
+    formal = load_experiment_config("configs/formal.yaml")
+    formal_ablation = load_experiment_config("configs/formal_ablation.yaml")
+
+    assert formal.mode == "real"
+    assert formal.data.require_formal_validation is True
+    assert formal.collector.coverage_weights["traceability"] == 1.0
+    assert formal_ablation.ablation_settings["without_temporal_edges"].disable_temporal_edges is True
+
+
+def test_formal_validation_report_must_pass_before_real_run(tmp_path, monkeypatch) -> None:
+    report = tmp_path / "dataset_validation_formal.json"
+    report.write_text(
+        '{"is_formal_dataset": false, "num_events": 0, "num_evidence": 0, '
+        '"num_gold_tuples": 0, "num_gold_event_chains": 0, "errors": []}\n',
+        encoding="utf-8",
+    )
+    config = load_experiment_config("configs/formal.yaml")
+    config.data.validation_report_path = str(report)
+    monkeypatch.setenv(config.model.api_key_env, "test-key")
+
+    with pytest.raises(RuntimeError, match="is_formal_dataset=true"):
+        config.validate_mode_requirements()

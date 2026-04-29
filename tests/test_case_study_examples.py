@@ -87,3 +87,36 @@ def test_case_study_examples_and_validation_outputs_shape() -> None:
         "source",
     }
     assert validate_outputs.validate_run_outputs(run_dir)["case_study_examples.json"] is True
+
+
+def test_export_paper_tables_writes_spec_outputs(tmp_path: Path) -> None:
+    module_path = Path("scripts/export_paper_tables.py")
+    spec = importlib.util.spec_from_file_location("export_paper_tables", module_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    run_dir = tmp_path / "runs" / "paper-run"
+    baseline_dir = run_dir / "baselines" / "vanilla_rag"
+    ablation_dir = run_dir / "ablations" / "without_verifier"
+    baseline_dir.mkdir(parents=True)
+    ablation_dir.mkdir(parents=True)
+    (run_dir / "summary.json").write_text("{}", encoding="utf-8")
+    metrics = {"tuple_f1": 0.5, "stakeholder_f1": 0.6, "opinion_f1": 0.7}
+    (run_dir / "metrics.json").write_text(json.dumps(metrics), encoding="utf-8")
+    (baseline_dir / "metrics.json").write_text(json.dumps(metrics), encoding="utf-8")
+    (ablation_dir / "metrics.json").write_text(json.dumps({**metrics, "path_recall_at_k": 0.4}), encoding="utf-8")
+    (run_dir / "case_study_examples.json").write_text(
+        json.dumps({"cases": [{"case_id": "case-1", "case_type": "representative", "source": "predictions.jsonl"}]}),
+        encoding="utf-8",
+    )
+
+    paths = module.export_paper_tables(tmp_path / "runs", tmp_path / "results")
+
+    assert paths["main_results"].name == "main_results.csv"
+    assert paths["ablation_results"].name == "ablation_results.csv"
+    assert paths["case_studies"].name == "case_studies.jsonl"
+    assert "Vanilla RAG" in paths["main_results"].read_text(encoding="utf-8")
+    assert "w/o verifier" in paths["ablation_results"].read_text(encoding="utf-8")
+    assert "case-1" in paths["case_studies"].read_text(encoding="utf-8")

@@ -42,6 +42,7 @@ def test_validate_dataset_flags_mock_markers(tmp_path: Path) -> None:
                 "event_chain": ["a"],
                 "evidence_ids": ["ev-1"],
                 "support_score": 0.9,
+                "support_label": "supported",
                 "verified": True,
             }
         ],
@@ -83,9 +84,9 @@ def test_convert_annotation_csv_to_gold_and_validate(tmp_path: Path) -> None:
     csv_path.write_text(
         "event_id,evidence_id,platform,url,timestamp,source_type,text,suggested_stakeholder,"
         "suggested_sentiment,annotated_stakeholder,annotated_opinion,annotated_sentiment,"
-        "annotated_rationale,annotated_event_chain,annotated_evidence_ids,support_score,verified,notes\n"
+        "annotated_rationale,annotated_event_chain,annotated_evidence_ids,support_label,support_score,verified,notes\n"
         "evt-1,ev-1,,,,,,,"
-        ",residents,opinion,positive,rationale,a,ev-1,0.75,true,\n",
+        ",residents,opinion,positive,rationale,a,ev-1,supported,0.75,true,\n",
         encoding="utf-8",
     )
 
@@ -102,4 +103,94 @@ def test_convert_annotation_csv_to_gold_and_validate(tmp_path: Path) -> None:
     assert records[0]["tuple_id"] == "tuple-00001"
     assert records[0]["event_chain"] == ["a"]
     assert records[0]["evidence_ids"] == ["ev-1"]
+    assert records[0]["support_label"] == "supported"
     assert report["is_formal_dataset"] is True
+
+
+def test_urban_renewal_data_construction_flow(tmp_path: Path) -> None:
+    dataset = load_script("src/episoa/dataset_construction.py", "dataset_construction")
+    sheet_module = load_script("scripts/build_annotation_sheet.py", "build_sheet_for_flow")
+    convert_module = load_script("scripts/convert_annotation_csv_to_gold.py", "convert_for_flow")
+    validate_module = load_script("scripts/validate_dataset.py", "validate_for_flow")
+
+    source_csv = tmp_path / "exports.csv"
+    source_csv.write_text(
+        "event_seed_id,platform,url,timestamp,source_type,title,text\n"
+        "block-a,News,https://news.test/a,2026-01-01T00:00:00Z,news,旧改补偿方案公布,居民质疑旧改补偿方案不透明 contact@example.com\n"
+        "block-b,Forum,https://forum.test/b,2026-01-02T00:00:00Z,forum,城市更新听证,商户担心城市更新影响经营 555-123-4567\n",
+        encoding="utf-8",
+    )
+
+    raw = tmp_path / "raw_posts.jsonl"
+    events = tmp_path / "events.jsonl"
+    silver = tmp_path / "silver_tuples.jsonl"
+    pairs = tmp_path / "candidate_evidence_pairs.jsonl"
+    sheet = tmp_path / "annotation.csv"
+    filled = tmp_path / "annotation_filled.csv"
+    evidence = tmp_path / "evidence.jsonl"
+    gold = tmp_path / "gold_tuples.jsonl"
+    chains = tmp_path / "gold_event_chains.jsonl"
+
+    dataset.import_raw_posts(source_csv, raw)
+    dataset.extract_events(raw, events)
+    dataset.generate_silver_tuples(raw, events, silver)
+    dataset.build_evidence_pairs(raw, silver, pairs)
+    sheet_module.write_annotation_sheet(events, evidence, sheet, candidate_pairs_path=pairs)
+
+    rows = list(csv.DictReader(sheet.open("r", encoding="utf-8", newline="")))
+    assert len(rows) == 2
+    for row in rows:
+        row["support_label"] = "supported"
+        row["support_score"] = "0.85"
+        row["verified"] = "true"
+    with filled.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=sheet_module.FIELDNAMES)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    convert_module.convert_csv_to_gold(filled, gold, evidence_output_path=evidence)
+    event_records = [json.loads(line) for line in events.read_text(encoding="utf-8").splitlines()]
+    write_jsonl(chains, [{"event_id": item["event_id"], "event_chain": item["event_chain"]} for item in event_records])
+
+    report = validate_module.validate_dataset(events, evidence, gold, chains, raw_posts_path=raw, silver_tuples_path=silver)
+    raw_text = raw.read_text(encoding="utf-8")
+
+    assert "contact@example.com" not in raw_text
+    assert "555-123-4567" not in raw_text
+    assert report["errors"] == []
+    assert report["num_raw_posts"] == 2
+    assert report["num_silver_tuples"] == 2
+
+
+def test_validate_dataset_rejects_silver_in_gold(tmp_path: Path) -> None:
+    module = load_script("scripts/validate_dataset.py", "validate_silver_in_gold")
+    events = tmp_path / "events.jsonl"
+    evidence = tmp_path / "evidence.jsonl"
+    tuples = tmp_path / "gold_tuples.jsonl"
+    chains = tmp_path / "gold_event_chains.jsonl"
+
+    write_jsonl(events, [{"event_id": "evt-1", "target_event": "Urban renewal", "event_chain": ["a"]}])
+    write_jsonl(evidence, [{"evidence_id": "ev-1", "event_id": "evt-1", "url": "https://news.test/a", "text": "text"}])
+    write_jsonl(
+        tuples,
+        [
+            {
+                "event_id": "evt-1",
+                "stakeholder": "residents",
+                "opinion": "opinion",
+                "sentiment": "negative",
+                "rationale": "rationale",
+                "event_chain": ["a"],
+                "evidence_ids": ["ev-1"],
+                "support_score": 0.9,
+                "support_label": "supported",
+                "verified": True,
+                "label_source": "llm_silver",
+            }
+        ],
+    )
+    write_jsonl(chains, [{"event_id": "evt-1", "event_chain": ["a"]}])
+
+    report = module.validate_dataset(events, evidence, tuples, chains)
+
+    assert any("llm_silver" in error for error in report["errors"])

@@ -45,6 +45,10 @@ def stakeholder_key(row: dict[str, Any]) -> str:
     return normalize_text(row.get("stakeholder"))
 
 
+def opinion_key(row: dict[str, Any]) -> str:
+    return normalize_text(row.get("opinion"))
+
+
 def precision_from_sets(predicted: set[Any], gold: set[Any]) -> float:
     """Compute exact-match set precision."""
     if not predicted and not gold:
@@ -98,6 +102,14 @@ def stakeholder_f1(predictions: list[dict[str, Any]], gold: list[dict[str, Any]]
     )
 
 
+def opinion_f1(predictions: list[dict[str, Any]], gold: list[dict[str, Any]]) -> float:
+    """F1 over unique normalized opinion strings."""
+    return f1_from_sets(
+        {opinion_key(row) for row in predictions if opinion_key(row)},
+        {opinion_key(row) for row in gold if opinion_key(row)},
+    )
+
+
 def tuple_level_f1(predictions: list[dict[str, Any]], gold: list[dict[str, Any]]) -> float:
     """Exact-match F1 over event/stakeholder/opinion/sentiment tuples."""
     return f1_from_sets(
@@ -142,6 +154,7 @@ def evaluate_tuple_metrics(predictions: list[dict[str, Any]], gold: list[dict[st
         "stakeholder_precision": stakeholder_precision(predictions, gold),
         "stakeholder_recall": stakeholder_recall(predictions, gold),
         "stakeholder_f1": stakeholder_f1(predictions, gold),
+        "opinion_f1": opinion_f1(predictions, gold),
         "sentiment_accuracy": sentiment_f1,
         "sentiment_macro_f1": sentiment_f1,
         "tuple_f1": tuple_f1,

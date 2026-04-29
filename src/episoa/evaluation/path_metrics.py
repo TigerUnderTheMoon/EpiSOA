@@ -27,6 +27,29 @@ def path_recall_at_k(predictions: list[dict[str, Any]], gold: list[dict[str, Any
     return len(set(predicted_paths[:k]) & gold_paths) / len(gold_paths)
 
 
+def temporal_order_accuracy(predictions: list[dict[str, Any]], gold: list[dict[str, Any]]) -> float:
+    """Share of comparable chains whose event order exactly matches gold order."""
+    gold_by_events = {frozenset(path): path for row in gold if (path := path_key(row))}
+    if not gold_by_events:
+        return 1.0
+
+    comparable = 0
+    correct = 0
+    for row in predictions:
+        predicted = path_key(row)
+        if not predicted:
+            continue
+        gold_path = gold_by_events.get(frozenset(predicted))
+        if gold_path is None:
+            continue
+        comparable += 1
+        if predicted == gold_path:
+            correct += 1
+    if comparable == 0:
+        return 0.0
+    return correct / comparable
+
+
 def evaluate_path_metrics(
     predictions: list[dict[str, Any]],
     gold: list[dict[str, Any]],
@@ -38,4 +61,5 @@ def evaluate_path_metrics(
         "path_recall_at_3": path_recall_at_k(predictions, gold, k=3),
         "path_recall_at_5": path_recall_at_k(predictions, gold, k=5),
         "path_recall_at_k": path_recall_at_k(predictions, gold, k=k),
+        "temporal_order_accuracy": temporal_order_accuracy(predictions, gold),
     }

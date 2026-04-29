@@ -40,3 +40,15 @@ def test_run_real_llm_experiment_is_thin_pipeline_wrapper() -> None:
     args = parser.parse_args([])
 
     assert args.config == "configs/experiment_real_llm.yaml"
+
+
+def test_spec_cli_exposes_run_all_and_export_commands() -> None:
+    from episoa.cli import build_parser
+
+    parser = build_parser()
+
+    run_args = parser.parse_args(["run-all", "--config", "configs/default.yaml"])
+    export_args = parser.parse_args(["evaluate", "--runs-dir", "outputs/runs", "--output", "results"])
+
+    assert run_args.config == "configs/default.yaml"
+    assert export_args.output == "results"

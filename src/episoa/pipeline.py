@@ -9,6 +9,7 @@ from typing import Any
 
 from episoa.config import ExperimentConfig
 from episoa.evaluation.evaluator import evaluate
+from episoa.evaluation.metrics import ensure_paper_metric_keys
 from episoa.experiment import RunContext, configure_logging, get_logger, save_config_snapshot, set_random_seed
 from episoa.main import run_pipeline as run_episoa_pipeline
 from episoa.schemas.evidence import EvidenceRecord
@@ -147,8 +148,8 @@ def write_summary_json(
     report_path = run_context.run_dir / "summary.json"
     payload = {
         "mode": config.mode,
-        "is_formal_paper_result": config.mode == "real",
-        "result_scope": "formal_paper_experiment" if config.mode == "real" else "mock_or_ablation_smoke_only",
+        "is_formal_paper_result": config.is_formal_paper_run(),
+        "result_scope": "formal_paper_experiment" if config.is_formal_paper_run() else "mock_or_ablation_smoke_only",
         "run_id": run_context.run_id,
         "seed": config.seed,
         "dataset_name": config.data.dataset_name,
@@ -185,7 +186,9 @@ def _evaluate_if_available(config: ExperimentConfig, run_context: RunContext) ->
             gold_event_chains_path,
             metrics_path=run_context.metrics_path,
         )
-        return dict(metrics)
+        metrics = ensure_paper_metric_keys(dict(metrics))
+        run_context.metrics_path.write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return metrics
     if run_context.metrics_path.exists():
         try:
             return json.loads(run_context.metrics_path.read_text(encoding="utf-8"))

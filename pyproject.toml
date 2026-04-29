@@ -33,7 +33,7 @@ real-model = [
 ]
 
 [project.scripts]
-episoa = "episoa.main:main"
+episoa = "episoa.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

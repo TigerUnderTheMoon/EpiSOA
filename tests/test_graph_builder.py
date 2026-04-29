@@ -94,3 +94,41 @@ def test_build_evidence_graph_writes_expected_edges_and_evidence_ids() -> None:
     }.issubset(edge_types)
     assert evidence_node["evidence_id"] == "ev-1"
     assert edges_with_ev_2
+
+
+def test_build_evidence_graph_respects_temporal_and_stakeholder_ablations() -> None:
+    graph = build_evidence_graph(
+        [
+            make_evidence("ev-1", "Public criticism", "Customers", "negative", 1),
+            make_evidence("ev-2", "Company response", "Company", "neutral", 2),
+        ],
+        include_temporal_edges=False,
+        include_stakeholder_edges=False,
+    )
+
+    edge_types = {attrs["edge_type"] for _, _, attrs in graph.graph.edges(data=True)}
+
+    assert "appears_at" not in edge_types
+    assert "precedes" not in edge_types
+    assert "expresses" not in edge_types
+
+
+def test_build_evidence_graph_preserves_time_stage_and_source_scope_metadata() -> None:
+    graph = build_evidence_graph(
+        [
+            make_evidence(
+                "ev-1",
+                "Public criticism",
+                "Customers",
+                "negative",
+                1,
+                time_stage="trigger",
+                source_scope="forum",
+            ),
+        ]
+    )
+
+    evidence_node = graph.graph.nodes["evidence:ev-1"]
+
+    assert evidence_node["time_stage"] == "trigger"
+    assert evidence_node["source_scope"] == "forum"

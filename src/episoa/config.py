@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any, Literal
@@ -34,6 +35,8 @@ class DataConfig(BaseModel):
     event_query_path: str = Field(..., min_length=1)
     dataset_name: str = Field(..., min_length=1)
     gold_event_chains_path: str | None = None
+    require_formal_validation: bool = False
+    validation_report_path: str | None = None
 
 
 class ModelConfig(BaseModel):
@@ -91,6 +94,45 @@ class EventChainConfig(BaseModel):
     max_depth: int = Field(..., ge=1, le=3)
     top_k: int = Field(..., ge=1)
     enabled: bool = True
+    lambda_1: float = 1.0
+    lambda_2: float = 1.0
+    lambda_3: float = 0.5
+    lambda_4: float = 0.7
+    lambda_5: float = 0.7
+    lambda_6: float = 0.4
+
+
+class CollectorConfig(BaseModel):
+    """C-FSM evidence collector controls."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    max_queries_per_event: int = Field(8, ge=1)
+    max_pages_per_query: int = Field(5, ge=1)
+    max_evidence_per_event: int = Field(80, ge=1)
+    max_feedback_transitions: int = Field(2, ge=0)
+    fetch_seed_urls: bool = False
+    fetch_search_results: bool = False
+    http_timeout_seconds: float = Field(10.0, ge=0.1)
+    user_agent: str = "EpiSOA research crawler (+public evidence collection; contact: local researcher)"
+    source_scope: list[str] = Field(default_factory=lambda: ["news", "forum", "official_response", "public_web"])
+    time_stages: list[str] = Field(default_factory=lambda: ["trigger", "diffusion", "response"])
+    min_stakeholders: int = Field(2, ge=1)
+    min_stances: int = Field(2, ge=1)
+    min_time_stages: int = Field(2, ge=1)
+    min_traceability_rate: float = Field(0.8, ge=0.0, le=1.0)
+    max_redundancy_rate: float = Field(0.6, ge=0.0, le=1.0)
+    coverage_weights: dict[str, float] = Field(
+        default_factory=lambda: {
+            "relevance": 1.0,
+            "stakeholder_coverage": 1.0,
+            "stance_diversity": 1.0,
+            "temporal_coverage": 0.7,
+            "traceability": 1.0,
+            "redundancy": 0.5,
+            "cost": 0.2,
+        }
+    )
 
 
 class VerifierConfig(BaseModel):
@@ -143,6 +185,7 @@ class ExperimentConfig(BaseModel):
     graph: GraphConfig
     event_chain: EventChainConfig
     verifier: VerifierConfig
+    collector: CollectorConfig = Field(default_factory=CollectorConfig)
     ablation: AblationConfig = Field(default_factory=AblationConfig)
     methods: dict[str, dict[str, Any]] = Field(default_factory=dict)
     ablation_settings: dict[str, AblationConfig] = Field(default_factory=dict)
@@ -195,9 +238,23 @@ class ExperimentConfig(BaseModel):
             "collector": {
                 "collection_mode": "mock" if self.mode == "mock" else "semireal_search",
                 "mock_coverage_scenario": "covered",
-                "max_queries_per_event": 8,
-                "max_pages_per_query": 5,
-                "max_evidence_per_event": 80,
+                "max_queries_per_event": self.collector.max_queries_per_event,
+                "max_pages_per_query": self.collector.max_pages_per_query,
+                "max_evidence_per_event": self.collector.max_evidence_per_event,
+                "max_coverage_attempts": self.collector.max_feedback_transitions + 1,
+                "fetch_seed_urls": self.collector.fetch_seed_urls,
+                "fetch_search_results": self.collector.fetch_search_results,
+                "http_timeout_seconds": self.collector.http_timeout_seconds,
+                "user_agent": self.collector.user_agent,
+                "source_scope": list(self.collector.source_scope),
+                "source_types": list(self.collector.source_scope),
+                "time_stages": list(self.collector.time_stages),
+                "min_stakeholders": self.collector.min_stakeholders,
+                "min_stances": self.collector.min_stances,
+                "min_time_stages": self.collector.min_time_stages,
+                "min_traceability_rate": self.collector.min_traceability_rate,
+                "max_redundancy_rate": self.collector.max_redundancy_rate,
+                "coverage_weights": dict(self.collector.coverage_weights),
                 "recursion_limit": 30,
             },
             "llm": {
@@ -227,6 +284,14 @@ class ExperimentConfig(BaseModel):
                 "max_depth": self.event_chain.max_depth,
                 "top_k": self.event_chain.top_k,
                 "enabled": use_event_chain,
+                "scoring_weights": {
+                    "lambda_1": self.event_chain.lambda_1,
+                    "lambda_2": self.event_chain.lambda_2,
+                    "lambda_3": self.event_chain.lambda_3,
+                    "lambda_4": self.event_chain.lambda_4,
+                    "lambda_5": self.event_chain.lambda_5,
+                    "lambda_6": self.event_chain.lambda_6,
+                },
             },
             "verifier": {"threshold": self.verifier.threshold, "enabled": use_verifier},
             "evaluation": {
@@ -255,25 +320,65 @@ class ExperimentConfig(BaseModel):
         """Return the module switches disabled for this run."""
         return self.ablation.disabled_modules()
 
+    def is_formal_paper_run(self) -> bool:
+        """Return whether this config is intended to produce formal paper results."""
+        return self.mode == "real" and self.data.require_formal_validation
+
     def validate_mode_requirements(self) -> None:
         """Fail fast when a run mode would silently use the wrong backend."""
+        errors: list[str] = []
+        if self.data.require_formal_validation:
+            errors.extend(self._formal_validation_errors())
         if self.mode == "real":
             api_key_env = self.model.api_key_env
             if not os.getenv(api_key_env):
-                raise RuntimeError(
+                errors.append(
                     f"real mode requires API key environment variable {api_key_env} for LLMClient; "
                     "set it before running. EpiSOA will not fall back to mock mode."
                 )
-            errors: list[str] = []
             if self.model.llm_mode != "real":
                 errors.append("model.mode/model.llm_mode must be real")
             if self.retrieval.embedding_mode != "sentence_transformers":
                 errors.append("retrieval.embedding_mode must be sentence_transformers")
             if self.retrieval.reranker_mode != "bge_reranker":
                 errors.append("retrieval.reranker_mode must be bge_reranker")
-            if errors:
-                detail = "; ".join(errors)
+        if errors:
+            detail = "; ".join(errors)
+            if self.mode == "real":
                 raise RuntimeError(f"real mode requires real clients only: {detail}")
+            raise RuntimeError(detail)
+
+    def _formal_validation_errors(self) -> list[str]:
+        """Validate that formal runs are backed by a passing dataset report."""
+        if not self.data.validation_report_path:
+            return ["formal dataset runs require data.validation_report_path"]
+
+        report_path = Path(self.data.validation_report_path)
+        if not report_path.exists():
+            return [
+                f"formal dataset runs require validation report {report_path}; "
+                "run scripts/validate_dataset.py and require is_formal_dataset=true before running."
+            ]
+
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            return [f"formal dataset validation report is not valid JSON: {report_path}: {exc.msg}"]
+
+        errors: list[str] = []
+        if report.get("is_formal_dataset") is not True:
+            errors.append(f"formal dataset validation report must have is_formal_dataset=true: {report_path}")
+        for key, label in {
+            "num_events": "events",
+            "num_evidence": "evidence",
+            "num_gold_tuples": "gold_tuples",
+            "num_gold_event_chains": "gold_event_chains",
+        }.items():
+            if int(report.get(key) or 0) <= 0:
+                errors.append(f"formal dataset validation report has empty {label}: {report_path}")
+        if report.get("errors"):
+            errors.append(f"formal dataset validation report contains errors: {report['errors']}")
+        return errors
 
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
@@ -341,12 +446,24 @@ def legacy_to_unified(raw: dict[str, Any], path: str | Path | None = None) -> di
             "max_depth": int(pipeline.get("eventrag_depth", 2)),
             "top_k": int(pipeline.get("eventrag_top_k", 3)),
             "enabled": bool(raw.get("event_chain", {}).get("enabled", True)),
+            **{
+                key: float(raw.get("event_chain", {}).get(key, default))
+                for key, default in {
+                    "lambda_1": 1.0,
+                    "lambda_2": 1.0,
+                    "lambda_3": 0.5,
+                    "lambda_4": 0.7,
+                    "lambda_5": 0.7,
+                    "lambda_6": 0.4,
+                }.items()
+            },
         },
         "verifier": {
             "threshold": float(verifier.get("threshold", 0.75)),
             "enabled": bool(verifier.get("enabled", True)),
         },
         "ablation": _legacy_ablation_to_disable(raw.get("ablation", {})),
+        "collector": raw.get("collector", {}),
         "methods": raw.get("methods", raw.get("baselines", {})),
         "ablation_settings": {
             name: AblationConfig.model_validate(_legacy_ablation_to_disable(value)).model_dump()

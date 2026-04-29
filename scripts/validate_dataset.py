@@ -7,8 +7,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from episoa.preprocess.privacy_filter import EMAIL_RE, PHONE_RE
+
 
 ALLOWED_SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
+ALLOWED_SUPPORT_LABELS = {"supported", "partially_supported", "unsupported"}
 MOCK_MARKERS = ("mock", "example.org", "fictional")
 
 
@@ -89,23 +92,51 @@ def contains_marker(value: Any) -> bool:
     return False
 
 
+def contains_direct_identifier(value: Any) -> bool:
+    if isinstance(value, str):
+        return bool(EMAIL_RE.search(value) or PHONE_RE.search(value))
+    if isinstance(value, dict):
+        return any(contains_direct_identifier(item) for item in value.values())
+    if isinstance(value, list):
+        return any(contains_direct_identifier(item) for item in value)
+    return False
+
+
+def distribution(records: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records:
+        value = record.get(key)
+        if value is None and isinstance(record.get("metadata"), dict):
+            value = record["metadata"].get(key)
+        label = str(value or "unknown")
+        counts[label] = counts.get(label, 0) + 1
+    return counts
+
+
 def validate_dataset(
     events_path: str | Path,
     evidence_path: str | Path,
     gold_tuples_path: str | Path,
     gold_event_chains_path: str | Path,
+    *,
+    raw_posts_path: str | Path | None = None,
+    silver_tuples_path: str | Path | None = None,
 ) -> dict[str, Any]:
     events_path = Path(events_path)
     evidence_path = Path(evidence_path)
     gold_tuples_path = Path(gold_tuples_path)
     gold_event_chains_path = Path(gold_event_chains_path)
+    raw_posts_path = Path(raw_posts_path) if raw_posts_path else None
+    silver_tuples_path = Path(silver_tuples_path) if silver_tuples_path else None
     errors: list[str] = []
     warnings: list[str] = []
 
+    raw_posts = load_jsonl(raw_posts_path, "raw_posts", errors) if raw_posts_path else []
     events = load_jsonl(events_path, "events", errors)
     evidence = load_jsonl(evidence_path, "evidence", errors)
     gold_tuples = load_jsonl(gold_tuples_path, "gold_tuples", errors)
     gold_event_chains = load_jsonl(gold_event_chains_path, "gold_event_chains", errors)
+    silver_tuples = load_jsonl(silver_tuples_path, "silver_tuples", errors) if silver_tuples_path else []
 
     if not events:
         warnings.append("events is empty; formal paper experiments need human-curated events")
@@ -120,6 +151,8 @@ def validate_dataset(
         errors.append(f"duplicate event_id: {duplicate}")
     for duplicate in find_duplicate_ids(evidence, "evidence_id"):
         errors.append(f"duplicate evidence_id: {duplicate}")
+    for duplicate in find_duplicate_ids(raw_posts, "raw_id"):
+        errors.append(f"duplicate raw_id: {duplicate}")
 
     event_ids = {record["event_id"] for record in events if isinstance(record.get("event_id"), str)}
     event_names = collect_event_names(events)
@@ -136,8 +169,12 @@ def validate_dataset(
         event_id = record.get("event_id")
         if not isinstance(event_id, str) or event_id not in event_ids:
             errors.append(f"evidence:{index} references unknown event_id: {event_id!r}")
+        if contains_direct_identifier(record):
+            errors.append(f"evidence:{index} appears to contain direct personal identifiers")
 
     for index, record in enumerate(gold_tuples, start=1):
+        if record.get("label_source") == "llm_silver":
+            errors.append(f"gold_tuples:{index} must not contain llm_silver label_source")
         event_id = record.get("event_id")
         event_name = record.get("event")
         if isinstance(event_id, str) and event_id:
@@ -152,6 +189,9 @@ def validate_dataset(
         sentiment = record.get("sentiment")
         if sentiment not in ALLOWED_SENTIMENTS:
             errors.append(f"gold_tuples:{index} invalid sentiment: {sentiment!r}")
+        support_label = record.get("support_label")
+        if support_label not in ALLOWED_SUPPORT_LABELS:
+            errors.append(f"gold_tuples:{index} invalid support_label: {support_label!r}")
 
         event_chain = record.get("event_chain")
         if not isinstance(event_chain, list) or not event_chain or not all(isinstance(item, str) and item for item in event_chain):
@@ -171,6 +211,16 @@ def validate_dataset(
             if evidence_id not in evidence_ids:
                 errors.append(f"gold_tuples:{index} references unknown evidence_id: {evidence_id!r}")
 
+    for index, record in enumerate(silver_tuples, start=1):
+        if record.get("label_source") != "llm_silver":
+            errors.append(f"silver_tuples:{index} label_source must be llm_silver")
+        for key in ("llm_model", "prompt_version", "confidence"):
+            if key not in record:
+                errors.append(f"silver_tuples:{index} missing {key}")
+        confidence = record.get("confidence")
+        if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
+            errors.append(f"silver_tuples:{index} confidence must be between 0 and 1")
+
     for index, record in enumerate(gold_event_chains, start=1):
         event_chain = record.get("event_chain")
         if not isinstance(event_chain, list) or not event_chain or not all(isinstance(item, str) and item for item in event_chain):
@@ -178,7 +228,7 @@ def validate_dataset(
 
     has_mock_marker = any(
         contains_marker(record)
-        for record in [*events, *evidence, *gold_tuples, *gold_event_chains]
+        for record in [*raw_posts, *events, *evidence, *gold_tuples, *gold_event_chains, *silver_tuples]
     )
     if has_mock_marker:
         warnings.append("dataset contains mock/example.org/fictional marker text")
@@ -187,9 +237,17 @@ def validate_dataset(
     return {
         "dataset_path": str(events_path.parent),
         "num_events": len(events),
+        "num_raw_posts": len(raw_posts),
         "num_evidence": len(evidence),
+        "num_silver_tuples": len(silver_tuples),
         "num_gold_tuples": len(gold_tuples),
         "num_gold_event_chains": len(gold_event_chains),
+        "platform_distribution": distribution(evidence, "platform"),
+        "source_type_distribution": distribution(evidence, "source_type"),
+        "stakeholder_distribution": distribution(gold_tuples, "stakeholder"),
+        "sentiment_distribution": distribution(gold_tuples, "sentiment"),
+        "time_stage_distribution": distribution(evidence, "time_stage"),
+        "evidence_per_event": distribution(evidence, "event_id"),
         "is_formal_dataset": bool(is_nonempty and not errors and not has_mock_marker),
         "errors": errors,
         "warnings": warnings,
@@ -202,6 +260,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--evidence", required=True)
     parser.add_argument("--gold-tuples", required=True)
     parser.add_argument("--gold-event-chains", required=True)
+    parser.add_argument("--raw-posts")
+    parser.add_argument("--silver-tuples")
     parser.add_argument("--output", required=True)
     return parser
 
@@ -214,6 +274,8 @@ def main(argv: list[str] | None = None) -> int:
         evidence_path=args.evidence,
         gold_tuples_path=args.gold_tuples,
         gold_event_chains_path=args.gold_event_chains,
+        raw_posts_path=args.raw_posts,
+        silver_tuples_path=args.silver_tuples,
     )
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from episoa.eventrag.anchor_selection import select_anchor_events
 from episoa.eventrag.chain_expansion import EventPath, expand_event_chains
 from episoa.eventrag.evidence_backtracking import backtrack_evidence
-from episoa.eventrag.path_reranking import retrieve_event_chains, score_path
+from episoa.eventrag.path_reranking import retrieve_event_chains, rerank_paths, score_path
 from episoa.eventrag.query_to_event import parse_query_to_event
 from episoa.graph_builder.graph_store import EvidenceGraph
 
@@ -113,3 +113,38 @@ def test_retrieve_event_chains_returns_schema() -> None:
     assert chains[0].target_event == "Alpha incident"
     assert chains[0].event_chain == ["Alpha incident", "Beta response"]
     assert {record.evidence_id for record in chains[0].evidence} == {"ev-1", "ev-2"}
+    assert "stakeholder_coverage=" in chains[0].candidate_rationales[0]
+
+
+def test_stakeholder_constraint_changes_path_ranking_features() -> None:
+    graph = EvidenceGraph()
+    add_event(graph, "event:policy-a", "Policy start")
+    add_event(graph, "event:policy-b", "Policy response")
+    graph.add_edge("event:policy-a", "event:policy-b", "triggers", evidence_id="ev-1")
+    add_evidence(graph, "event:policy-a", "ev-1", 1, "Customers")
+    add_evidence(graph, "event:policy-b", "ev-2", 2, "Employees")
+    backed = backtrack_evidence(graph, EventPath(("event:policy-a", "event:policy-b"), ("triggers",)))
+
+    with_constraint = rerank_paths("policy", graph, [backed], use_stakeholder_constraint=True)[0]
+    without_constraint = rerank_paths("policy", graph, [backed], use_stakeholder_constraint=False)[0]
+
+    assert with_constraint.stakeholder_coverage > 0
+    assert without_constraint.stakeholder_coverage == 0.0
+    assert with_constraint.score > without_constraint.score
+
+
+def test_temporal_ablation_changes_path_ranking_features() -> None:
+    graph = EvidenceGraph()
+    add_event(graph, "event:policy-a", "Policy start")
+    add_event(graph, "event:policy-b", "Policy response")
+    graph.add_edge("event:policy-a", "event:policy-b", "precedes", evidence_id="ev-1")
+    add_evidence(graph, "event:policy-a", "ev-1", 1, "Customers")
+    add_evidence(graph, "event:policy-b", "ev-2", 2, "Employees")
+    backed = backtrack_evidence(graph, EventPath(("event:policy-a", "event:policy-b"), ("precedes",)))
+
+    with_temporal = rerank_paths("policy", graph, [backed], use_temporal_information=True)[0]
+    without_temporal = rerank_paths("policy", graph, [backed], use_temporal_information=False)[0]
+
+    assert with_temporal.temporal_coherence == 1.0
+    assert without_temporal.temporal_coherence == 0.0
+    assert with_temporal.score > without_temporal.score
