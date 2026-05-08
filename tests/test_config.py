@@ -1,72 +1,83 @@
+import os
+
 import pytest
-from pydantic import ValidationError
 
-from episoa.config import ExperimentConfig, load_experiment_config, load_runtime_config
-
-
-def test_default_yaml_loads_as_experiment_config() -> None:
-    config = load_experiment_config("configs/default.yaml")
-
-    assert config.seed == 13
-    assert config.run_id == "pubevent-soa-lite-mock"
-    assert config.mode == "mock"
-    assert config.data.dataset_name == "pubevent_soa_lite"
+from episoa.config import api_config_status, load_config, mask_secret, resolve_api_config
 
 
-def test_missing_required_fields_raise_clear_error() -> None:
-    with pytest.raises(ValidationError) as excinfo:
-        ExperimentConfig.model_validate({"seed": 1, "run_id": "bad", "mode": "mock"})
+def test_resolve_api_config_prefers_yaml_over_env(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "env-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example/v1")
 
-    message = str(excinfo.value)
-    assert "data" in message
-    assert "model" in message
-    assert "retrieval" in message
+    resolved = resolve_api_config(
+        {
+            "api_key": "yaml-key",
+            "api_key_env": "OPENAI_API_KEY",
+            "base_url": "https://yaml.example/v1",
+            "base_url_env": "OPENAI_BASE_URL",
+        },
+        label="model",
+    )
 
-
-def test_seed_top_k_threshold_and_run_id_are_read() -> None:
-    config = load_experiment_config("configs/default.yaml")
-
-    assert config.seed == 13
-    assert config.retrieval.top_k == 5
-    assert config.verifier.threshold == 0.75
-    assert config.run_id == "pubevent-soa-lite-mock"
-
-
-def test_output_run_dir_resolves_from_run_id() -> None:
-    config = load_experiment_config("configs/default.yaml")
-
-    assert config.output.run_dir == "outputs/runs/pubevent-soa-lite-mock"
+    assert resolved["api_key"] == "yaml-key"
+    assert resolved["api_key_source"] == "yaml"
+    assert resolved["base_url"] == "https://yaml.example/v1"
+    assert resolved["base_url_source"] == "yaml"
 
 
-def test_runtime_config_keeps_existing_pipeline_compatibility() -> None:
-    runtime = load_runtime_config("configs/default.yaml")
+def test_resolve_api_config_uses_env_fallback(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "env-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example/v1")
 
-    assert runtime["pipeline"]["top_k_evidence"] == 5
-    assert runtime["pipeline"]["eventrag_depth"] == 2
-    assert runtime["verifier"]["threshold"] == 0.75
-    assert runtime["output"]["run_dir"] == "outputs/runs/pubevent-soa-lite-mock"
+    resolved = resolve_api_config(
+        {
+            "api_key": "",
+            "api_key_env": "OPENAI_API_KEY",
+            "base_url": "",
+            "base_url_env": "OPENAI_BASE_URL",
+        },
+        label="model",
+    )
+
+    assert resolved["api_key"] == "env-key"
+    assert resolved["api_key_source"] == "env:OPENAI_API_KEY"
+    assert resolved["base_url"] == "https://env.example/v1"
+    assert resolved["base_url_source"] == "env:OPENAI_BASE_URL"
 
 
-def test_formal_configs_load_with_collector_defaults() -> None:
-    formal = load_experiment_config("configs/formal.yaml")
-    formal_ablation = load_experiment_config("configs/formal_ablation.yaml")
+def test_resolve_api_config_reports_missing(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
 
-    assert formal.mode == "real"
-    assert formal.data.require_formal_validation is True
-    assert formal.collector.coverage_weights["traceability"] == 1.0
-    assert formal_ablation.ablation_settings["without_temporal_edges"].disable_temporal_edges is True
+    with pytest.raises(RuntimeError, match="api_key is missing"):
+        resolve_api_config({"api_key_env": "OPENAI_API_KEY", "base_url": "https://base.example/v1"}, label="model")
 
 
-def test_formal_validation_report_must_pass_before_real_run(tmp_path, monkeypatch) -> None:
-    report = tmp_path / "dataset_validation_formal.json"
-    report.write_text(
-        '{"is_formal_dataset": false, "num_events": 0, "num_evidence": 0, '
-        '"num_gold_tuples": 0, "num_gold_event_chains": 0, "errors": []}\n',
+def test_mask_secret_only_shows_edges():
+    assert mask_secret("dummy-api-key-abcd") == "dumm***abcd"
+
+
+def test_paper_config_status_does_not_expose_full_key(tmp_path):
+    config_path = tmp_path / "paper.yaml"
+    config_path.write_text(
+        """
+run_id: test
+mode: paper
+data: {}
+output: {}
+model:
+  api_key: dummy-api-key-abcd
+  api_key_env: OPENAI_API_KEY
+  base_url: https://yaml.example/v1
+search:
+  api_key: search-123456
+  api_key_env: SEARCH_API_KEY
+  base_url: https://search.example/v1
+""",
         encoding="utf-8",
     )
-    config = load_experiment_config("configs/formal.yaml")
-    config.data.validation_report_path = str(report)
-    monkeypatch.setenv(config.model.api_key_env, "test-key")
 
-    with pytest.raises(RuntimeError, match="is_formal_dataset=true"):
-        config.validate_mode_requirements()
+    status = api_config_status(load_config(config_path))
+
+    assert status["model"]["api_key_masked"] == "dumm***abcd"
+    assert "dummy-api-key-abcd" not in str(status)

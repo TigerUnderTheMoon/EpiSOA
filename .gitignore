@@ -3,12 +3,17 @@ __pycache__/
 *.pyc
 .env
 .venv/
-outputs/*
-!outputs/.gitkeep
-data/raw/*
-data/processed/*
+.DS_Store
 *.log
-latest_run.txt
+
+outputs/runs/
+outputs/cache/
+outputs/*.json
+outputs/*.jsonl
+outputs/*.csv
+outputs/*.txt
+!outputs/.gitkeep
+!outputs/README.md
 
 .mypy_cache/
 .ruff_cache/
@@ -18,4 +23,3 @@ env/
 build/
 dist/
 *.egg-info/
-!.env.example

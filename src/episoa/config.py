@@ -1,497 +1,120 @@
-"""Unified configuration schema for EpiSOA experiments."""
+"""Configuration loading for the EpiSOA paper workflow."""
 
 from __future__ import annotations
 
-import json
+from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-Mode = Literal["mock", "real", "ablation"]
-LLMMode = Literal["mock", "real"]
+@dataclass(frozen=True)
+class PaperConfig:
+    run_id: str
+    mode: str
+    data: dict[str, str]
+    output: dict[str, str]
+    model: dict[str, Any]
+    search: dict[str, Any]
+    retrieval: dict[str, Any]
+    verifier: dict[str, Any]
+    ablation: dict[str, Any]
 
-ABLATION_DISABLE_FIELDS = (
-    "disable_fsm",
-    "disable_diversity",
-    "disable_graph",
-    "disable_event_chain",
-    "disable_verifier",
-    "disable_temporal_edges",
-    "disable_stakeholder_constraint",
-)
-
-
-class DataConfig(BaseModel):
-    """Dataset and gold annotation paths."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    evidence_path: str = Field(..., min_length=1)
-    gold_path: str = Field(..., min_length=1)
-    event_query_path: str = Field(..., min_length=1)
-    dataset_name: str = Field(..., min_length=1)
-    gold_event_chains_path: str | None = None
-    require_formal_validation: bool = False
-    validation_report_path: str | None = None
+    @property
+    def run_dir(self) -> Path:
+        return Path(self.output.get("runs_dir", "outputs/runs")) / self.run_id
 
 
-class ModelConfig(BaseModel):
-    """LLM and retrieval model identifiers."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    mode: LLMMode | None = None
-    llm_mode: LLMMode = "mock"
-    llm_model: str = Field(..., min_length=1)
-    embedding_model: str = Field(..., min_length=1)
-    reranker_model: str = Field(..., min_length=1)
-    api_key_env: str = "OPENAI_API_KEY"
-    base_url: str = "http://localhost:8000/v1"
-    timeout_seconds: int = 30
-    max_retries: int = 2
-    temperature: float = 0.0
-    prompt_version: str = "v0"
-
-    @model_validator(mode="after")
-    def sync_mode_aliases(self) -> "ModelConfig":
-        if self.mode is None:
-            self.mode = self.llm_mode
-        else:
-            self.llm_mode = self.mode
-        return self
-
-
-class RetrievalConfig(BaseModel):
-    """Evidence retrieval parameters."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    top_k: int = Field(..., ge=1)
-    candidate_k: int = Field(..., ge=1)
-    use_diversity: bool = True
-    embedding_mode: str = "mock"
-    reranker_mode: str = "mock"
-    cache_dir: str = Field(..., min_length=1)
-
-
-class GraphConfig(BaseModel):
-    """Evidence graph settings."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    enabled: bool = True
-
-
-class EventChainConfig(BaseModel):
-    """Event-chain retrieval settings."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    max_depth: int = Field(..., ge=1, le=3)
-    top_k: int = Field(..., ge=1)
-    enabled: bool = True
-    lambda_1: float = 1.0
-    lambda_2: float = 1.0
-    lambda_3: float = 0.5
-    lambda_4: float = 0.7
-    lambda_5: float = 0.7
-    lambda_6: float = 0.4
-
-
-class CollectorConfig(BaseModel):
-    """C-FSM evidence collector controls."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    max_queries_per_event: int = Field(8, ge=1)
-    max_pages_per_query: int = Field(5, ge=1)
-    max_evidence_per_event: int = Field(80, ge=1)
-    max_feedback_transitions: int = Field(2, ge=0)
-    fetch_seed_urls: bool = False
-    fetch_search_results: bool = False
-    http_timeout_seconds: float = Field(10.0, ge=0.1)
-    user_agent: str = "EpiSOA research crawler (+public evidence collection; contact: local researcher)"
-    source_scope: list[str] = Field(default_factory=lambda: ["news", "forum", "official_response", "public_web"])
-    time_stages: list[str] = Field(default_factory=lambda: ["trigger", "diffusion", "response"])
-    min_stakeholders: int = Field(2, ge=1)
-    min_stances: int = Field(2, ge=1)
-    min_time_stages: int = Field(2, ge=1)
-    min_traceability_rate: float = Field(0.8, ge=0.0, le=1.0)
-    max_redundancy_rate: float = Field(0.6, ge=0.0, le=1.0)
-    coverage_weights: dict[str, float] = Field(
-        default_factory=lambda: {
-            "relevance": 1.0,
-            "stakeholder_coverage": 1.0,
-            "stance_diversity": 1.0,
-            "temporal_coverage": 0.7,
-            "traceability": 1.0,
-            "redundancy": 0.5,
-            "cost": 0.2,
-        }
+def load_config(path: str | Path) -> PaperConfig:
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    return PaperConfig(
+        run_id=str(raw.get("run_id", "paper-run")),
+        mode=str(raw.get("mode", "paper")),
+        data=dict(raw.get("data", {})),
+        output=dict(raw.get("output", {"runs_dir": "outputs/runs"})),
+        model=dict(raw.get("model", {})),
+        search=dict(raw.get("search", {})),
+        retrieval=dict(raw.get("retrieval", {"top_k": 5})),
+        verifier=dict(raw.get("verifier", {"threshold": 0.75})),
+        ablation=dict(raw.get("ablation", {})),
     )
 
 
-class VerifierConfig(BaseModel):
-    """Evidence verifier settings."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    threshold: float = Field(..., ge=0.0, le=1.0)
-    enabled: bool = True
-
-
-class AblationConfig(BaseModel):
-    """Ablation switches expressed as disable flags."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    disable_fsm: bool = False
-    disable_diversity: bool = False
-    disable_graph: bool = False
-    disable_event_chain: bool = False
-    disable_verifier: bool = False
-    disable_temporal_edges: bool = False
-    disable_stakeholder_constraint: bool = False
-
-    def disabled_modules(self) -> list[str]:
-        """Return enabled ablation switches using their config field names."""
-        return [name for name in ABLATION_DISABLE_FIELDS if bool(getattr(self, name))]
+def resolve_api_config(raw: dict[str, Any], *, label: str) -> dict[str, Any]:
+    """Resolve API key and base URL with YAML-first precedence."""
+    api_key, api_key_source = _resolve_value(raw, "api_key", "api_key_env")
+    base_url, base_url_source = _resolve_value(raw, "base_url", "base_url_env")
+    if not api_key:
+        raise RuntimeError(
+            f"{label} api_key is missing. Set api_key in YAML or set the environment variable named by api_key_env."
+        )
+    if not base_url:
+        raise RuntimeError(
+            f"{label} base_url is missing. Set base_url in YAML or set the environment variable named by base_url_env."
+        )
+    return {
+        "api_key": api_key,
+        "api_key_source": api_key_source,
+        "api_key_masked": mask_secret(api_key),
+        "base_url": base_url,
+        "base_url_source": base_url_source,
+    }
 
 
-class OutputConfig(BaseModel):
-    """Output directory settings."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    run_dir: str = Field(..., min_length=1)
-
-
-class ExperimentConfig(BaseModel):
-    """Top-level EpiSOA experiment configuration."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    seed: int
-    run_id: str = Field(..., min_length=1)
-    mode: Mode = "mock"
-    data: DataConfig
-    output: OutputConfig
-    model: ModelConfig
-    retrieval: RetrievalConfig
-    graph: GraphConfig
-    event_chain: EventChainConfig
-    verifier: VerifierConfig
-    collector: CollectorConfig = Field(default_factory=CollectorConfig)
-    ablation: AblationConfig = Field(default_factory=AblationConfig)
-    methods: dict[str, dict[str, Any]] = Field(default_factory=dict)
-    ablation_settings: dict[str, AblationConfig] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def resolve_output_run_dir(self) -> "ExperimentConfig":
-        self.output.run_dir = self.output.run_dir.format(run_id=self.run_id)
-        return self
-
-    @classmethod
-    def from_yaml(cls, path: str | Path) -> "ExperimentConfig":
-        raw = load_yaml(path)
-        if "data" not in raw:
-            raw = legacy_to_unified(raw, path)
-        return cls.model_validate(raw)
-
-    def to_runtime_dict(self) -> dict[str, Any]:
-        """Return compatibility keys consumed by existing pipeline code."""
-        use_graph = self.graph.enabled and not self.ablation.disable_graph
-        use_event_chain = self.event_chain.enabled and not self.ablation.disable_event_chain
-        use_verifier = self.verifier.enabled and not self.ablation.disable_verifier
-        use_diversity = self.retrieval.use_diversity and not self.ablation.disable_diversity
-        use_temporal = not self.ablation.disable_temporal_edges
-        return {
-            "seed": self.seed,
-            "run_id": self.run_id,
-            "mode": self.mode,
-            "data": self.data.model_dump(),
-            "output": self.output.model_dump(),
-            "run": {
-                "name": self.run_id,
-                "run_id": self.run_id,
-                "seed": self.seed,
-                "output_dir": self.output.run_dir,
-            },
-            "dataset": {
-                "event_file": Path(self.data.event_query_path).name,
-                "evidence_file": Path(self.data.evidence_path).name,
-                "gold_tuple_file": Path(self.data.gold_path).name,
-                "gold_event_chain_file": Path(self.data.gold_event_chains_path or "gold_event_chains.jsonl").name,
-            },
-            "pipeline": {
-                "top_k_evidence": self.retrieval.top_k,
-                "top_k": self.retrieval.top_k,
-                "candidate_k": self.retrieval.candidate_k,
-                "eventrag_depth": self.event_chain.max_depth,
-                "eventrag_top_k": self.event_chain.top_k,
-                "output_path": str(Path(self.output.run_dir) / "predictions.jsonl"),
-            },
-            "collector": {
-                "collection_mode": "mock" if self.mode == "mock" else "semireal_search",
-                "mock_coverage_scenario": "covered",
-                "max_queries_per_event": self.collector.max_queries_per_event,
-                "max_pages_per_query": self.collector.max_pages_per_query,
-                "max_evidence_per_event": self.collector.max_evidence_per_event,
-                "max_coverage_attempts": self.collector.max_feedback_transitions + 1,
-                "fetch_seed_urls": self.collector.fetch_seed_urls,
-                "fetch_search_results": self.collector.fetch_search_results,
-                "http_timeout_seconds": self.collector.http_timeout_seconds,
-                "user_agent": self.collector.user_agent,
-                "source_scope": list(self.collector.source_scope),
-                "source_types": list(self.collector.source_scope),
-                "time_stages": list(self.collector.time_stages),
-                "min_stakeholders": self.collector.min_stakeholders,
-                "min_stances": self.collector.min_stances,
-                "min_time_stages": self.collector.min_time_stages,
-                "min_traceability_rate": self.collector.min_traceability_rate,
-                "max_redundancy_rate": self.collector.max_redundancy_rate,
-                "coverage_weights": dict(self.collector.coverage_weights),
-                "recursion_limit": 30,
-            },
-            "llm": {
-                "llm_mode": self.model.llm_mode,
-                "mode": self.model.llm_mode,
-                "model": self.model.llm_model,
-                "base_url": self.model.base_url,
-                "api_key_env": self.model.api_key_env,
-                "timeout_seconds": self.model.timeout_seconds,
-                "max_retries": self.model.max_retries,
-                "temperature": self.model.temperature,
-                "prompt_version": self.model.prompt_version,
-                "local_command": None,
-            },
-            "retrieval": {
-                "top_k": self.retrieval.top_k,
-                "candidate_k": self.retrieval.candidate_k,
-                "use_diversity": use_diversity,
-                "embedding_mode": self.retrieval.embedding_mode,
-                "embedding_model_name": self.model.embedding_model,
-                "reranker_mode": self.retrieval.reranker_mode,
-                "reranker_model_name": self.model.reranker_model,
-                "cache_dir": self.retrieval.cache_dir,
-            },
-            "graph": {"enabled": use_graph},
-            "event_chain": {
-                "max_depth": self.event_chain.max_depth,
-                "top_k": self.event_chain.top_k,
-                "enabled": use_event_chain,
-                "scoring_weights": {
-                    "lambda_1": self.event_chain.lambda_1,
-                    "lambda_2": self.event_chain.lambda_2,
-                    "lambda_3": self.event_chain.lambda_3,
-                    "lambda_4": self.event_chain.lambda_4,
-                    "lambda_5": self.event_chain.lambda_5,
-                    "lambda_6": self.event_chain.lambda_6,
-                },
-            },
-            "verifier": {"threshold": self.verifier.threshold, "enabled": use_verifier},
-            "evaluation": {
-                "gold_path": self.data.gold_path,
-                "gold_event_chains_path": self.data.gold_event_chains_path,
-                "k": self.retrieval.top_k,
-            },
-            "ablation": {
-                "use_fsm_collector": not self.ablation.disable_fsm,
-                "use_feedback_transitions": True,
-                "use_diversity_retriever": use_diversity,
-                "use_evidence_graph": use_graph,
-                "use_event_chain_retriever": use_event_chain,
-                "use_verifier": use_verifier,
-                "use_temporal_information": use_temporal,
-                "disable_stakeholder_constraint": self.ablation.disable_stakeholder_constraint,
-            },
-            "methods": self.methods,
-            "settings": {
-                name: _ablation_to_runtime(setting)
-                for name, setting in self.ablation_settings.items()
-            },
-        }
-
-    def disabled_modules(self) -> list[str]:
-        """Return the module switches disabled for this run."""
-        return self.ablation.disabled_modules()
-
-    def is_formal_paper_run(self) -> bool:
-        """Return whether this config is intended to produce formal paper results."""
-        return self.mode == "real" and self.data.require_formal_validation
-
-    def validate_mode_requirements(self) -> None:
-        """Fail fast when a run mode would silently use the wrong backend."""
-        errors: list[str] = []
-        if self.data.require_formal_validation:
-            errors.extend(self._formal_validation_errors())
-        if self.mode == "real":
-            api_key_env = self.model.api_key_env
-            if not os.getenv(api_key_env):
-                errors.append(
-                    f"real mode requires API key environment variable {api_key_env} for LLMClient; "
-                    "set it before running. EpiSOA will not fall back to mock mode."
-                )
-            if self.model.llm_mode != "real":
-                errors.append("model.mode/model.llm_mode must be real")
-            if self.retrieval.embedding_mode != "sentence_transformers":
-                errors.append("retrieval.embedding_mode must be sentence_transformers")
-            if self.retrieval.reranker_mode != "bge_reranker":
-                errors.append("retrieval.reranker_mode must be bge_reranker")
-        if errors:
-            detail = "; ".join(errors)
-            if self.mode == "real":
-                raise RuntimeError(f"real mode requires real clients only: {detail}")
-            raise RuntimeError(detail)
-
-    def _formal_validation_errors(self) -> list[str]:
-        """Validate that formal runs are backed by a passing dataset report."""
-        if not self.data.validation_report_path:
-            return ["formal dataset runs require data.validation_report_path"]
-
-        report_path = Path(self.data.validation_report_path)
-        if not report_path.exists():
-            return [
-                f"formal dataset runs require validation report {report_path}; "
-                "run scripts/validate_dataset.py and require is_formal_dataset=true before running."
-            ]
-
+def api_config_status(config: PaperConfig) -> dict[str, Any]:
+    """Return non-secret API configuration status for logging/status output."""
+    status: dict[str, Any] = {}
+    for label, raw in (("model", config.model), ("search", config.search)):
+        if not raw:
+            status[label] = {"configured": False, "error": f"{label} config is not present"}
+            continue
         try:
-            report = json.loads(report_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            return [f"formal dataset validation report is not valid JSON: {report_path}: {exc.msg}"]
-
-        errors: list[str] = []
-        if report.get("is_formal_dataset") is not True:
-            errors.append(f"formal dataset validation report must have is_formal_dataset=true: {report_path}")
-        for key, label in {
-            "num_events": "events",
-            "num_evidence": "evidence",
-            "num_gold_tuples": "gold_tuples",
-            "num_gold_event_chains": "gold_event_chains",
-        }.items():
-            if int(report.get(key) or 0) <= 0:
-                errors.append(f"formal dataset validation report has empty {label}: {report_path}")
-        if report.get("errors"):
-            errors.append(f"formal dataset validation report contains errors: {report['errors']}")
-        return errors
+            resolved = resolve_api_config(raw, label=label)
+            status[label] = {
+                "configured": True,
+                "api_key_source": resolved["api_key_source"],
+                "api_key_masked": resolved["api_key_masked"],
+                "base_url_source": resolved["base_url_source"],
+                "base_url": resolved["base_url"],
+            }
+        except RuntimeError as exc:
+            status[label] = {"configured": False, "error": str(exc)}
+    return status
 
 
-def load_yaml(path: str | Path) -> dict[str, Any]:
-    with Path(path).open("r", encoding="utf-8") as file:
-        return yaml.safe_load(file) or {}
+def print_api_config_status(config: PaperConfig) -> None:
+    """Print safe API key/base URL source information."""
+    status = api_config_status(config)
+    for label, item in status.items():
+        if item.get("configured"):
+            print(
+                f"{label}: api_key={item['api_key_source']}:{item['api_key_masked']} "
+                f"base_url={item['base_url_source']}:{item['base_url']}"
+            )
+        else:
+            print(f"{label}: {item['error']}")
 
 
-def load_experiment_config(path: str | Path) -> ExperimentConfig:
-    return ExperimentConfig.from_yaml(path)
+def mask_secret(value: str) -> str:
+    if len(value) <= 8:
+        return value[:1] + "***" + value[-1:]
+    return value[:4] + "***" + value[-4:]
 
 
-def load_runtime_config(path: str | Path) -> dict[str, Any]:
-    return load_experiment_config(path).to_runtime_dict()
+def _resolve_value(raw: dict[str, Any], direct_key: str, env_key: str) -> tuple[str | None, str]:
+    direct_value = raw.get(direct_key)
+    if isinstance(direct_value, str) and direct_value.strip() and not _is_placeholder(direct_value):
+        return direct_value.strip(), "yaml"
+    env_name = raw.get(env_key)
+    if isinstance(env_name, str) and env_name.strip():
+        env_value = os.getenv(env_name.strip())
+        if env_value and not _is_placeholder(env_value):
+            return env_value, f"env:{env_name.strip()}"
+    return None, "missing"
 
 
-def legacy_to_unified(raw: dict[str, Any], path: str | Path | None = None) -> dict[str, Any]:
-    """Best-effort adapter for older config snippets used in tests."""
-    dataset = raw.get("dataset", {})
-    defaults = raw.get("defaults", {})
-    pipeline = raw.get("pipeline", {})
-    llm = raw.get("llm", {})
-    retrieval = raw.get("retrieval", {})
-    verifier = raw.get("verifier", {})
-    run = raw.get("run", {})
-    dataset_name = str(run.get("name") or defaults.get("dataset_name") or "pubevent_soa_lite")
-    dataset_root = Path("data") / dataset_name
-    event_file = dataset.get("event_file") or Path(defaults.get("event_path", dataset_root / "events.jsonl")).name
-    evidence_file = dataset.get("evidence_file") or Path(defaults.get("evidence_path", dataset_root / "evidence.jsonl")).name
-    gold_file = dataset.get("gold_tuple_file") or Path(defaults.get("gold_path", dataset_root / "gold_tuples.jsonl")).name
-    chain_file = dataset.get("gold_event_chain_file", "gold_event_chains.jsonl")
-    return {
-        "seed": int(raw.get("seed", raw.get("reproducibility", {}).get("seed", run.get("seed", 13)))),
-        "run_id": str(run.get("run_id") or run.get("name") or Path(path or "config").stem),
-        "mode": "ablation" if "ablation" in Path(path or "").stem else ("real" if llm.get("llm_mode") == "real" else "mock"),
-        "data": {
-            "evidence_path": str(dataset_root / evidence_file),
-            "gold_path": str(dataset_root / gold_file),
-            "event_query_path": str(dataset_root / event_file),
-            "dataset_name": dataset_name,
-            "gold_event_chains_path": str(dataset_root / chain_file),
-        },
-        "output": {"run_dir": str(run.get("output_dir") or defaults.get("output_dir") or "outputs/runs/{run_id}")},
-        "model": {
-            "llm_mode": "real" if llm.get("llm_mode") in {"real", "openai_compatible"} else "mock",
-            "llm_model": str(llm.get("model", "mock-attribution")),
-            "embedding_model": str(retrieval.get("embedding_model_name", "mock-embedding")),
-            "reranker_model": str(retrieval.get("reranker_model_name", "mock-reranker")),
-            "api_key_env": str(llm.get("api_key_env", "OPENAI_API_KEY")),
-            "base_url": str(llm.get("base_url", "http://localhost:8000/v1")),
-            "timeout_seconds": int(llm.get("timeout_seconds", 30)),
-            "max_retries": int(llm.get("max_retries", 2)),
-            "temperature": float(llm.get("temperature", 0)),
-            "prompt_version": str(llm.get("prompt_version", "v0")),
-        },
-        "retrieval": {
-            "top_k": int(pipeline.get("top_k_evidence", pipeline.get("top_k", retrieval.get("top_k", 5)))),
-            "candidate_k": int(retrieval.get("candidate_k", pipeline.get("top_k_evidence", 5))),
-            "use_diversity": True,
-            "embedding_mode": str(retrieval.get("embedding_mode", "mock")),
-            "reranker_mode": str(retrieval.get("reranker_mode", "mock")),
-            "cache_dir": str(retrieval.get("cache_dir", "outputs/cache/embeddings")),
-        },
-        "graph": {"enabled": bool(raw.get("graph", {}).get("enabled", True))},
-        "event_chain": {
-            "max_depth": int(pipeline.get("eventrag_depth", 2)),
-            "top_k": int(pipeline.get("eventrag_top_k", 3)),
-            "enabled": bool(raw.get("event_chain", {}).get("enabled", True)),
-            **{
-                key: float(raw.get("event_chain", {}).get(key, default))
-                for key, default in {
-                    "lambda_1": 1.0,
-                    "lambda_2": 1.0,
-                    "lambda_3": 0.5,
-                    "lambda_4": 0.7,
-                    "lambda_5": 0.7,
-                    "lambda_6": 0.4,
-                }.items()
-            },
-        },
-        "verifier": {
-            "threshold": float(verifier.get("threshold", 0.75)),
-            "enabled": bool(verifier.get("enabled", True)),
-        },
-        "ablation": _legacy_ablation_to_disable(raw.get("ablation", {})),
-        "collector": raw.get("collector", {}),
-        "methods": raw.get("methods", raw.get("baselines", {})),
-        "ablation_settings": {
-            name: AblationConfig.model_validate(_legacy_ablation_to_disable(value)).model_dump()
-            for name, value in raw.get("settings", {}).items()
-        },
-    }
-
-
-def _legacy_ablation_to_disable(raw: dict[str, Any]) -> dict[str, bool]:
-    return {
-        "disable_fsm": not bool(raw.get("use_fsm_collector", True)),
-        "disable_diversity": not bool(raw.get("use_diversity_retriever", True)),
-        "disable_graph": not bool(raw.get("use_evidence_graph", True)),
-        "disable_event_chain": not bool(raw.get("use_event_chain_retriever", True)),
-        "disable_verifier": not bool(raw.get("use_verifier", True)),
-        "disable_temporal_edges": not bool(raw.get("use_temporal_information", True)),
-        "disable_stakeholder_constraint": bool(raw.get("disable_stakeholder_constraint", False)),
-    }
-
-
-def _ablation_to_runtime(config: AblationConfig) -> dict[str, bool]:
-    return {
-        "use_fsm_collector": not config.disable_fsm,
-        "use_feedback_transitions": True,
-        "use_diversity_retriever": not config.disable_diversity,
-        "use_evidence_graph": not config.disable_graph,
-        "use_event_chain_retriever": not config.disable_event_chain,
-        "use_verifier": not config.disable_verifier,
-        "use_temporal_information": not config.disable_temporal_edges,
-        "disable_stakeholder_constraint": config.disable_stakeholder_constraint,
-    }
+def _is_placeholder(value: str) -> bool:
+    lowered = value.strip().lower()
+    return lowered.startswith("your-") or "your-" in lowered or "your_" in lowered

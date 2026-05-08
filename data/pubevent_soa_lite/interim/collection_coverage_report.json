@@ -1,0 +1,2243 @@
+{
+  "status": "completed",
+  "num_events": 50,
+  "num_raw_posts": 2500,
+  "events": {
+    "E001": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": true,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "政府": true,
+        "开发企业": true,
+        "媒体": true,
+        "专家": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "质疑": false,
+        "回应": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E002": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "高层住户": true,
+        "低层住户": true,
+        "社区居委会": true,
+        "街道办": true,
+        "施工单位": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "协商": true,
+        "质疑": true,
+        "调解": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E003": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "青年租户": false,
+        "低收入群体": true,
+        "住建部门": true,
+        "房源运营方": false,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "质疑": true,
+        "投诉": true,
+        "回应": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "青年租户",
+        "房源运营方"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E004": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "租户": true,
+        "房东": true,
+        "村集体": true,
+        "街道办": true,
+        "开发企业": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": false,
+        "担忧": true,
+        "回应": true,
+        "求助": false
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "反对",
+        "求助"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E005": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "业主": true,
+        "物业公司": true,
+        "业委会": true,
+        "住建部门": true,
+        "社区": true
+      },
+      "stance_coverage": {
+        "反对": true,
+        "质疑": true,
+        "支持": true,
+        "解释": true,
+        "整改": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E006": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "回迁居民": true,
+        "住建部门": true,
+        "开发企业": true,
+        "街道办": true,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "质疑": false,
+        "不满": true,
+        "回应": true,
+        "解释": true,
+        "承诺": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E007": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "业主": true,
+        "物业公司": true,
+        "规划部门": true,
+        "社区": true,
+        "车主": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "质疑": true,
+        "回应": true,
+        "协调": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E008": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "原住民": true,
+        "文旅企业": false,
+        "政府部门": true,
+        "游客": true,
+        "文化保护专家": false
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": false,
+        "担忧": false,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "文旅企业",
+        "文化保护专家"
+      ],
+      "missing_stances": [
+        "反对",
+        "担忧"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E009": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "购房者": true,
+        "住建部门": true,
+        "开发企业": true,
+        "专家": true,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "质疑": true,
+        "解释": true,
+        "观望": false,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "观望"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E010": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "施工单位": true,
+        "社区": true,
+        "街道办": true,
+        "住建部门": true
+      },
+      "stance_coverage": {
+        "投诉": true,
+        "质疑": true,
+        "回应": true,
+        "整改": true,
+        "理解": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E011": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "学生家长": true,
+        "学校": true,
+        "教育局": true,
+        "教师": true,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "质疑": true,
+        "回应": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E012": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "学生": true,
+        "家长": true,
+        "学校": true,
+        "食堂承包商": false,
+        "市场监管部门": true
+      },
+      "stance_coverage": {
+        "质疑": false,
+        "愤怒": false,
+        "回应": true,
+        "整改": true,
+        "监督": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "食堂承包商"
+      ],
+      "missing_stances": [
+        "质疑",
+        "愤怒"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E013": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "家长": true,
+        "学生": true,
+        "培训机构": true,
+        "教育部门": true,
+        "市场监管部门": true
+      },
+      "stance_coverage": {
+        "维权": true,
+        "质疑": false,
+        "回应": true,
+        "解释": true,
+        "整改": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E014": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "学生家长": true,
+        "教育局": true,
+        "学校": true,
+        "社区居民": true,
+        "房产业主": false
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "质疑": true,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "房产业主"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E015": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "学生": true,
+        "家长": true,
+        "教师": true,
+        "学校": true,
+        "教育局": true
+      },
+      "stance_coverage": {
+        "批评": true,
+        "质疑": true,
+        "回应": true,
+        "解释": true,
+        "支持处理": false
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "支持处理"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E016": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "学生": true,
+        "家长": true,
+        "体育教师": true,
+        "教育局": true,
+        "学校": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": false,
+        "担忧": true,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "反对"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E017": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "幼儿家长": true,
+        "幼儿园": true,
+        "教育部门": true,
+        "市场监管部门": true,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "投诉": true,
+        "回应": true,
+        "整改": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E018": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "受害学生": true,
+        "涉事学生": true,
+        "家长": true,
+        "学校": true,
+        "教育局": true
+      },
+      "stance_coverage": {
+        "愤怒": true,
+        "质疑": true,
+        "回应": true,
+        "惩戒": true,
+        "保护": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E019": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "学生": true,
+        "学校后勤": true,
+        "校方": true,
+        "家长": true,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "吐槽": true,
+        "质疑": true,
+        "回应": true,
+        "解释": true,
+        "整改": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E020": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "学生": true,
+        "家长": true,
+        "学校": true,
+        "心理教师": true,
+        "教育部门": true
+      },
+      "stance_coverage": {
+        "担忧": true,
+        "建议": true,
+        "质疑": true,
+        "回应": true,
+        "支持": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E021": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "患者": true,
+        "医院": true,
+        "卫健部门": false,
+        "医生": true,
+        "平台运营方": false
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "抱怨": true,
+        "回应": true,
+        "解释": true,
+        "优化": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "卫健部门",
+        "平台运营方"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E022": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "参保人": true,
+        "患者": true,
+        "医保局": true,
+        "医院": true,
+        "专家": true
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "担忧": true,
+        "解释": true,
+        "支持": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E023": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "慢病患者": true,
+        "社区卫生服务中心": true,
+        "卫健部门": true,
+        "药品配送企业": true,
+        "医生": true
+      },
+      "stance_coverage": {
+        "不满": true,
+        "求助": true,
+        "回应": true,
+        "解释": true,
+        "改进": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E024": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "老人": true,
+        "家属": true,
+        "养老机构": true,
+        "民政部门": true,
+        "护理人员": true
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "愤怒": false,
+        "回应": true,
+        "整改": true,
+        "监督": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "愤怒"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E025": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "患者": true,
+        "互联网医院": true,
+        "医生": true,
+        "监管部门": true,
+        "药店": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "质疑": true,
+        "担忧": true,
+        "回应": true,
+        "规范": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E026": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "患者": true,
+        "医院": true,
+        "医生": true,
+        "卫健部门": true,
+        "医保部门": true
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "不满": true,
+        "解释": true,
+        "回应": true,
+        "调查": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E027": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "儿童家长": true,
+        "疾控中心": true,
+        "接种点": true,
+        "卫健部门": false,
+        "社区": true
+      },
+      "stance_coverage": {
+        "担忧": true,
+        "质疑": true,
+        "回应": true,
+        "解释": true,
+        "协调": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "卫健部门"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E028": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "失能老人": true,
+        "家属": true,
+        "医保局": true,
+        "护理机构": true,
+        "社区": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "质疑": false,
+        "建议": true,
+        "回应": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E029": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "患者": true,
+        "家属": true,
+        "医院": true,
+        "护士": true,
+        "卫健部门": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": false,
+        "质疑": true,
+        "解释": true,
+        "协调": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "反对"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E030": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "家庭医生": true,
+        "社区卫生服务中心": true,
+        "卫健部门": true,
+        "社区": true
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "建议": true,
+        "回应": true,
+        "解释": true,
+        "支持": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E031": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "化工企业": true,
+        "生态环境部门": true,
+        "园区管委会": true,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "投诉": true,
+        "质疑": true,
+        "回应": true,
+        "整改": true,
+        "监督": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E032": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "施工单位": true,
+        "城管部门": true,
+        "生态环境部门": true,
+        "开发企业": false
+      },
+      "stance_coverage": {
+        "投诉": true,
+        "质疑": true,
+        "回应": true,
+        "整改": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "开发企业"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E033": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "城管部门": true,
+        "社区": true,
+        "物业": true,
+        "环保志愿者": false
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": false,
+        "质疑": true,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "环保志愿者"
+      ],
+      "missing_stances": [
+        "反对"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E034": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "市民": true,
+        "应急管理部门": true,
+        "住建部门": true,
+        "交通部门": false,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "担忧": false,
+        "质疑": false,
+        "回应": true,
+        "解释": true,
+        "改进": false
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "交通部门"
+      ],
+      "missing_stances": [
+        "担忧",
+        "质疑",
+        "改进"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E035": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "供水企业": true,
+        "生态环境部门": true,
+        "卫健部门": false,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "担忧": true,
+        "质疑": false,
+        "回应": true,
+        "解释": true,
+        "检测": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "卫健部门"
+      ],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E036": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "物业": true,
+        "消防部门": true,
+        "社区": true,
+        "充电设施运营商": false
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": false,
+        "担忧": false,
+        "回应": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "充电设施运营商"
+      ],
+      "missing_stances": [
+        "反对",
+        "担忧"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E037": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "摊贩": true,
+        "城管部门": true,
+        "街道办": true,
+        "消费者": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "投诉": true,
+        "协调": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E038": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "车主": true,
+        "规划部门": true,
+        "园林部门": true,
+        "环保组织": false
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "质疑": false,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "环保组织"
+      ],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E039": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "燃气公司": true,
+        "住建部门": false,
+        "社区": true,
+        "安检人员": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "质疑": true,
+        "担忧": false,
+        "回应": true,
+        "解释": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "住建部门"
+      ],
+      "missing_stances": [
+        "担忧"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E040": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "供电公司": true,
+        "街道办": true,
+        "应急部门": false,
+        "媒体": true
+      },
+      "stance_coverage": {
+        "不满": true,
+        "质疑": false,
+        "回应": true,
+        "解释": true,
+        "整改": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "应急部门"
+      ],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E041": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "通勤乘客": true,
+        "地铁运营方": true,
+        "交通部门": true,
+        "媒体": true,
+        "安保人员": false
+      },
+      "stance_coverage": {
+        "投诉": true,
+        "质疑": true,
+        "回应": true,
+        "解释": true,
+        "优化": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "安保人员"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E042": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "居民": true,
+        "老年人": true,
+        "公交公司": true,
+        "交通部门": false,
+        "社区": true
+      },
+      "stance_coverage": {
+        "反对": true,
+        "质疑": false,
+        "回应": true,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "交通部门"
+      ],
+      "missing_stances": [
+        "质疑"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E043": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "市民": true,
+        "共享单车平台": true,
+        "城管部门": true,
+        "社区": true,
+        "骑行用户": true
+      },
+      "stance_coverage": {
+        "支持": true,
+        "反对": true,
+        "质疑": false,
+        "整改": true,
+        "解释": false
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "质疑",
+        "解释"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E044": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "网约车司机": true,
+        "平台企业": true,
+        "乘客": true,
+        "交通部门": true,
+        "行业协会": true
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "反对": true,
+        "回应": true,
+        "解释": true,
+        "呼吁": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing temporal stages"
+    },
+    "E045": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "车主": true,
+        "停车运营方": false,
+        "城管部门": true,
+        "交通部门": true,
+        "平台技术方": false
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "投诉": true,
+        "回应": true,
+        "解释": true,
+        "整改": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "停车运营方",
+        "平台技术方"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E046": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "外卖骑手": true,
+        "平台企业": true,
+        "消费者": true,
+        "交警部门": true,
+        "市民": true
+      },
+      "stance_coverage": {
+        "支持治理": false,
+        "质疑平台": false,
+        "同情": true,
+        "批评": true,
+        "回应": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [],
+      "missing_stances": [
+        "支持治理",
+        "质疑平台"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stances; missing temporal stages"
+    },
+    "E047": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "新能源车主": true,
+        "充电运营商": true,
+        "发改部门": false,
+        "交通部门": false,
+        "商场停车场": false
+      },
+      "stance_coverage": {
+        "不满": true,
+        "质疑": true,
+        "回应": true,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "发改部门",
+        "交通部门",
+        "商场停车场"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E048": {
+      "source_coverage": {
+        "news": true,
+        "public_social": false,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "车主": true,
+        "交警部门": true,
+        "交通技术企业": false,
+        "媒体": true,
+        "法律专家": true
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "支持": true,
+        "投诉": true,
+        "解释": true,
+        "建议": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": true
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "public_social",
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "交通技术企业"
+      ],
+      "missing_stances": [],
+      "missing_temporal_stages": [
+        "before",
+        "during"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing temporal stages"
+    },
+    "E049": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "用户": true,
+        "平台企业": true,
+        "网信部门": true,
+        "消费者协会": false,
+        "技术专家": false
+      },
+      "stance_coverage": {
+        "质疑": true,
+        "担忧": true,
+        "回应": true,
+        "整改": true,
+        "支持监管": false
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "消费者协会",
+        "技术专家"
+      ],
+      "missing_stances": [
+        "支持监管"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    },
+    "E050": {
+      "source_coverage": {
+        "news": true,
+        "public_social": true,
+        "official": false,
+        "forum": false
+      },
+      "stakeholder_coverage": {
+        "行人": true,
+        "骑行者": false,
+        "无人配送企业": false,
+        "交通部门": false,
+        "城管部门": false
+      },
+      "stance_coverage": {
+        "支持创新": false,
+        "担忧安全": false,
+        "质疑": true,
+        "回应": true,
+        "规范": true
+      },
+      "temporal_stage_coverage": {
+        "before": false,
+        "during": false,
+        "after": false
+      },
+      "traceability_rate": 1.0,
+      "redundancy_rate": 0.0,
+      "missing_sources": [
+        "official",
+        "forum"
+      ],
+      "missing_stakeholders": [
+        "骑行者",
+        "无人配送企业",
+        "交通部门",
+        "城管部门"
+      ],
+      "missing_stances": [
+        "支持创新",
+        "担忧安全"
+      ],
+      "missing_temporal_stages": [
+        "before",
+        "during",
+        "after"
+      ],
+      "need_query_repair": true,
+      "repair_reason": "missing sources; missing stakeholders; missing stances; missing temporal stages"
+    }
+  },
+  "errors": []
+}

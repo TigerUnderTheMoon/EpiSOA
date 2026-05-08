@@ -1,0 +1,1498 @@
+domain,count,classified_source,original_sources,classification_reason
+m.66law.cn,53,public_web,"{""news"": 47, ""public_social"": 2, ""forum"": 4}",default public web
+m.thepaper.cn,51,news,"{""news"": 33, ""public_social"": 3, ""forum"": 4, ""public_interaction"": 10, ""official"": 1}",news domain
+m.sohu.com,51,news,"{""news"": 41, ""public_social"": 1, ""forum"": 4, ""public_interaction"": 4, ""official"": 1}",news domain
+findlaw.cn,48,public_web,"{""news"": 40, ""public_social"": 6, ""public_interaction"": 2}",default public web
+wap.findlaw.cn,47,public_web,"{""news"": 43, ""public_social"": 4}",default public web
+3g.china.com,45,public_web,"{""news"": 36, ""public_social"": 2, ""forum"": 4, ""official"": 2, ""public_interaction"": 1}",default public web
+liuyan.people.com.cn,41,public_interaction,"{""news"": 31, ""public_interaction"": 5, ""forum"": 5}",public interaction domain or text hint
+news.qq.com,38,news,"{""news"": 32, ""public_social"": 1, ""official"": 1, ""forum"": 2, ""public_interaction"": 2}",news domain
+c.m.163.com,34,news,"{""news"": 21, ""public_interaction"": 8, ""forum"": 4, ""official"": 1}",news domain
+m.gmw.cn,31,news,"{""news"": 22, ""public_social"": 1, ""forum"": 3, ""public_interaction"": 4, ""official"": 1}",news domain
+moe.gov.cn,25,official,"{""news"": 16, ""public_social"": 2, ""public_interaction"": 7}",government domain or official platform hint
+view.inews.qq.com,24,public_web,"{""news"": 14, ""public_social"": 2, ""forum"": 4, ""public_interaction"": 3, ""official"": 1}",default public web
+sohu.com,23,news,"{""news"": 16, ""public_social"": 1, ""official"": 1, ""public_interaction"": 4, ""forum"": 1}",news domain
+163.com,22,news,"{""news"": 15, ""public_social"": 1, ""forum"": 2, ""public_interaction"": 4}",news domain
+lawtime.cn,21,public_web,"{""news"": 17, ""public_social"": 4}",default public web
+news.cctv.com,21,public_web,"{""news"": 14, ""forum"": 3, ""public_interaction"": 4}",default public web
+m.book118.com,20,public_web,"{""news"": 18, ""public_social"": 2}",default public web
+m.voc.com.cn,19,public_web,"{""news"": 13, ""public_social"": 1, ""public_interaction"": 4, ""forum"": 1}",default public web
+news.china.com,17,public_web,"{""news"": 13, ""public_social"": 1, ""public_interaction"": 2, ""forum"": 1}",default public web
+m.fang.com,17,public_web,"{""news"": 14, ""public_social"": 1, ""forum"": 2}",default public web
+k.sina.cn,17,public_web,"{""news"": 16, ""forum"": 1}",default public web
+m.163.com,17,news,"{""news"": 8, ""public_social"": 2, ""public_interaction"": 5, ""official"": 1, ""forum"": 1}",news domain
+wz.rednet.cn,16,public_web,"{""news"": 12, ""public_interaction"": 3, ""forum"": 1}",default public web
+paper.people.com.cn,14,news,"{""news"": 10, ""public_social"": 1, ""public_interaction"": 3}",news domain
+cbgc.scol.com.cn,14,public_web,"{""news"": 10, ""forum"": 2, ""public_interaction"": 2}",default public web
+m.64365.com,13,public_web,"{""news"": 13}",default public web
+gov.cn,13,official,"{""public_social"": 2, ""news"": 8, ""public_interaction"": 2, ""forum"": 1}",government domain or official platform hint
+thepaper.cn,13,news,"{""public_social"": 1, ""news"": 7, ""public_interaction"": 2, ""official"": 1, ""forum"": 2}",news domain
+m.chinanews.com,13,news,"{""news"": 8, ""public_social"": 1, ""public_interaction"": 4}",news domain
+people.rednet.cn,12,public_web,"{""news"": 6, ""public_interaction"": 5, ""forum"": 1}",default public web
+cj.sina.cn,12,public_social,"{""public_social"": 7, ""news"": 4, ""public_interaction"": 1}",public social web clue
+news.hubeidaily.net,11,public_social,"{""public_social"": 5, ""news"": 6}",public social web clue
+news.cnr.cn,10,public_web,"{""news"": 7, ""public_social"": 1, ""public_interaction"": 2}",default public web
+news.sina.cn,10,public_web,"{""news"": 10}",default public web
+news.cctv.cn,10,public_web,"{""news"": 9, ""public_interaction"": 1}",default public web
+m.baike.com,10,public_web,"{""news"": 6, ""public_social"": 1, ""forum"": 1, ""public_interaction"": 2}",default public web
+cj.sina.com.cn,10,public_web,"{""news"": 7, ""public_social"": 1, ""forum"": 1, ""public_interaction"": 1}",default public web
+xinhuanet.com,10,news,"{""news"": 7, ""public_interaction"": 3}",news domain
+m.lawtime.cn,9,public_web,"{""news"": 9}",default public web
+jfdaily.com.cn,9,public_web,"{""news"": 9}",default public web
+cgzf.sh.gov.cn,9,official,"{""public_social"": 3, ""news"": 2, ""forum"": 2, ""public_interaction"": 2}",government domain or official platform hint
+wz.sun0769.com,9,public_interaction,"{""news"": 7, ""public_interaction"": 2}",public interaction domain or text hint
+beijing.gov.cn,9,official,"{""public_social"": 1, ""news"": 6, ""public_interaction"": 1, ""forum"": 1}",government domain or official platform hint
+post.m.smzdm.com,8,public_web,"{""news"": 5, ""public_social"": 3}",default public web
+sh.people.com.cn,8,public_social,"{""public_social"": 4, ""news"": 2, ""public_interaction"": 1, ""forum"": 1}",public social web clue
+sznews.com,8,public_web,"{""news"": 8}",default public web
+ce.cn,8,public_web,"{""news"": 3, ""public_social"": 2, ""public_interaction"": 3}",default public web
+chinanews.com.cn,8,news,"{""public_social"": 1, ""news"": 7}",news domain
+s.fh21.com.cn,8,public_web,"{""news"": 6, ""public_social"": 2}",default public web
+finance.sina.cn,8,public_web,"{""news"": 7, ""forum"": 1}",default public web
+xiangyang.gov.cn,8,official,"{""news"": 6, ""forum"": 1, ""public_interaction"": 1}",government domain or official platform hint
+jingan.gov.cn,7,official,"{""news"": 5, ""public_interaction"": 2}",government domain or official platform hint
+cqcb.com,7,public_web,"{""news"": 3, ""public_interaction"": 3, ""forum"": 1}",default public web
+nhc.gov.cn,7,official,"{""news"": 7}",government domain or official platform hint
+diantizixun.cn,6,public_web,"{""news"": 5, ""public_social"": 1}",default public web
+dzrb.dzng.com,6,public_web,"{""news"": 5, ""public_social"": 1}",default public web
+cnr.cn,6,public_web,"{""news"": 3, ""public_social"": 2, ""public_interaction"": 1}",default public web
+static.nfnews.com,6,public_web,"{""news"": 5, ""public_interaction"": 1}",default public web
+shobserver.com,6,public_web,"{""news"": 5, ""public_social"": 1}",default public web
+www-lf.dongchedi.com,6,public_web,"{""news"": 6}",default public web
+qikanchina.com,6,public_web,"{""news"": 6}",default public web
+shyp.gov.cn,6,official,"{""public_social"": 1, ""news"": 4, ""forum"": 1}",government domain or official platform hint
+m.people.cn,6,public_web,"{""news"": 2, ""public_interaction"": 1, ""forum"": 3}",default public web
+sina.cn,6,public_web,"{""news"": 5, ""forum"": 1}",default public web
+people.lyd.com.cn,6,public_web,"{""news"": 3, ""forum"": 1, ""public_interaction"": 2}",default public web
+views.ce.cn,6,public_web,"{""news"": 5, ""public_social"": 1}",default public web
+public.zhengzhou.gov.cn,6,official,"{""news"": 3, ""public_interaction"": 2, ""forum"": 1}",government domain or official platform hint
+tousu.sina.cn,6,public_web,"{""news"": 6}",default public web
+nmgnews.com.cn,6,public_web,"{""news"": 6}",default public web
+dongchedi.com,6,public_web,"{""news"": 4, ""public_social"": 2}",default public web
+sz.gov.cn,5,official,"{""news"": 4, ""public_interaction"": 1}",government domain or official platform hint
+m.yunnan.cn,5,public_web,"{""news"": 4, ""public_interaction"": 1}",default public web
+e.jznews.com.cn,5,public_web,"{""news"": 5}",default public web
+yantai.gov.cn,5,official,"{""news"": 3, ""public_interaction"": 2}",government domain or official platform hint
+mohurd.gov.cn,5,official,"{""news"": 4, ""public_interaction"": 1}",government domain or official platform hint
+wap.bjd.com.cn,5,public_web,"{""public_social"": 1, ""news"": 3, ""public_interaction"": 1}",default public web
+syhg.gov.cn,5,official,"{""news"": 3, ""public_interaction"": 2}",government domain or official platform hint
+cqtuanxiao.org.cn,5,public_web,"{""news"": 5}",default public web
+wzzdg.sun0769.com,5,public_interaction,"{""news"": 4, ""forum"": 1}",public interaction domain or text hint
+tt.jxnews.com.cn,5,public_web,"{""news"": 3, ""forum"": 2}",default public web
+news.cn,5,public_web,"{""news"": 4, ""public_interaction"": 1}",default public web
+suzhou.gov.cn,5,official,"{""news"": 4, ""forum"": 1}",government domain or official platform hint
+cn-healthcare.com,5,public_web,"{""news"": 4, ""public_interaction"": 1}",default public web
+m.bohe.cn,5,public_web,"{""news"": 5}",default public web
+jiusongjiankang.com,5,public_web,"{""news"": 5}",default public web
+m.legaldaily.com.cn,5,public_web,"{""news"": 5}",default public web
+jx.ifeng.com,5,public_interaction,"{""news"": 2, ""public_social"": 1, ""forum"": 2}",public interaction domain or text hint
+autohome.com.cn,5,public_web,"{""news"": 5}",default public web
+pcauto.com.cn,5,public_web,"{""news"": 5}",default public web
+hefeilaws.com,4,public_web,"{""news"": 4}",default public web
+flkpz.com,4,public_web,"{""news"": 4}",default public web
+news.sohu.com,4,news,"{""news"": 4}",news domain
+chinanews.com,4,news,"{""news"": 4}",news domain
+court.gov.cn,4,official,"{""news"": 4}",government domain or official platform hint
+hubpd.com,4,public_web,"{""news"": 3, ""public_social"": 1}",default public web
+legaldaily.com.cn,4,public_web,"{""news"": 3, ""public_interaction"": 1}",default public web
+xiancn.com,4,public_web,"{""news"": 3, ""forum"": 1}",default public web
+www-lq.dongchedi.com,4,public_web,"{""news"": 4}",default public web
+exms.jingzhou.gov.cn,4,official,"{""news"": 4}",government domain or official platform hint
+m.bjnews.com.cn,4,public_web,"{""news"": 3, ""forum"": 1}",default public web
+mip.66law.cn,4,public_web,"{""news"": 3, ""public_social"": 1}",default public web
+finance.eastmoney.com,4,public_web,"{""news"": 3, ""forum"": 1}",default public web
+jje.jiujiang.gov.cn,4,official,"{""news"": 4}",government domain or official platform hint
+gdedu123.com,4,public_web,"{""news"": 4}",default public web
+ahjinzhai.gov.cn,4,official,"{""news"": 2, ""public_social"": 1, ""public_interaction"": 1}",government domain or official platform hint
+fjdaily.com,4,public_web,"{""news"": 4}",default public web
+finance.sina.com.cn,4,public_web,"{""news"": 4}",default public web
+w.dzwww.com,4,public_web,"{""news"": 3, ""forum"": 1}",default public web
+post.smzdm.com,4,public_web,"{""news"": 4}",default public web
+xinyi.gov.cn,4,official,"{""news"": 4}",government domain or official platform hint
+lifetimes.cn,4,public_web,"{""news"": 3, ""public_interaction"": 1}",default public web
+wjx.cn,4,public_web,"{""news"": 4}",default public web
+cenews.com.cn,4,public_web,"{""news"": 4}",default public web
+wap.zhengguannews.cn,4,public_web,"{""news"": 3, ""forum"": 1}",default public web
+gdzwfw.gov.cn,4,official,"{""public_social"": 1, ""public_interaction"": 1, ""forum"": 2}",government domain or official platform hint
+119.gov.cn,4,official,"{""public_social"": 1, ""news"": 2, ""forum"": 1}",government domain or official platform hint
+bbs.cnnb.com.cn,4,forum,"{""news"": 4}",forum domain or discussion text hint
+bj.people.com.cn,4,news,"{""news"": 1, ""forum"": 1, ""public_interaction"": 2}",news domain
+finance.people.com.cn,4,news,"{""news"": 3, ""forum"": 1}",news domain
+m.kankanews.com,4,public_web,"{""news"": 2, ""public_interaction"": 1, ""forum"": 1}",default public web
+jingyunlawyer.com,3,public_web,"{""news"": 3}",default public web
+district.ce.cn,3,public_web,"{""official"": 1, ""news"": 2}",default public web
+yk.gov.cn,3,official,"{""news"": 2, ""public_social"": 1}",government domain or official platform hint
+jinshishi.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+mip.64365.com,3,public_web,"{""news"": 3}",default public web
+m.loupan.com,3,public_web,"{""news"": 2, ""forum"": 1}",default public web
+gzcourt.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+china.findlaw.cn,3,public_web,"{""news"": 3}",default public web
+bjwmb.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+news.cnnb.com.cn,3,public_web,"{""news"": 3}",default public web
+jiangmen.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+szwz.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+ipaper.oeeee.com,3,public_web,"{""news"": 3}",default public web
+gaoan.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+ahhy.gov.cn,3,official,"{""news"": 2, ""public_social"": 1}",government domain or official platform hint
+xueqiu.com,3,public_web,"{""news"": 3}",default public web
+m.10jqka.com.cn,3,public_web,"{""news"": 2, ""forum"": 1}",default public web
+sxx.gov.cn,3,public_interaction,"{""news"": 3}",public interaction domain or text hint
+gzstv.com,3,public_web,"{""news"": 3}",default public web
+fengxian.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+bjft.gov.cn,3,official,"{""news"": 2, ""public_social"": 1}",government domain or official platform hint
+epaper.gmw.cn,3,news,"{""news"": 2, ""forum"": 1}",news domain
+hunan.gov.cn,3,official,"{""public_social"": 1, ""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+suqian.gov.cn,3,official,"{""news"": 1, ""public_social"": 1, ""forum"": 1}",government domain or official platform hint
+daily.cnnb.com.cn,3,public_web,"{""news"": 2, ""forum"": 1}",default public web
+xjem.gov.cn,3,public_interaction,"{""news"": 3}",public interaction domain or text hint
+lg.gov.cn,3,official,"{""news"": 2, ""public_interaction"": 1}",government domain or official platform hint
+m.to8to.com,3,public_web,"{""news"": 3}",default public web
+guangde.gov.cn,3,official,"{""public_social"": 3}",government domain or official platform hint
+tibet.cn,3,public_web,"{""public_social"": 1, ""news"": 2}",default public web
+jw.beijing.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+oeeee.com,3,public_web,"{""news"": 2, ""forum"": 1}",default public web
+tj.gov.cn,3,official,"{""news"": 2, ""forum"": 1}",government domain or official platform hint
+lnsjjjc.gov.cn,3,official,"{""news"": 2, ""forum"": 1}",government domain or official platform hint
+gxnews.com.cn,3,public_web,"{""news"": 3}",default public web
+dianda.cqvip.com,3,public_web,"{""news"": 3}",default public web
+m.e23.cn,3,public_web,"{""news"": 2, ""public_social"": 1}",default public web
+m.findlaw.cn,3,public_web,"{""news"": 3}",default public web
+wap.cqcb.com,3,public_web,"{""news"": 2, ""official"": 1}",default public web
+ctdsb.net,3,public_web,"{""news"": 3}",default public web
+bj.crntt.com,3,public_web,"{""news"": 2, ""public_interaction"": 1}",default public web
+rmzxw.com.cn,3,public_web,"{""news"": 2, ""forum"": 1}",default public web
+cqrd.gov.cn,3,official,"{""news"": 2, ""forum"": 1}",government domain or official platform hint
+xljkzz.com,3,public_social,"{""public_social"": 3}",public social web clue
+m.huanqiu.com,3,public_social,"{""public_social"": 1, ""news"": 1, ""public_interaction"": 1}",public social web clue
+shanghai.gov.cn,3,official,"{""public_social"": 1, ""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+nxzx.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+xinhuanet.com.cn,3,public_web,"{""news"": 2, ""public_social"": 1}",default public web
+m.jiemian.com,3,public_web,"{""news"": 1, ""public_social"": 1, ""public_interaction"": 1}",default public web
+m.xiaohe.cn,3,public_web,"{""news"": 3}",default public web
+fagw.nanyang.gov.cn,3,official,"{""news"": 2, ""public_interaction"": 1}",government domain or official platform hint
+sxhctv.com,3,public_web,"{""news"": 1, ""forum"": 1, ""public_interaction"": 1}",default public web
+m.cnr.cn,3,public_web,"{""news"": 3}",default public web
+health.people.com.cn,3,news,"{""news"": 2, ""public_interaction"": 1}",news domain
+big5.www.gov.cn,3,official,"{""news"": 1, ""public_interaction"": 2}",government domain or official platform hint
+mip.mfk.com,3,public_web,"{""news"": 3}",default public web
+m.ebiotrade.com,3,public_web,"{""news"": 2, ""public_social"": 1}",default public web
+gx.people.com.cn,3,news,"{""news"": 1, ""forum"": 2}",news domain
+zjtz.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+app.xinhuanet.com,3,news,"{""news"": 3}",news domain
+web.shobserver.com,3,public_web,"{""news"": 3}",default public web
+m.milvtong.com,3,public_web,"{""news"": 2, ""public_social"": 1}",default public web
+shqp.gov.cn,3,official,"{""public_social"": 1, ""news"": 2}",government domain or official platform hint
+cgj.pds.gov.cn,3,official,"{""news"": 1, ""forum"": 2}",government domain or official platform hint
+lanxi.gov.cn,3,official,"{""news"": 2, ""public_social"": 1}",government domain or official platform hint
+cgj.changsha.gov.cn,3,public_interaction,"{""news"": 2, ""public_social"": 1}",public interaction domain or text hint
+jintan.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+bjchy.gov.cn,3,official,"{""news"": 2, ""forum"": 1}",government domain or official platform hint
+jinantimes.com.cn,3,public_web,"{""news"": 1, ""official"": 1, ""forum"": 1}",default public web
+qlwb.com.cn,3,public_web,"{""news"": 2, ""forum"": 1}",default public web
+cjs.gov.cn,3,official,"{""news"": 2, ""public_interaction"": 1}",government domain or official platform hint
+yuexi.gov.cn,3,official,"{""news"": 2, ""forum"": 1}",government domain or official platform hint
+jtgl.beijing.gov.cn,3,official,"{""news"": 3}",government domain or official platform hint
+sdxw.iqilu.com,3,public_web,"{""news"": 2, ""public_social"": 1}",default public web
+m.dongchedi.com,3,public_web,"{""news"": 3}",default public web
+www-hl.dongchedi.com,3,public_web,"{""news"": 3}",default public web
+lianhu.gov.cn,3,official,"{""public_interaction"": 3}",government domain or official platform hint
+c.eihee.com,3,public_web,"{""forum"": 3}",default public web
+xxgk.jcgov.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+ww.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+jiangshan.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+gz.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+yishui.gov.cn,2,official,"{""news"": 1, ""public_social"": 1}",government domain or official platform hint
+shfzb.com.cn,2,public_web,"{""news"": 2}",default public web
+china.huanqiu.com,2,public_web,"{""news"": 2}",default public web
+zjw.beijing.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+moj.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+hp.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+tl.gov.cn,2,official,"{""news"": 1, ""public_social"": 1}",government domain or official platform hint
+maxlaw.cn,2,public_web,"{""news"": 1, ""public_social"": 1}",default public web
+jieyang.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+szlh.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+huian.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+m.mars8.com,2,public_web,"{""news"": 2}",default public web
+nx.people.com.cn,2,news,"{""news"": 1, ""public_interaction"": 1}",news domain
+kaiping.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+quanzhou.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+moment.rednet.cn,2,public_web,"{""news"": 2}",default public web
+m.henan.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+rmlt.com.cn,2,forum,"{""news"": 1, ""public_interaction"": 1}",forum domain or discussion text hint
+zfcxjst.gd.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+nanning.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+m.jiwu.com,2,public_web,"{""news"": 2}",default public web
+lawask.net,2,public_web,"{""news"": 2}",default public web
+legalweekly.cn,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+fx.lncourt.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+szjw.changsha.gov.cn,2,official,"{""news"": 1, ""public_social"": 1}",government domain or official platform hint
+zfcxjsj.xinyang.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+m.focus.cn,2,public_web,"{""news"": 2}",default public web
+yanggu.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+zrzy.jiangsu.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+ningguo.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+ngzb.com.cn,2,public_interaction,"{""news"": 1, ""official"": 1}",public interaction domain or text hint
+xjlt.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+chinacourt.cn,2,public_web,"{""news"": 2}",default public web
+m.ce.cn,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+njdaily.cn,2,forum,"{""news"": 2}",forum domain or discussion text hint
+docin.com,2,public_social,"{""public_social"": 1, ""news"": 1}",public social web clue
+m.hexun.com,2,public_web,"{""news"": 2}",default public web
+china.cnr.cn,2,public_web,"{""news"": 1, ""forum"": 1}",default public web
+fgw.beijing.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+sqr.ahnews.com.cn,2,public_web,"{""news"": 2}",default public web
+lanzhou.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+hudong.moe.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+changzhi.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+nc.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+zhangzhou.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+wsjkw.hebei.gov.cn,2,official,"{""public_social"": 1, ""news"": 1}",government domain or official platform hint
+huaihua.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+cfsn.cn,2,public_web,"{""news"": 2}",default public web
+gywb.cn,2,public_web,"{""news"": 2}",default public web
+guancha.cn,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+xiaogan.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+m.fznews.com.cn,2,public_web,"{""news"": 2}",default public web
+shiyan.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+roll.sohu.com,2,news,"{""news"": 1, ""forum"": 1}",news domain
+epaper.qingdaonews.com,2,public_social,"{""public_social"": 1, ""news"": 1}",public social web clue
+zznews.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+huxiu.com,2,public_interaction,"{""news"": 2}",public interaction domain or text hint
+lawpa.cn,2,forum,"{""news"": 1, ""public_social"": 1}",forum domain or discussion text hint
+shaoxing.com.cn,2,public_web,"{""news"": 2}",default public web
+ysxw.cctv.cn,2,public_web,"{""news"": 2}",default public web
+api.01ny.cn,2,public_web,"{""news"": 2}",default public web
+sports.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+m.doc88.com,2,public_web,"{""news"": 2}",default public web
+tidenews.com.cn,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+rencheng.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+politics.gmw.cn,2,news,"{""news"": 1, ""public_social"": 1}",news domain
+ipaper.ce.cn,2,public_web,"{""news"": 2}",default public web
+nfnews.com,2,public_web,"{""news"": 2}",default public web
+big5.cctv.com,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+ahjx.gov.cn,2,official,"{""news"": 1, ""public_social"": 1}",government domain or official platform hint
+panzhihua.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+cnwomen.com.cn,2,public_web,"{""news"": 1, ""public_social"": 1}",default public web
+mip.syjlp.com,2,public_web,"{""news"": 2}",default public web
+sd.china.com,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+hqfw.hnu.edu.cn,2,public_web,"{""news"": 2}",default public web
+k.sina.com.cn,2,public_web,"{""news"": 1, ""public_social"": 1}",default public web
+weitoutiao.zjurl.cn,2,public_web,"{""news"": 1, ""official"": 1}",default public web
+21jingji.com,2,public_web,"{""news"": 2}",default public web
+thxzx.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+m.tech.china.com,2,public_web,"{""news"": 2}",default public web
+hunantoday.cn,2,public_web,"{""news"": 2}",default public web
+hh.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+foping.gov.cn,2,official,"{""public_social"": 2}",government domain or official platform hint
+bkwk.cn,2,public_interaction,"{""public_social"": 2}",public interaction domain or text hint
+epaper.01ny.cn,2,public_web,"{""news"": 2}",default public web
+gutian.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+news.qingdaonews.com,2,public_web,"{""news"": 2}",default public web
+shebao.southmoney.com,2,public_web,"{""news"": 2}",default public web
+dlrk.jining.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+ybj.bengbu.gov.cn,2,official,"{""public_social"": 1, ""news"": 1}",government domain or official platform hint
+cqsdj.gov.cn,2,official,"{""public_social"": 1, ""public_interaction"": 1}",government domain or official platform hint
+haoyisheng.com,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+js.people.com.cn,2,news,"{""news"": 1, ""forum"": 1}",news domain
+ybj.fujian.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+wjw.ah.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+ankang.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+mengyin.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+politics.people.com.cn,2,news,"{""news"": 1, ""forum"": 1}",news domain
+ousaite.com,2,public_web,"{""news"": 2}",default public web
+szyq.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+jiaozhou.gov.cn,2,official,"{""public_social"": 1, ""news"": 1}",government domain or official platform hint
+xinxing.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+suyu.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+cont.jd.com,2,public_web,"{""news"": 2}",default public web
+opinion.voc.com.cn,2,public_web,"{""news"": 2}",default public web
+ybj.km.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+wap.cqrb.cn,2,public_web,"{""news"": 2}",default public web
+wjw.beijing.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+m.familydoctor.com.cn,2,public_social,"{""public_social"": 1, ""news"": 1}",public social web clue
+static.nfapp.southcn.com,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+news.jstv.com,2,public_web,"{""news"": 2}",default public web
+zzrb.zznews.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+huizhou.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+webzdg.sun0769.com,2,public_interaction,"{""news"": 1, ""forum"": 1}",public interaction domain or text hint
+finance.ce.cn,2,public_social,"{""public_social"": 1, ""news"": 1}",public social web clue
+ndrc.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+jining.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+xiajin.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+rss.jingjiribao.cn,2,public_web,"{""news"": 2}",default public web
+furong.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+shanggao.gov.cn,2,official,"{""news"": 1, ""public_social"": 1}",government domain or official platform hint
+kan.china.com,2,public_web,"{""news"": 2}",default public web
+hbqj.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+chinareports.org.cn,2,public_web,"{""news"": 2}",default public web
+weiyang.gov.cn,2,public_interaction,"{""public_social"": 1, ""forum"": 1}",public interaction domain or text hint
+cgj.beijing.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+yulin.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+xncz.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+sthjj.ningde.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+yangjiang.gov.cn,2,official,"{""public_social"": 1, ""public_interaction"": 1}",government domain or official platform hint
+jimei.gov.cn,2,official,"{""news"": 1, ""public_social"": 1}",government domain or official platform hint
+news.sjzdaily.com.cn,2,public_web,"{""news"": 2}",default public web
+m.pcauto.com.cn,2,public_web,"{""news"": 2}",default public web
+wangcheng.gov.cn:8080,2,public_web,"{""news"": 2}",default public web
+songpan.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+yn.people.com.cn,2,news,"{""news"": 1, ""public_interaction"": 1}",news domain
+dlgjz.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+epaper.cpd.com.cn,2,public_web,"{""news"": 2}",default public web
+jsnews.jschina.com.cn,2,public_interaction,"{""news"": 2}",public interaction domain or text hint
+luan.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+gaj.baotou.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+yznews.com.cn,2,public_web,"{""news"": 2}",default public web
+cgj.linyi.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+my.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+yuexiu.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+zjj.huainan.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+meizhou.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+cq.people.com.cn,2,news,"{""news"": 2}",news domain
+huacheng.gz-cmc.com,2,public_web,"{""news"": 2}",default public web
+life.china.com,2,public_web,"{""news"": 2}",default public web
+mpaper.jzrb.com,2,public_web,"{""news"": 2}",default public web
+ccdi.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+zxft.dg.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+bj.wenming.cn,2,public_web,"{""news"": 2}",default public web
+cq.gov.cn,2,public_interaction,"{""news"": 1, ""public_interaction"": 1}",public interaction domain or text hint
+npc.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+sc.people.com.cn,2,news,"{""news"": 1, ""public_interaction"": 1}",news domain
+news.bjd.com.cn,2,public_web,"{""news"": 2}",default public web
+nxlw.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+csglj.ningde.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+xhq.nc.gov.cn,2,official,"{""news"": 1, ""forum"": 1}",government domain or official platform hint
+qdlc.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+china.com.cn,2,public_web,"{""news"": 1, ""forum"": 1}",default public web
+zgjtb.com,2,public_web,"{""news"": 2}",default public web
+gdsx.gov.cn,2,official,"{""news"": 1, ""public_social"": 1}",government domain or official platform hint
+bjhd.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+m.geeknev.com,2,public_web,"{""news"": 2}",default public web
+gaj.yangzhou.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+wlmq.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+leiyang.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+sd.people.com.cn,2,public_social,"{""public_social"": 2}",public social web clue
+fzgg.gansu.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+chejiahao.m.autohome.com.cn,2,public_web,"{""news"": 1, ""public_social"": 1}",default public web
+zjfzb.zjol.com.cn,2,public_web,"{""news"": 2}",default public web
+app.myzaker.com,2,public_web,"{""news"": 1, ""official"": 1}",default public web
+wxb.xzdw.gov.cn,2,official,"{""news"": 1, ""public_interaction"": 1}",government domain or official platform hint
+rk.51cto.com,2,public_web,"{""news"": 2}",default public web
+blog.csdn.net,2,public_web,"{""news"": 1, ""public_social"": 1}",default public web
+cloud.tencent.com,2,public_web,"{""news"": 2}",default public web
+epaper.cqcb.com,2,public_web,"{""news"": 1, ""public_interaction"": 1}",default public web
+sd.spb.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+spb.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+gd.spb.gov.cn,2,official,"{""news"": 2}",government domain or official platform hint
+by.gov.cn,2,official,"{""public_social"": 2}",government domain or official platform hint
+zjw.nanyang.gov.cn,2,official,"{""public_interaction"": 2}",government domain or official platform hint
+nbd.com.cn,2,public_web,"{""public_interaction"": 2}",default public web
+i.ifeng.com,2,public_web,"{""public_interaction"": 1, ""forum"": 1}",default public web
+huichang.gov.cn,2,official,"{""public_interaction"": 1, ""forum"": 1}",government domain or official platform hint
+m.cnhubei.com,2,forum,"{""official"": 2}",forum domain or discussion text hint
+yiyang.gov.cn,2,public_interaction,"{""forum"": 2}",public interaction domain or text hint
+suizhou.gov.cn,2,official,"{""forum"": 1, ""public_interaction"": 1}",government domain or official platform hint
+gzzs.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zaimingchaiqian.com,1,public_web,"{""news"": 1}",default public web
+jjckb.cn,1,public_web,"{""news"": 1}",default public web
+36kr.com,1,public_web,"{""news"": 1}",default public web
+bjfzyj.ssap.com.cn,1,public_web,"{""news"": 1}",default public web
+user.guancha.cn,1,public_web,"{""news"": 1}",default public web
+shicheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dpc.qingdao.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.zaiminglaw.com,1,public_web,"{""news"": 1}",default public web
+mip.findlaw.cn,1,public_web,"{""news"": 1}",default public web
+xinshao.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjj.ningde.gov.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+law.cnr.cn,1,public_web,"{""news"": 1}",default public web
+fz.sft.jiangsu.gov.cn:18002,1,public_web,"{""news"": 1}",default public web
+zibo.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sjz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjj.nc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nsy.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cpc.people.com.cn,1,news,"{""news"": 1}",news domain
+zgj.wuhan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hznews.hangzhou.com.cn,1,public_web,"{""news"": 1}",default public web
+lingwangdianti.com,1,public_social,"{""public_social"": 1}",public social web clue
+kaifeng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hkjsj.haikou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+guantao.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjj.sz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+szzj.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wuzhong.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fanchang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shunping.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+linjiang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+lueyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjj.luan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hbsyjw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wap.eastmoney.com,1,public_web,"{""news"": 1}",default public web
+dxzc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wenkub.com,1,public_web,"{""news"": 1}",default public web
+ymyk168.com,1,public_web,"{""news"": 1}",default public web
+zfjsj.quanzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjt.fujian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+szb.qzwb.com,1,public_web,"{""news"": 1}",default public web
+xiaoshan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sanya.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hechi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shizuishan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jsj.cngy.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cnyc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xuchang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yunyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ybs.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+aqdgq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hhw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.precast.com.cn,1,public_web,"{""news"": 1}",default public web
+epaper.fsonline.com.cn,1,public_web,"{""news"": 1}",default public web
+mshanxi.baitongwang.com,1,public_web,"{""news"": 1}",default public web
+m.szhome.com,1,public_web,"{""news"": 1}",default public web
+m.changjiangtimes.com,1,public_web,"{""news"": 1}",default public web
+hnr.cn,1,public_web,"{""news"": 1}",default public web
+mgdbjt.com,1,public_web,"{""news"": 1}",default public web
+shaanxi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xinzhouzx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sass.cn,1,public_web,"{""news"": 1}",default public web
+caifuhao.eastmoney.com,1,public_web,"{""news"": 1}",default public web
+zt.cnnb.com.cn,1,public_web,"{""news"": 1}",default public web
+ztnews.net,1,public_web,"{""news"": 1}",default public web
+news.dayoo.com,1,public_web,"{""news"": 1}",default public web
+ibaoan.sznews.com,1,public_web,"{""news"": 1}",default public web
+zyk.bjhd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jcgov.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xm.fjsen.com,1,public_web,"{""news"": 1}",default public web
+junan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dingxinwen.cn,1,public_web,"{""news"": 1}",default public web
+hegsty.fun,1,public_web,"{""news"": 1}",default public web
+loupan.com,1,public_web,"{""news"": 1}",default public web
+qinghai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jxhl.hljcourt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhifu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+pmceo.com,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+fsonline.com.cn,1,public_web,"{""news"": 1}",default public web
+m.fangchan.com,1,public_web,"{""news"": 1}",default public web
+yuelu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjw.my.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+qiuxian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjj.jiujiang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cnews.chinadaily.com.cn,1,public_web,"{""news"": 1}",default public web
+zjj.huizhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+test.henanpeace.org.cn,1,public_web,"{""news"": 1}",default public web
+962121.fgj.sh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fgj.sh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xuhui.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hljcourt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jinan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news4g.xiancity.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+menglian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gxhcqfw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shengtinglaw.com,1,public_web,"{""news"": 1}",default public web
+dmzf.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xjym.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yingzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ayzjj.anyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+szdgcc.fy.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zjj.qinzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wap.xinmin.cn,1,public_web,"{""news"": 1}",default public web
+mzrb.meizhou.cn,1,public_web,"{""news"": 1}",default public web
+fy.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+liuyan.cjn.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+zx.liyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wap.jlsy.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nx.cnr.cn,1,public_web,"{""news"": 1}",default public web
+bblzh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yuncheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+szb.xnnews.com.cn,1,public_web,"{""news"": 1}",default public web
+yllhj.beijing.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fgw.shiyan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.ycwb.com,1,public_web,"{""news"": 1}",default public web
+hbjs.gov.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+sxcm.net,1,public_web,"{""news"": 1}",default public web
+news.fang.com,1,public_web,"{""news"": 1}",default public web
+yzzjj.yangzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zrzygh.cnbz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zzwb.cn,1,public_web,"{""news"": 1}",default public web
+zjj.dg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zj.xinhuanet.com,1,news,"{""news"": 1}",news domain
+zjj.yantai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cscec.com.cn,1,public_web,"{""news"": 1}",default public web
+bozhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhjzbs.com,1,public_web,"{""news"": 1}",default public web
+fw.whly.tj.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.cgcc.org.cn,1,public_social,"{""public_social"": 1}",public social web clue
+m.zhjzbs.com,1,public_social,"{""public_social"": 1}",public social web clue
+srhwj.changchun.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+libcnki.cdut.edu.cn,1,public_social,"{""public_social"": 1}",public social web clue
+wl.wenzhou.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+wx.lawyers.org.cn,1,public_web,"{""news"": 1}",default public web
+edu.sh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bzfxw.com,1,public_web,"{""news"": 1}",default public web
+paper.dzwww.com,1,public_web,"{""news"": 1}",default public web
+xxgk.zezhou.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+cnki.net,1,public_social,"{""public_social"": 1}",public social web clue
+zjtcn.com,1,public_social,"{""public_social"": 1}",public social web clue
+xr.nbwbw.com,1,public_web,"{""news"": 1}",default public web
+odz.xdkb.net,1,public_web,"{""news"": 1}",default public web
+js.cri.cn,1,public_web,"{""news"": 1}",default public web
+zgjssw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhi-shan.org,1,public_web,"{""news"": 1}",default public web
+jsxc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cs.com.cn,1,public_web,"{""news"": 1}",default public web
+hnly.wenming.cn,1,public_web,"{""news"": 1}",default public web
+xhpfmapi.xinhuaxmt.com,1,public_web,"{""news"": 1}",default public web
+m.fccs.com,1,public_web,"{""news"": 1}",default public web
+m.xflapp.com,1,public_web,"{""news"": 1}",default public web
+finance.ifeng.com,1,public_web,"{""news"": 1}",default public web
+ningbo.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xlgl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+luojiang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+law.rednet.cn,1,public_web,"{""news"": 1}",default public web
+gzhtlawyer.com,1,public_social,"{""public_social"": 1}",public social web clue
+shcn.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+homello.com,1,public_web,"{""news"": 1}",default public web
+m.xingjiesj.com,1,public_web,"{""news"": 1}",default public web
+jiajus.com,1,public_web,"{""news"": 1}",default public web
+lw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jjcsglj.jiujiang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bynr.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jy.tj.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.nmgnews.com.cn,1,public_web,"{""news"": 1}",default public web
+snedunews.com,1,public_web,"{""news"": 1}",default public web
+kmd2hx.smartapps.cn,1,public_web,"{""news"": 1}",default public web
+drbdp.com,1,public_web,"{""news"": 1}",default public web
+huaiyin.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+cqnc.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+jyj.bengbu.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+rl.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+xinxiangxian.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+nxgy.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+learning.sohu.com,1,news,"{""news"": 1}",news domain
+fx361.cc,1,forum,"{""news"": 1}",forum domain or discussion text hint
+lasa.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+oryoy.com,1,public_web,"{""news"": 1}",default public web
+jiaoyuchina.org.cn,1,public_web,"{""news"": 1}",default public web
+5g.zgm.cn,1,public_web,"{""news"": 1}",default public web
+jyj.shiyan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyj.yl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyj.cnbz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+keshan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ahtxq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+qingtian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhangye.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+edu.people.com.cn,1,news,"{""news"": 1}",news domain
+jiankang.cctv.com,1,public_web,"{""news"": 1}",default public web
+luzhai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+scpc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gx.news.cn,1,public_web,"{""news"": 1}",default public web
+jiangzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ftp.taixing.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+edu.yiyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jtj.tl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shaolinwushuxuexiao.cn,1,public_web,"{""news"": 1}",default public web
+zw.china.com.cn,1,public_web,"{""news"": 1}",default public web
+huade.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jtj.km.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jxgc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyj.qinzhou.gov.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+ahxx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ahsz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+scjg.my.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+mzrbh5.meizhou.cn,1,public_web,"{""news"": 1}",default public web
+zgsr.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yun.nxeduyun.com,1,public_web,"{""news"": 1}",default public web
+tech.gmw.cn,1,news,"{""news"": 1}",news domain
+samr.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyt.hlj.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cn3x.com.cn,1,public_web,"{""news"": 1}",default public web
+lcrb.lcxw.cn,1,public_social,"{""public_social"": 1}",public social web clue
+zxb.ccn.com.cn,1,public_social,"{""public_social"": 1}",public social web clue
+pfflw.com,1,public_social,"{""public_social"": 1}",public social web clue
+gscn.com.cn,1,public_web,"{""news"": 1}",default public web
+sjyj.suining.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nyzy.hncourt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+66law.cn,1,public_web,"{""news"": 1}",default public web
+mrjjxw.com,1,public_web,"{""news"": 1}",default public web
+chaohu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tjnk.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sixian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyj.suqian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fgw.fujian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+scjg.yanan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ahwang.cn,1,public_web,"{""news"": 1}",default public web
+legal.gmw.cn,1,news,"{""news"": 1}",news domain
+cixi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.renrendoc.com,1,public_web,"{""news"": 1}",default public web
+sw.nangong.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cls.cn,1,public_web,"{""news"": 1}",default public web
+lspjy.com,1,public_web,"{""news"": 1}",default public web
+hsrmw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nysrmfkbgs.nanyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tongzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jsgzb.qhu.edu.cn,1,forum,"{""news"": 1}",forum domain or discussion text hint
+rsc.lzcu.edu.cn,1,forum,"{""news"": 1}",forum domain or discussion text hint
+chinateacher.jyb.cn,1,public_web,"{""news"": 1}",default public web
+app.upc.edu.cn,1,public_web,"{""news"": 1}",default public web
+news.cnjiwang.com,1,public_web,"{""news"": 1}",default public web
+bohe.cn,1,public_web,"{""news"": 1}",default public web
+m.zebangedu.com,1,public_web,"{""news"": 1}",default public web
+edu.china.com.cn,1,public_web,"{""news"": 1}",default public web
+opinion.people.com.cn,1,news,"{""news"": 1}",news domain
+manage.hnsjw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+pxszf.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yqyjzx.wust.edu.cn,1,public_web,"{""news"": 1}",default public web
+wccdaily.com.cn,1,public_web,"{""news"": 1}",default public web
+wenming.enorth.com.cn,1,public_web,"{""news"": 1}",default public web
+ts.voc.com.cn,1,public_web,"{""news"": 1}",default public web
+edu.sina.com.cn,1,public_web,"{""news"": 1}",default public web
+edu.hangzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+edu.xm.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hzzx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+changsha.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.qzwb.com,1,public_web,"{""news"": 1}",default public web
+news.fznews.com.cn,1,public_web,"{""news"": 1}",default public web
+jrsh.hangzhou.com.cn,1,public_web,"{""news"": 1}",default public web
+epaper.sxjybk.com,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+sport.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tyxy.zit.edu.cn,1,public_web,"{""news"": 1}",default public web
+chinaqikan.com,1,public_web,"{""news"": 1}",default public web
+m.gdlsgz.com,1,public_web,"{""news"": 1}",default public web
+wjw.wuxi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hebei.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tianfuguancha.com,1,public_web,"{""news"": 1}",default public web
+wap.anyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+changde.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.51test.net,1,public_web,"{""news"": 1}",default public web
+jyt.hunan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+go.cqmmgo.com,1,public_web,"{""news"": 1}",default public web
+centv.cn,1,public_web,"{""news"": 1}",default public web
+ysxiao.cn,1,public_web,"{""news"": 1}",default public web
+suxinwen.cn,1,public_web,"{""news"": 1}",default public web
+yqpd.gscn.com.cn,1,public_web,"{""news"": 1}",default public web
+gaj.xinyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+edu.cnr.cn,1,public_web,"{""news"": 1}",default public web
+public.huiji.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zge.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+qy.bypc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gsjubao.cn,1,public_web,"{""news"": 1}",default public web
+v.gxnews.com.cn,1,public_web,"{""news"": 1}",default public web
+hlj.rednet.cn,1,public_web,"{""news"": 1}",default public web
+m.jyb.cn,1,public_web,"{""news"": 1}",default public web
+m.hinews.cn,1,public_web,"{""news"": 1}",default public web
+hnxcfy.hncourt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jxczh.hljcourt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bjwomen.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yr.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+guazhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dingyuan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+smyaqjy.cn,1,public_web,"{""news"": 1}",default public web
+sxpinglu.jcy.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+v.66law.cn,1,public_web,"{""news"": 1}",default public web
+lnlinghai.jcy.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+jjq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wenmingbaise.cn,1,forum,"{""news"": 1}",forum domain or discussion text hint
+news.southcn.com,1,public_web,"{""news"": 1}",default public web
+hb.dzwww.com,1,public_web,"{""news"": 1}",default public web
+jyxq.gdut.edu.cn,1,public_web,"{""news"": 1}",default public web
+zwc.csmzxy.edu.cn,1,public_web,"{""news"": 1}",default public web
+ep.ycwb.com,1,public_web,"{""news"": 1}",default public web
+tsinghua.edu.cn,1,public_web,"{""news"": 1}",default public web
+edu.ycwb.com,1,public_web,"{""news"": 1}",default public web
+zs.hnit.edu.cn,1,public_web,"{""news"": 1}",default public web
+globalpeople.com.cn,1,public_web,"{""news"": 1}",default public web
+wap.sciencenet.cn,1,public_web,"{""news"": 1}",default public web
+ninghai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jazx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xcszx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wsjsw.linyi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zx.suzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+huuc.edu.cn,1,public_web,"{""news"": 1}",default public web
+heart.henu.edu.cn,1,public_web,"{""news"": 1}",default public web
+git.edu.cn,1,public_web,"{""news"": 1}",default public web
+xlzx.whu.edu.cn,1,public_web,"{""news"": 1}",default public web
+xinli.szu.edu.cn,1,public_web,"{""news"": 1}",default public web
+dcxy.cumtb.edu.cn,1,public_web,"{""news"": 1}",default public web
+xgwzxs.tjnu.edu.cn,1,public_web,"{""news"": 1}",default public web
+jzun.edu.cn,1,public_web,"{""news"": 1}",default public web
+hb.news.cn,1,public_web,"{""news"": 1}",default public web
+h5.wfrb.wfnews.com.cn,1,public_web,"{""news"": 1}",default public web
+yurenhao.sizhengwang.cn,1,public_web,"{""news"": 1}",default public web
+jytyj.panzhihua.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xinli.univs.cn,1,public_web,"{""news"": 1}",default public web
+paper.jyb.cn,1,public_web,"{""news"": 1}",default public web
+chengwu.sdsjyy.cn,1,public_social,"{""public_social"": 1}",public social web clue
+yurenhao1.sizhengwang.cn,1,public_social,"{""public_social"": 1}",public social web clue
+jssyzzx.cn,1,public_social,"{""public_social"": 1}",public social web clue
+sizhengwang.cn,1,public_social,"{""public_social"": 1}",public social web clue
+dawa.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+szeb.sz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyj.changsha.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyt.ah.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shengsi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+chinays.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyj.jz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jazx.gov.cn:8081,1,public_web,"{""news"": 1}",default public web
+m.qfxww.com.cn,1,public_web,"{""news"": 1}",default public web
+bkmedia.cn,1,public_web,"{""news"": 1}",default public web
+baike.120ask.com,1,public_social,"{""public_social"": 1}",public social web clue
+kabanjiankang.com,1,public_social,"{""public_social"": 1}",public social web clue
+xxzrmyy.com,1,public_social,"{""public_social"": 1}",public social web clue
+jkdb.cc,1,public_social,"{""public_social"": 1}",public social web clue
+m.dayi.org.cn,1,public_social,"{""public_social"": 1}",public social web clue
+wjw.anqing.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+guahao.dlzxyy.com,1,public_web,"{""news"": 1}",default public web
+worktile.com,1,public_web,"{""news"": 1}",default public web
+gamyy.cn,1,public_web,"{""news"": 1}",default public web
+zyz.cn,1,public_web,"{""news"": 1}",default public web
+wuxi.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+kmsm.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+luzhou.scol.com.cn,1,public_web,"{""news"": 1}",default public web
+wwsgaj.gswuwei.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+yxxyy.org.cn,1,public_social,"{""public_social"": 1}",public social web clue
+chinacourt.org,1,public_web,"{""news"": 1}",default public web
+pzhsxq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jimo.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dhq.nc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ylbzj.cnbz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+heze.cn,1,public_web,"{""news"": 1}",default public web
+hbalpuai.com,1,public_web,"{""news"": 1}",default public web
+ybj.sh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gaotai.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+scl.zhangye.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+m.yuxi.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+lz.xzdw.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+szb.ptxw.com,1,public_social,"{""public_social"": 1}",public social web clue
+bypc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+suichuan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jxxz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wanzhi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ahfeixi.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+ybj.huhhot.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+ybj.yantai.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+caijingchina.com,1,public_social,"{""public_social"": 1}",public social web clue
+m.nb.bendibao.com,1,public_social,"{""public_social"": 1}",public social web clue
+szb.hnfazhi.com,1,public_social,"{""public_social"": 1}",public social web clue
+public.zhongmu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+aminer.cn,1,public_web,"{""news"": 1}",default public web
+dlminyi.runsky.com,1,public_web,"{""news"": 1}",default public web
+renda.bjxch.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ny.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shilongqu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+lndbss.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sxgov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wsjk.gansu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sjb.qlwb.com.cn,1,public_web,"{""news"": 1}",default public web
+kx.taizhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wjw.fujian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+youjiang.gxbszx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ynmg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jg-static.eeo.com.cn,1,public_web,"{""news"": 1}",default public web
+baoxing.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xhby.net,1,public_web,"{""news"": 1}",default public web
+tianqiao.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+rd.njjy.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.guanhai.com.cn,1,public_web,"{""news"": 1}",default public web
+hn.people.com.cn,1,news,"{""news"": 1}",news domain
+qg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.ruli.com,1,public_web,"{""news"": 1}",default public web
+kflz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.jrjl.net,1,public_web,"{""news"": 1}",default public web
+hebtv.com,1,public_web,"{""news"": 1}",default public web
+yywsb.com,1,public_web,"{""news"": 1}",default public web
+whsyy.net,1,public_web,"{""news"": 1}",default public web
+chinaooc.com.cn,1,public_web,"{""news"": 1}",default public web
+m.cdcn.org.cn,1,public_social,"{""public_social"": 1}",public social web clue
+qa.china.com,1,public_web,"{""news"": 1}",default public web
+m.99.com.cn,1,public_web,"{""news"": 1}",default public web
+mip.maxlaw.cn,1,public_web,"{""news"": 1}",default public web
+kaihua.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bengshan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+pudong.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+songjiang.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+mzt.zj.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+mzt.gxzf.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hzqu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sxrb.com,1,public_web,"{""news"": 1}",default public web
+appcert.eastmoney.com,1,public_web,"{""news"": 1}",default public web
+mzj.xiaogan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wsjkw.shandong.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.enorth.com.cn,1,public_web,"{""news"": 1}",default public web
+xy.xingtai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ctdm.org.cn,1,public_web,"{""news"": 1}",default public web
+zjwx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+epaper.lnd.com.cn,1,public_web,"{""news"": 1}",default public web
+bilibili.com,1,public_web,"{""news"": 1}",default public web
+m.qlwb.com.cn,1,public_web,"{""news"": 1}",default public web
+wjw.xiaogan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wjw.hg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wjw.ezhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+netrain.com,1,public_web,"{""news"": 1}",default public web
+m.zkyyy.com,1,public_web,"{""news"": 1}",default public web
+pingliang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+health.gmw.cn,1,news,"{""news"": 1}",news domain
+ssw.gxrb.com.cn,1,public_web,"{""news"": 1}",default public web
+3g.jobmd.cn,1,public_web,"{""news"": 1}",default public web
+fjsen.com,1,public_web,"{""news"": 1}",default public web
+samr.gov.cn:7280,1,public_web,"{""news"": 1}",default public web
+know.12348.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+czt.ln.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ybj.hunan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+heze.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+qzfz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.mfk.com,1,public_web,"{""news"": 1}",default public web
+h5detail.yiyouliao.com,1,public_web,"{""news"": 1}",default public web
+tijian-m.ruli.com,1,public_web,"{""news"": 1}",default public web
+wb.lhrb.com.cn,1,public_web,"{""news"": 1}",default public web
+zzwb.zznews.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.hsw.cn,1,public_web,"{""news"": 1}",default public web
+huzhu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sc.sina.com.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+m.udxd.com,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+wenchuan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fusui.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zx.sxyc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+12345.lsz.gov.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+3g.oeeee.com,1,public_web,"{""news"": 1}",default public web
+dongying.dzwww.com,1,public_web,"{""news"": 1}",default public web
+hunchun.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ezscdc.com,1,public_web,"{""news"": 1}",default public web
+gxcdc.org.cn,1,public_web,"{""news"": 1}",default public web
+hot.dzwww.com,1,public_web,"{""news"": 1}",default public web
+m.hbtctv.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+dingxi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.xmnn.cn,1,public_web,"{""news"": 1}",default public web
+dzqjqt.com,1,public_web,"{""news"": 1}",default public web
+cqzx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+syscdc.cn,1,public_web,"{""news"": 1}",default public web
+jjscdc.cn,1,public_web,"{""news"": 1}",default public web
+cqwx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cqfd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m12333.cn,1,public_web,"{""news"": 1}",default public web
+gaotang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ylbzj.kaifeng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ytlaishan.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+cqkz.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+nmg.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+mca.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+zjk.hebzgfw.cn,1,public_social,"{""public_social"": 1}",public social web clue
+mzyfz.com,1,public_social,"{""public_social"": 1}",public social web clue
+caoss.org.cn,1,public_web,"{""news"": 1}",default public web
+xinwen.bjd.com.cn,1,public_web,"{""news"": 1}",default public web
+financialnews.com.cn,1,public_web,"{""news"": 1}",default public web
+jrj.wuhan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hzrd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dianzibao.cb.com.cn,1,public_web,"{""news"": 1}",default public web
+caifuhao2.eastmoney.com,1,public_web,"{""news"": 1}",default public web
+ybj.trs.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+huantai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+d.wanfangdata.com.cn,1,public_web,"{""news"": 1}",default public web
+epaper.tianjinwe.com,1,public_web,"{""news"": 1}",default public web
+fabiao.com,1,public_web,"{""news"": 1}",default public web
+tyjrswj.beijing.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+qinshui.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+std.samr.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+licheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bawjxt.net,1,public_web,"{""news"": 1}",default public web
+zaozhuang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+guangrao.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ahbzswy.cn,1,public_web,"{""news"": 1}",default public web
+m.imlaw.cn,1,public_web,"{""news"": 1}",default public web
+lysdsrmyy.cn,1,public_web,"{""news"": 1}",default public web
+wsjk.ln.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ws.zibo.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+liaocheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nmgfy.com,1,public_web,"{""news"": 1}",default public web
+epaper.zsnews.cn,1,public_web,"{""news"": 1}",default public web
+qhd.gov.cn:81,1,public_web,"{""news"": 1}",default public web
+zxyy.cn,1,public_web,"{""news"": 1}",default public web
+qh.people.com.cn,1,news,"{""news"": 1}",news domain
+qhnews.com,1,public_web,"{""news"": 1}",default public web
+sjt.jl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ws.sanya.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+czyh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+rd.cqtn.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yzdsb.hebnews.cn,1,public_web,"{""news"": 1}",default public web
+jx.people.com.cn,1,news,"{""news"": 1}",news domain
+chongqing.xinhua.org,1,public_web,"{""news"": 1}",default public web
+agri.cn,1,public_web,"{""news"": 1}",default public web
+wenjuan.news.cn,1,public_web,"{""news"": 1}",default public web
+wys.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hj.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xiuning.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wjw.ningde.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wsjk.sjz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+subaonet.com,1,public_web,"{""news"": 1}",default public web
+site.gog.cn,1,public_web,"{""news"": 1}",default public web
+anxiang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wjw.nmg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nbyz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hn.rednet.cn,1,public_web,"{""news"": 1}",default public web
+wjw.huainan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sxzhongyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wjw.yiyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dafeng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fj.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+epaper.cqrb.cn,1,public_web,"{""news"": 1}",default public web
+yeda.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sthj.fuxin.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sthjj.xm.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hld.gov.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+hjkx.ac.cn,1,public_web,"{""news"": 1}",default public web
+sthjj.my.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wap.hebi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yichun.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sthj.hd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tjnh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+212200.com,1,public_web,"{""news"": 1}",default public web
+ahyingjiang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+lnfz.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+wuhai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yuhui.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sthjj.nc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xjyl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ytxww.com,1,public_web,"{""news"": 1}",default public web
+tianxin.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xtcg.xiangtan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ncsrd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+njrb.njdaily.cn,1,public_web,"{""news"": 1}",default public web
+523it.com,1,public_web,"{""news"": 1}",default public web
+hndt.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+whjhq.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+lanling.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jinshui.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zgwg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zj.zjol.com.cn,1,public_web,"{""news"": 1}",default public web
+cncn.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+banshi.beijing.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sanmen.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.zgfeipin.cn,1,public_web,"{""news"": 1}",default public web
+wuchang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fzcangshan.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+guanyun.gov.cn,1,public_interaction,"{""public_social"": 1}",public interaction domain or text hint
+haiyan.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+dcdxsw.com,1,public_web,"{""news"": 1}",default public web
+zfj.zjtz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+dicn.china.com.cn,1,public_web,"{""news"": 1}",default public web
+m.taihainet.com,1,public_web,"{""news"": 1}",default public web
+mztoday.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zfjsw.changde.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+swj.gz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+3g.cjn.cn,1,public_web,"{""news"": 1}",default public web
+df.youth.cn,1,public_web,"{""news"": 1}",default public web
+jy.sanya.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hsdaily.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+starwsn.blog.csdn.net,1,public_web,"{""news"": 1}",default public web
+m.ynghy.cn,1,public_web,"{""news"": 1}",default public web
+m.jiazhao3.com,1,public_web,"{""news"": 1}",default public web
+apcreports.org.cn,1,public_social,"{""public_social"": 1}",public social web clue
+yuhua.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+epaper.sxrb.com,1,public_social,"{""public_social"": 1}",public social web clue
+yjj.weinan.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+cneb.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+safety.ahsz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+slj.sxxz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fuzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+szlhq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+12345.sm.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+syscdc.org.cn,1,public_web,"{""news"": 1}",default public web
+lyg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bengbu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+93069715.b2b.11467.com,1,public_web,"{""news"": 1}",default public web
+plsjkzx.cn,1,public_web,"{""news"": 1}",default public web
+wsjkw.sh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+oa.luoding.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fswater.foshan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jo.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhangdian.gov.cn:8081,1,public_web,"{""news"": 1}",default public web
+zhangdian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gaolan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+lintong.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+heshan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gyj.wuxi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ahshx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gnzrmzf.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+mee.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+miluo.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhongxian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sthjt.ah.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ishaanxi.com,1,public_web,"{""news"": 1}",default public web
+ceva.org.cn,1,public_web,"{""news"": 1}",default public web
+aycg.anyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yjj.cq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yjt.hubei.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+lyrb.lyd.com.cn,1,public_web,"{""news"": 1}",default public web
+daily.clzg.cn,1,public_web,"{""news"": 1}",default public web
+zjkqd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zengdu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tjftz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jcrb.com,1,public_web,"{""news"": 1}",default public web
+chinahightech.com,1,public_web,"{""news"": 1}",default public web
+jxlc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sjx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+safety.hangzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yjj.qz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wensheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+rd.rencheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zwfw.gansu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yjt.ah.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhongyuan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xxgk.jccq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+syhp.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yjj.xining.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cdsrd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.pmceo.com,1,public_web,"{""news"": 1}",default public web
+tongcheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jingyan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cgj.xiangyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xuhuinews.com,1,public_web,"{""news"": 1}",default public web
+hepan.com,1,public_web,"{""news"": 1}",default public web
+mobile.epaper.routeryun.com,1,forum,"{""news"": 1}",forum domain or discussion text hint
+jingzhouqu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+csglj.liuzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jdzcjq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+raoping.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+tcxq.gov.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+baoan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+paper.gdzjdaily.com.cn,1,public_web,"{""news"": 1}",default public web
+xzr.ahnews.com.cn,1,public_web,"{""news"": 1}",default public web
+fh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+penglai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cxjw.hangzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bjchp.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jinan.subaoxw.com,1,public_web,"{""news"": 1}",default public web
+jsj.yibin.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.2500sz.com,1,public_web,"{""news"": 1}",default public web
+hbjc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cqnews.net,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+paper.hehechengde.cn,1,public_web,"{""news"": 1}",default public web
+pacq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hn.xinhuanet.com,1,news,"{""news"": 1}",news domain
+chinatibetnews.com,1,public_web,"{""news"": 1}",default public web
+shanxi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+local.cctv.com,1,public_web,"{""news"": 1}",default public web
+t.m.youth.cn,1,public_web,"{""news"": 1}",default public web
+zjt.hubei.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+zrzyt.ah.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+qionghai.hainan.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+epaper.bingtuannet.com,1,public_social,"{""public_social"": 1}",public social web clue
+tj.wenming.cn,1,public_social,"{""public_social"": 1}",public social web clue
+hzxh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zongyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xxgk.shbsq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ylj.wuhan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shpt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hyyfq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hekou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhaoqing.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nanguan.changchun.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jdz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yilong.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+changtu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+content-static.cctvnews.cctv.com,1,public_web,"{""news"": 1}",default public web
+news.cqnews.net,1,public_web,"{""news"": 1}",default public web
+wx.jsjc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+newspaper.jcrb.com,1,public_web,"{""news"": 1}",default public web
+hhhtscf.com,1,public_web,"{""news"": 1}",default public web
+xfj.yueyang.gov.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+nxcity.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+suichang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+szgas.com.cn,1,public_web,"{""news"": 1}",default public web
+ncx.nc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gangcheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cgw.wuhan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yuanshi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xunwu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+weihai.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yp.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+lcdjq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+njgc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+rongan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xjshs.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jibei.sgcc.cn,1,public_web,"{""news"": 1}",default public web
+gsgz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hn.sgcc.com.cn,1,public_web,"{""news"": 1}",default public web
+sdde.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jian.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zzszq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fangcheng.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fjb.nea.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+lywb.lyd.com.cn,1,public_web,"{""news"": 1}",default public web
+smjw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.sina.com.cn,1,public_web,"{""news"": 1}",default public web
+csg.cn,1,public_web,"{""news"": 1}",default public web
+fzr.ahnews.com.cn,1,public_web,"{""news"": 1}",default public web
+dzb.jryccm.com,1,public_web,"{""news"": 1}",default public web
+cnnb.com.cn,1,public_web,"{""news"": 1}",default public web
+sctv.com,1,public_web,"{""news"": 1}",default public web
+society.sohu.com,1,news,"{""news"": 1}",news domain
+zjnews.zjol.com.cn,1,public_web,"{""news"": 1}",default public web
+hwyst.hangzhou.com.cn,1,public_web,"{""news"": 1}",default public web
+cn486.com,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+samr.gov.cn:8890,1,public_web,"{""news"": 1}",default public web
+jtw.sh.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zqbcyol.com,1,public_web,"{""news"": 1}",default public web
+m.dutenews.com,1,public_web,"{""news"": 1}",default public web
+chinadaily.com.cn,1,public_web,"{""news"": 1}",default public web
+tzgjjt.com,1,public_web,"{""news"": 1}",default public web
+lishi.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jyg.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+baoji.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cqbnrd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bjrd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+119.29.52.45,1,public_web,"{""news"": 1}",default public web
+jtj.gz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sttv42-static.strtv.cn,1,public_web,"{""news"": 1}",default public web
+jtysj.nantong.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bj148.org,1,public_web,"{""news"": 1}",default public web
+jtysj.baoji.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+haimen.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+bjhrjjjc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cq.news.cn,1,public_web,"{""news"": 1}",default public web
+zjt.gxzf.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+njqxq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ahcz.wenming.cn,1,public_web,"{""news"": 1}",default public web
+qf.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+credit.ms.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+guang-an.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+scyc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zyswzfw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+nyzslh.com,1,public_web,"{""news"": 1}",default public web
+zyjjw.cn,1,public_web,"{""news"": 1}",default public web
+5g.dahe.cn,1,public_web,"{""news"": 1}",default public web
+cgj.huaibei.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ynfn.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sc.china.com.cn,1,public_web,"{""news"": 1}",default public web
+kjc.my.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+baqiao.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zfj.shenyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ylyz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jhxc.xixianxinqu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ah.anhuinews.com,1,public_web,"{""news"": 1}",default public web
+finance.gscn.com.cn,1,public_web,"{""news"": 1}",default public web
+lckfq.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.yznews.com.cn,1,public_web,"{""news"": 1}",default public web
+xingbin.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cgzfj.lanzhou.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+gxczrd.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+zhzfj.ningbo.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.zjknews.com,1,public_web,"{""news"": 1}",default public web
+xianning.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+jxfc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+workercn.cn,1,public_web,"{""news"": 1}",default public web
+m.online.sh.cn,1,public_web,"{""news"": 1}",default public web
+casx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+henan.tousu.sina.cn,1,public_web,"{""news"": 1}",default public web
+youjia-pc.bdstatic.com,1,public_web,"{""news"": 1}",default public web
+zmt-m.hljtv.com,1,public_web,"{""news"": 1}",default public web
+fgw.jz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.hebnews.cn,1,public_web,"{""news"": 1}",default public web
+hebei.hebnews.cn,1,public_web,"{""news"": 1}",default public web
+jfdaily.com,1,public_social,"{""public_social"": 1}",public social web clue
+e.czxww.cn,1,public_web,"{""news"": 1}",default public web
+news.cjn.cn,1,public_interaction,"{""news"": 1}",public interaction domain or text hint
+kaijiang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hn.chinanews.com.cn,1,news,"{""news"": 1}",news domain
+hn.xinhua.org,1,public_web,"{""news"": 1}",default public web
+jxyanshan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+scdw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wen.lzep.cn,1,public_interaction,"{""public_social"": 1}",public interaction domain or text hint
+scnj.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+shehong.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+gaj.liaoyuan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+qthnews.org.cn,1,public_web,"{""news"": 1}",default public web
+zt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+china.zjol.com.cn,1,public_web,"{""news"": 1}",default public web
+m.northnews.cn,1,public_web,"{""news"": 1}",default public web
+newpaper.dahe.cn,1,public_web,"{""news"": 1}",default public web
+scjgj.tl.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+shszgh.cn,1,public_web,"{""news"": 1}",default public web
+economy.gmw.cn,1,news,"{""news"": 1}",news domain
+gat.hubei.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xiapu.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+panjin.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ga.tj.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+xiangtan.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+sh.chinanews.com,1,news,"{""news"": 1}",news domain
+51ldb.com,1,public_web,"{""news"": 1}",default public web
+pazjw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+caijing.chinadaily.com.cn,1,public_web,"{""news"": 1}",default public web
+trszx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+app.bjtitle.com,1,public_web,"{""news"": 1}",default public web
+o4g.xiancity.cn,1,public_web,"{""news"": 1}",default public web
+jingjiribao.cn,1,public_web,"{""news"": 1}",default public web
+chejiahao.autohome.com.cn,1,public_web,"{""news"": 1}",default public web
+bitauto.com,1,public_web,"{""news"": 1}",default public web
+pdszx.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+evcipa.org.cn,1,public_social,"{""public_social"": 1}",public social web clue
+linyi.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+zh.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+fzggw.ah.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fzggw.cnbz.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+kepu.gmw.cn,1,news,"{""news"": 1}",news domain
+hbrb.hebnews.cn,1,public_web,"{""news"": 1}",default public web
+auto.sohu.com,1,news,"{""news"": 1}",news domain
+mps.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+scjc.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+yoojia.com,1,public_web,"{""news"": 1}",default public web
+wap.chinacar.com.cn,1,public_web,"{""news"": 1}",default public web
+dzwww.com,1,public_web,"{""news"": 1}",default public web
+m.pzhol.com,1,public_web,"{""news"": 1}",default public web
+hinews.cn,1,public_web,"{""news"": 1}",default public web
+fjjj.fjsen.com,1,public_web,"{""news"": 1}",default public web
+fzb.zjol.com.cn,1,public_web,"{""news"": 1}",default public web
+linying.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.itbear.com.cn,1,forum,"{""news"": 1}",forum domain or discussion text hint
+bbs.shunde.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+whwx.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+hn315.net.cn,1,public_web,"{""news"": 1}",default public web
+epaper.qlwb.com.cn,1,public_web,"{""news"": 1}",default public web
+yndaily.yunnan.cn,1,public_web,"{""news"": 1}",default public web
+support.apple.com,1,public_web,"{""news"": 1}",default public web
+privacy.vivo.com.cn,1,public_web,"{""news"": 1}",default public web
+privacy.qq.com,1,public_web,"{""news"": 1}",default public web
+iama.haier.net,1,public_web,"{""news"": 1}",default public web
+uastatic.liangyihui.net,1,public_web,"{""news"": 1}",default public web
+static.watch.okii.com,1,public_web,"{""news"": 1}",default public web
+privacy.mi.com,1,public_web,"{""news"": 1}",default public web
+mdj.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+ask.csdn.net,1,public_social,"{""public_social"": 1}",public social web clue
+news.iresearch.cn,1,public_social,"{""public_social"": 1}",public social web clue
+zjsfgkw.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+news.youth.cn,1,public_web,"{""news"": 1}",default public web
+credit.qinyang.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+e.mzyfz.org.cn,1,public_web,"{""news"": 1}",default public web
+tongren.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+cac.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+caheb.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+wfgxqfy.sdcourt.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fjjn.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.yangtse.com,1,public_web,"{""news"": 1}",default public web
+epaper.xiancn.com,1,public_web,"{""news"": 1}",default public web
+m.21jingji.com,1,public_web,"{""news"": 1}",default public web
+auto.cnr.cn,1,public_web,"{""news"": 1}",default public web
+newsyc.com,1,public_social,"{""public_social"": 1}",public social web clue
+xjishu.com,1,public_social,"{""public_social"": 1}",public social web clue
+m.elecfans.com,1,public_social,"{""public_social"": 1}",public social web clue
+ga.chengde.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+stcn.com,1,forum,"{""news"": 1}",forum domain or discussion text hint
+jtj.anshun.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+fj.spb.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+qh.spb.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+ah.spb.gov.cn,1,official,"{""news"": 1}",government domain or official platform hint
+m.meizhou.cn,1,public_web,"{""news"": 1}",default public web
+jncc.jinan.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+hd.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+ctdsbepaper.hubeidaily.net,1,public_social,"{""public_social"": 1}",public social web clue
+gongbao.court.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+sz.oeeee.com,1,public_social,"{""public_social"": 1}",public social web clue
+ytfushan.gov.cn,1,public_interaction,"{""public_social"": 1}",public interaction domain or text hint
+longmen.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+jiangyin.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+gdqy.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+zhangpu.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+xjtcsh.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+laiyang.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+piyao.org.cn,1,public_social,"{""public_social"": 1}",public social web clue
+sichuanhong.com,1,public_social,"{""public_social"": 1}",public social web clue
+nantong.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+xgscxjswyh.xiaogan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+xiantao.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zjj.xa.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zwfw.nx.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gzcsx.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+lf.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zhufang.qingdao.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+rb.lhrb.com.cn,1,public_web,"{""public_interaction"": 1}",default public web
+lxx.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+faku.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+xjmd.gov.cn,1,public_interaction,"{""public_interaction"": 1}",public interaction domain or text hint
+longwan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gxhz.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+wallstreetcn.com,1,public_web,"{""public_interaction"": 1}",default public web
+yuzhou.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+yanta.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+hangzhou.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zhuanti.shanghai.gov.cn,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+gs.xinhuanet.com,1,news,"{""forum"": 1}",news domain
+epaper.oeeee.com,1,forum,"{""public_interaction"": 1}",forum domain or discussion text hint
+m.www.jyrbszb.cn,1,public_web,"{""public_interaction"": 1}",default public web
+fgw.jingmen.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+wangcheng.gov.cn:9001,1,public_interaction,"{""public_interaction"": 1}",public interaction domain or text hint
+fgw.jiujiang.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+jyj.xianning.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gdzz.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+m.qyq.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+rexian.cnwest.com,1,public_web,"{""public_interaction"": 1}",default public web
+xahy.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+sd.subaoxw.com,1,public_web,"{""public_interaction"": 1}",default public web
+wsjkw.nx.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gd.people.com.cn,1,news,"{""public_interaction"": 1}",news domain
+syxc.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+nbdnews.com,1,public_web,"{""forum"": 1}",default public web
+jyt.nx.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+xjwqx.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+sn.ifeng.com,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+xw.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+edu.yueyang.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+liuyang.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zhangzi.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+cdxdjcy.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+xxgk.huinanxian.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+dj.yc.hbjc.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+xinhua.gov.cn,1,official,"{""official"": 1}",government domain or official platform hint
+js.ifeng.com,1,public_web,"{""official"": 1}",default public web
+southcn.com,1,forum,"{""official"": 1}",forum domain or discussion text hint
+m.jiaoyubao.cn,1,public_web,"{""official"": 1}",default public web
+m.shaoxing.com.cn,1,public_web,"{""official"": 1}",default public web
+m.guancha.cn,1,public_web,"{""official"": 1}",default public web
+mkan.china.com,1,public_web,"{""official"": 1}",default public web
+360kuai.com,1,forum,"{""official"": 1}",forum domain or discussion text hint
+sxzx.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+dingan.hainan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+wjw.zhumadian.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+cuiping.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+pingli.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+ynrd.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+health-app.people.cn,1,public_web,"{""public_interaction"": 1}",default public web
+cppcc.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+nads.ruc.edu.cn,1,public_web,"{""public_interaction"": 1}",default public web
+xjws.gov.cn,1,public_interaction,"{""public_interaction"": 1}",public interaction domain or text hint
+yiyuan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zhenjiang.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+jurong.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+m.jstv.com,1,public_web,"{""public_interaction"": 1}",default public web
+btwb.baotounews.com.cn,1,public_interaction,"{""public_interaction"": 1}",public interaction domain or text hint
+m.peopledailyhealth.com,1,public_web,"{""public_interaction"": 1}",default public web
+ydzz.com,1,public_web,"{""public_interaction"": 1}",default public web
+xzsn.jsjc.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+tl.lncourt.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+yinchuan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+m.fx361.cc,1,public_web,"{""public_interaction"": 1}",default public web
+m.sfccn.com,1,public_web,"{""public_interaction"": 1}",default public web
+m.thecover.cn,1,public_web,"{""public_interaction"": 1}",default public web
+medsci.cn,1,forum,"{""public_interaction"": 1}",forum domain or discussion text hint
+cctv.com,1,public_web,"{""public_interaction"": 1}",default public web
+swjw.suining.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+wsjkw.km.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+opinion.e23.cn,1,public_web,"{""public_interaction"": 1}",default public web
+ivdchina.org,1,public_web,"{""public_interaction"": 1}",default public web
+ybj.nanjing.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+rongchang.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+syd.com.cn,1,public_interaction,"{""public_interaction"": 1}",public interaction domain or text hint
+cqjlp.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+yanbian.gov.cn,1,public_interaction,"{""public_interaction"": 1}",public interaction domain or text hint
+scio.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+focus.scol.com.cn,1,public_web,"{""public_interaction"": 1}",default public web
+hq.xinhuanet.com,1,news,"{""public_interaction"": 1}",news domain
+qzybj.quanzhou.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+dxzzzx.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+szb.eyesnews.cn,1,public_web,"{""public_interaction"": 1}",default public web
+ybj.jinan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zx.xiangshan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+xxgk.taonan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+xj.news.cn,1,public_web,"{""public_interaction"": 1}",default public web
+lieshan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+jhjw.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+zjsjw.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+yangbi.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+cqrb.cn,1,public_web,"{""public_interaction"": 1}",default public web
+shuzibao.laoren.com,1,public_web,"{""public_interaction"": 1}",default public web
+jkb.com.cn,1,public_web,"{""public_interaction"": 1}",default public web
+ai.xueqiu.com,1,public_web,"{""public_interaction"": 1}",default public web
+m.huxiu.com,1,forum,"{""public_interaction"": 1}",forum domain or discussion text hint
+jiangxi.jxnews.com.cn,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+xxcb.cn,1,public_web,"{""forum"": 1}",default public web
+gd.huaxia.com,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+ouhai.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+sthjj.cq.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+jxln.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+sjzca.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+tunchang.hainan.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+qiaokou.gov.cn,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+pds.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+cgj.suqian.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+jianyangnews.com,1,public_web,"{""forum"": 1}",default public web
+gdyc.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+news.ifeng.com,1,public_social,"{""public_social"": 1}",public social web clue
+fjjy.gov.cn,1,official,"{""public_social"": 1}",government domain or official platform hint
+huangpi.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+bjhr.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+hdzx.bjhd.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+shucheng.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+xt.rednet.cn,1,public_web,"{""forum"": 1}",default public web
+fj.people.com.cn,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+ynqb.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+yjj.yangzhou.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+dayao.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+wjw.xuancheng.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+jingtai.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+xinji.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+dahebao.cn,1,public_web,"{""forum"": 1}",default public web
+sq.src.weather.com.cn,1,public_web,"{""forum"": 1}",default public web
+m.weather.com.cn,1,public_web,"{""forum"": 1}",default public web
+mps.gov.cn:8080,1,public_web,"{""forum"": 1}",default public web
+linxiaxian.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+sczwfw.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+njwlwz.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+sthjt.gxzf.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+zhaoyuan.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+gov.mo,1,public_web,"{""forum"": 1}",default public web
+fz12345.fuzhou.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+ln.people.com.cn,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+kandian.sina.com.cn,1,public_web,"{""forum"": 1}",default public web
+spp.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+cq.jcy.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+ba.hylll.com,1,public_web,"{""forum"": 1}",default public web
+dxh.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+gaomi.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+jxjjrd.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+longnan.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+bdgxq.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+xncaw.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+heyuan.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+kx.sanya.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+epaper.pdsxww.com,1,public_web,"{""forum"": 1}",default public web
+csglw.beijing.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+cg.gz.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+km.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+jsj.taizhou.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+mem.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+m.xiajiang.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+yuehu.gov.cn,1,public_interaction,"{""forum"": 1}",public interaction domain or text hint
+jixian.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+lyjs.linyi.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+hyqss.cn,1,public_web,"{""forum"": 1}",default public web
+wlwz.sg.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+nea.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+ytcutv.com,1,public_web,"{""public_interaction"": 1}",default public web
+kman.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+linyou.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gxzx.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+ynfzb.cn,1,public_web,"{""public_interaction"": 1}",default public web
+gaoxinqu.weinan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+tynews.com.cn,1,public_web,"{""forum"": 1}",default public web
+henan.china.com.cn,1,public_web,"{""forum"": 1}",default public web
+zmdtvw.cn,1,public_web,"{""forum"": 1}",default public web
+fenyang.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+wx.12345.sg.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+sdtaishan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+kmxs.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+xinxiang.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+nanjing.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+cgj.jiaozuo.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+jdzzsq.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gy.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+tjxzf.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gaj.panjin.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+ah.people.com.cn,1,public_interaction,"{""public_interaction"": 1}",public interaction domain or text hint
+wuhan.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+jiaxing.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+gsyongjing.gov.cn,1,official,"{""public_interaction"": 1}",government domain or official platform hint
+benxi.gov.cn,1,official,"{""forum"": 1}",government domain or official platform hint
+crsa.net,1,public_web,"{""forum"": 1}",default public web

@@ -1,5 +1,0 @@
-{"node_id":"event:smoke-event-001","node_type":"event","label":"Smoke test public transit fare hearing","event_id":"smoke-event-001","metadata":{}}
-{"node_id":"stakeholder:smoke-event-001:riders","node_type":"stakeholder","label":"Riders","event_id":"smoke-event-001","metadata":{}}
-{"node_id":"evidence:smoke-ev-001","node_type":"evidence","label":"smoke-ev-001","event_id":"smoke-event-001","metadata":{"evidence_id":"smoke-ev-001"}}
-{"node_id":"stakeholder:smoke-event-001:transit-agency","node_type":"stakeholder","label":"Transit agency","event_id":"smoke-event-001","metadata":{}}
-{"node_id":"evidence:smoke-ev-002","node_type":"evidence","label":"smoke-ev-002","event_id":"smoke-event-001","metadata":{"evidence_id":"smoke-ev-002"}}

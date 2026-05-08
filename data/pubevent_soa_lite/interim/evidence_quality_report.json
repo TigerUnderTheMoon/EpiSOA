@@ -1,0 +1,447 @@
+{
+  "total_input": 3046,
+  "total_output": 1500,
+  "dropped_by_low_quality": 1545,
+  "dropped_by_domain_limit": 1,
+  "event_coverage_before": {
+    "E001": 72,
+    "E002": 50,
+    "E003": 75,
+    "E004": 65,
+    "E005": 50,
+    "E006": 49,
+    "E007": 50,
+    "E008": 50,
+    "E009": 66,
+    "E010": 50,
+    "E011": 81,
+    "E012": 78,
+    "E013": 50,
+    "E014": 50,
+    "E015": 50,
+    "E016": 50,
+    "E017": 50,
+    "E018": 86,
+    "E019": 76,
+    "E020": 74,
+    "E021": 50,
+    "E022": 50,
+    "E023": 63,
+    "E024": 50,
+    "E025": 77,
+    "E026": 77,
+    "E027": 50,
+    "E028": 77,
+    "E029": 50,
+    "E030": 74,
+    "E031": 50,
+    "E032": 72,
+    "E033": 73,
+    "E034": 77,
+    "E035": 76,
+    "E036": 79,
+    "E037": 50,
+    "E038": 47,
+    "E039": 72,
+    "E040": 74,
+    "E041": 50,
+    "E042": 50,
+    "E043": 71,
+    "E044": 50,
+    "E045": 50,
+    "E046": 74,
+    "E047": 41,
+    "E048": 50,
+    "E049": 50,
+    "E050": 50
+  },
+  "event_coverage_after": {
+    "E001": 30,
+    "E002": 30,
+    "E003": 30,
+    "E004": 30,
+    "E005": 30,
+    "E006": 30,
+    "E007": 30,
+    "E008": 30,
+    "E009": 30,
+    "E010": 30,
+    "E011": 30,
+    "E012": 30,
+    "E013": 30,
+    "E014": 30,
+    "E015": 30,
+    "E016": 30,
+    "E017": 30,
+    "E018": 30,
+    "E019": 30,
+    "E020": 30,
+    "E021": 30,
+    "E022": 30,
+    "E023": 30,
+    "E024": 30,
+    "E025": 30,
+    "E026": 30,
+    "E027": 30,
+    "E028": 30,
+    "E029": 30,
+    "E030": 30,
+    "E031": 30,
+    "E032": 30,
+    "E033": 30,
+    "E034": 30,
+    "E035": 30,
+    "E036": 30,
+    "E037": 30,
+    "E038": 30,
+    "E039": 30,
+    "E040": 30,
+    "E041": 30,
+    "E042": 30,
+    "E043": 30,
+    "E044": 30,
+    "E045": 30,
+    "E046": 30,
+    "E047": 30,
+    "E048": 30,
+    "E049": 30,
+    "E050": 30
+  },
+  "source_distribution_before": {
+    "public_web": 1274,
+    "forum": 34,
+    "official": 1045,
+    "news": 358,
+    "public_interaction": 196,
+    "public_social": 139
+  },
+  "source_distribution_after": {
+    "official": 710,
+    "public_interaction": 152,
+    "public_social": 62,
+    "news": 222,
+    "public_web": 331,
+    "forum": 23
+  },
+  "top_domains_before": [
+    {
+      "domain": "m.66law.cn",
+      "count": 53
+    },
+    {
+      "domain": "m.thepaper.cn",
+      "count": 51
+    },
+    {
+      "domain": "m.sohu.com",
+      "count": 51
+    },
+    {
+      "domain": "findlaw.cn",
+      "count": 48
+    },
+    {
+      "domain": "wap.findlaw.cn",
+      "count": 47
+    },
+    {
+      "domain": "3g.china.com",
+      "count": 45
+    },
+    {
+      "domain": "liuyan.people.com.cn",
+      "count": 41
+    },
+    {
+      "domain": "news.qq.com",
+      "count": 38
+    },
+    {
+      "domain": "c.m.163.com",
+      "count": 34
+    },
+    {
+      "domain": "m.gmw.cn",
+      "count": 31
+    },
+    {
+      "domain": "moe.gov.cn",
+      "count": 25
+    },
+    {
+      "domain": "view.inews.qq.com",
+      "count": 24
+    },
+    {
+      "domain": "sohu.com",
+      "count": 23
+    },
+    {
+      "domain": "163.com",
+      "count": 22
+    },
+    {
+      "domain": "lawtime.cn",
+      "count": 21
+    },
+    {
+      "domain": "news.cctv.com",
+      "count": 21
+    },
+    {
+      "domain": "m.book118.com",
+      "count": 20
+    },
+    {
+      "domain": "m.voc.com.cn",
+      "count": 19
+    },
+    {
+      "domain": "news.china.com",
+      "count": 17
+    },
+    {
+      "domain": "m.fang.com",
+      "count": 17
+    }
+  ],
+  "top_domains_after": [
+    {
+      "domain": "liuyan.people.com.cn",
+      "count": 35
+    },
+    {
+      "domain": "m.sohu.com",
+      "count": 31
+    },
+    {
+      "domain": "m.thepaper.cn",
+      "count": 30
+    },
+    {
+      "domain": "news.qq.com",
+      "count": 28
+    },
+    {
+      "domain": "c.m.163.com",
+      "count": 25
+    },
+    {
+      "domain": "m.gmw.cn",
+      "count": 21
+    },
+    {
+      "domain": "163.com",
+      "count": 18
+    },
+    {
+      "domain": "sohu.com",
+      "count": 18
+    },
+    {
+      "domain": "3g.china.com",
+      "count": 16
+    },
+    {
+      "domain": "moe.gov.cn",
+      "count": 15
+    },
+    {
+      "domain": "gov.cn",
+      "count": 13
+    },
+    {
+      "domain": "m.163.com",
+      "count": 12
+    },
+    {
+      "domain": "m.voc.com.cn",
+      "count": 11
+    },
+    {
+      "domain": "news.hubeidaily.net",
+      "count": 8
+    },
+    {
+      "domain": "k.sina.cn",
+      "count": 8
+    },
+    {
+      "domain": "cgzf.sh.gov.cn",
+      "count": 8
+    },
+    {
+      "domain": "view.inews.qq.com",
+      "count": 8
+    },
+    {
+      "domain": "wz.sun0769.com",
+      "count": 8
+    },
+    {
+      "domain": "m.chinanews.com",
+      "count": 8
+    },
+    {
+      "domain": "paper.people.com.cn",
+      "count": 7
+    }
+  ],
+  "events_need_recollection": [
+    {
+      "event_id": "E004",
+      "before": 65,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.06666666666666667
+    },
+    {
+      "event_id": "E009",
+      "before": 66,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.1
+    },
+    {
+      "event_id": "E011",
+      "before": 81,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.1
+    },
+    {
+      "event_id": "E012",
+      "before": 78,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.13333333333333333
+    },
+    {
+      "event_id": "E018",
+      "before": 86,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "public_interaction",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.1
+    },
+    {
+      "event_id": "E025",
+      "before": 77,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "public_interaction",
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.16666666666666666
+    },
+    {
+      "event_id": "E030",
+      "before": 74,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "public_interaction",
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.1
+    },
+    {
+      "event_id": "E034",
+      "before": 77,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.06666666666666667
+    },
+    {
+      "event_id": "E039",
+      "before": 72,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.06666666666666667
+    },
+    {
+      "event_id": "E040",
+      "before": 74,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.06666666666666667
+    },
+    {
+      "event_id": "E046",
+      "before": 74,
+      "after": 30,
+      "need_recollection": true,
+      "missing_sources": [
+        "public_interaction",
+        "forum",
+        "public_social"
+      ],
+      "reason": [
+        "public_interaction/forum/public_social evidence fewer than 3"
+      ],
+      "top_domain_share": 0.1
+    }
+  ]
+}

@@ -1,2 +1,0 @@
-{"path_id":"path-00001","event_id":"smoke-event-001","target_event":"Smoke test public transit fare hearing","event_chain":["Smoke test public transit fare hearing","Riders"],"stakeholder":"Riders","evidence_ids":["smoke-ev-001"],"score":1.0}
-{"path_id":"path-00002","event_id":"smoke-event-001","target_event":"Smoke test public transit fare hearing","event_chain":["Smoke test public transit fare hearing","Transit agency"],"stakeholder":"Transit agency","evidence_ids":["smoke-ev-002"],"score":1.0}

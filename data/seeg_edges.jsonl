@@ -1,4 +1,0 @@
-{"source":"stakeholder:smoke-event-001:riders","target":"evidence:smoke-ev-001","edge_type":"supports","event_id":"smoke-event-001","weight":1.0}
-{"source":"evidence:smoke-ev-001","target":"event:smoke-event-001","edge_type":"mentions","event_id":"smoke-event-001","weight":1.0}
-{"source":"stakeholder:smoke-event-001:transit-agency","target":"evidence:smoke-ev-002","edge_type":"supports","event_id":"smoke-event-001","weight":1.0}
-{"source":"evidence:smoke-ev-002","target":"event:smoke-event-001","edge_type":"mentions","event_id":"smoke-event-001","weight":1.0}

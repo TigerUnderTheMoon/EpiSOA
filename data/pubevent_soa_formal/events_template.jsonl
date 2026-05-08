@@ -1,3 +1,0 @@
-# TEMPLATE ONLY. Do not use this file as formal experiment input.
-# Required JSONL shape: {"event_id":"<stable-event-id>","target_event":"<public event description>","time_window":{"start":"<ISO-8601>","end":"<ISO-8601>"},"event_chain":["<event node 1>","<event node 2>"]}
-# Optional fields: {"title":"<short title>","source":"<dataset/provenance note>","notes":"<curation note>"}

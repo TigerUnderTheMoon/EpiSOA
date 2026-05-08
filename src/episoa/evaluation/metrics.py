@@ -1,60 +1,29 @@
-"""Paper-facing metric API for EpiSOA experiments."""
+"""Paper metrics for EpiSOA."""
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
-
-from episoa.evaluation.evaluator import evaluate
-from episoa.evaluation.faithfulness_metrics import evaluate_jsonl
+from episoa.data.schema import GoldTuple, PredictionTuple
 
 
-PAPER_METRIC_KEYS = [
-    "tuple_f1",
-    "stakeholder_f1",
-    "opinion_f1",
-    "sentiment_macro_f1",
-    "evidence_recall_at_k",
-    "evidence_support_rate",
-    "unsupported_tuple_rate",
-    "path_recall_at_k",
-    "temporal_order_accuracy",
-]
+def tuple_f1(gold: list[GoldTuple], predictions: list[PredictionTuple]) -> float:
+    gold_keys = {_key(item) for item in gold}
+    prediction_keys = {_key(item) for item in predictions}
+    if not gold_keys or not prediction_keys:
+        return 0.0
+    tp = len(gold_keys & prediction_keys)
+    precision = tp / len(prediction_keys)
+    recall = tp / len(gold_keys)
+    return 2 * precision * recall / (precision + recall) if precision + recall else 0.0
 
 
-def compute_metrics(
-    predictions_path: str | Path,
-    gold_tuples_path: str | Path,
-    gold_event_chains_path: str | Path | None = None,
-    *,
-    metrics_path: str | Path | None = None,
-    k: int = 5,
-) -> dict[str, float]:
-    """Compute paper-facing metrics and optionally write metrics.json."""
-    if gold_event_chains_path is not None and Path(gold_event_chains_path).exists():
-        metrics = evaluate(
-            predictions_path,
-            gold_tuples_path,
-            gold_event_chains_path,
-            metrics_path=metrics_path,
-        )
-    else:
-        target_path = metrics_path or Path(predictions_path).with_name("metrics.json")
-        metrics = evaluate_jsonl(predictions_path, gold_tuples_path, target_path, k=k)
-    return ensure_paper_metric_keys(metrics)
+def support_rate(predictions: list[PredictionTuple]) -> float:
+    return sum(1 for item in predictions if item.verified) / len(predictions) if predictions else 0.0
 
 
-def ensure_paper_metric_keys(metrics: dict[str, Any]) -> dict[str, float]:
-    """Normalize legacy metric names to the paper-facing metric contract."""
-    normalized = {key: float(value) for key, value in metrics.items() if isinstance(value, int | float)}
-    if "tuple_f1" not in normalized and "tuple_level_f1" in normalized:
-        normalized["tuple_f1"] = normalized["tuple_level_f1"]
-    if "sentiment_macro_f1" not in normalized and "sentiment_accuracy" in normalized:
-        normalized["sentiment_macro_f1"] = normalized["sentiment_accuracy"]
-    if "evidence_support_rate" not in normalized and "support_rate" in normalized:
-        normalized["evidence_support_rate"] = normalized["support_rate"]
-    if "path_recall_at_k" not in normalized:
-        normalized["path_recall_at_k"] = normalized.get("path_recall_at_5", 0.0)
-    for key in PAPER_METRIC_KEYS:
-        normalized.setdefault(key, 0.0)
-    return normalized
+def unsupported_rate(predictions: list[PredictionTuple]) -> float:
+    unsupported = {"unsupported", "insufficient_evidence"}
+    return sum(1 for item in predictions if item.support_label in unsupported) / len(predictions) if predictions else 0.0
+
+
+def _key(item: GoldTuple | PredictionTuple) -> tuple[str, str, str, str]:
+    return (item.event_id, item.stakeholder.lower(), item.opinion.lower(), item.sentiment)

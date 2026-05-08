@@ -1,6 +1,0 @@
-# TEMPLATE ONLY. Do not use this file as formal experiment input.
-# Required fields: evidence_id, event_id, platform, url, timestamp, text, author_alias, source_type.
-# event_id must match one event_id in events.jsonl.
-# timestamp should be ISO-8601, for example 2026-01-31T12:00:00Z.
-# source_type should describe the evidence source, such as news, social_media, official, forum, report, or other.
-# metadata may include stakeholder, sentiment, opinion, language, country, collection_method, and curator_notes.

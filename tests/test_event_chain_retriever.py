@@ -1,172 +1,207 @@
-from datetime import datetime, timezone
+import csv
+import importlib.util
+import json
 from pathlib import Path
-import sys
-from types import SimpleNamespace
-from uuid import uuid4
 
-import pytest
-
-import episoa.retrieval.diversity_retriever as diversity_retriever
-from episoa.retrieval.diversity_retriever import EmbeddingRelevanceScorer, retrieve
-from episoa.retrieval.embedding_client import EmbeddingClient, EmbeddingClientConfig, cache_key
-from episoa.schemas.evidence import EvidenceRecord
+from episoa.retrieval.event_chain_retriever import (
+    EventChainRetriever,
+    chain_confidence,
+    compute_event_relevance_score,
+    detect_generic_policy_content,
+    score_evidence_for_stage,
+)
 
 
-def setup_function() -> None:
-    diversity_retriever._DEFAULT_RELEVANCE_SCORER = None
+SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "retrieve_event_chains.py"
+SPEC = importlib.util.spec_from_file_location("retrieve_event_chains_script", SCRIPT_PATH)
+retrieve_script = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+SPEC.loader.exec_module(retrieve_script)
 
 
-def make_evidence(
-    evidence_id: str,
-    text: str,
-    stakeholder: str,
-    stance: str,
-    day: int,
-) -> EvidenceRecord:
-    return EvidenceRecord(
-        evidence_id=evidence_id,
-        platform="Example",
-        url=f"https://example.com/{evidence_id}",
-        timestamp=datetime(2026, 4, day, tzinfo=timezone.utc),
-        text=text,
-        author_alias=None,
-        source_type="news",
-        metadata={"stakeholder": stakeholder, "stance": stance},
-    )
+def test_stage_keywords_are_recognized():
+    assert score_evidence_for_stage("发布征收公告并启动改造", "news", "trigger") > 0.25
+    assert score_evidence_for_stage("居民投诉补偿争议并质疑方案", "forum", "conflict") > 0.25
+    assert score_evidence_for_stage("官方回应称部门表示将说明情况", "official", "response") > 0.25
 
 
-def test_reranking_improves_stakeholder_coverage(monkeypatch) -> None:
-    monkeypatch.setenv("EPISOA_EMBEDDING_MODE", "mock")
-    evidence_pool = [
-        make_evidence("ev-1", "policy change price increase customer reaction", "customers", "negative", 1),
-        make_evidence("ev-2", "policy change price increase customer reaction repeated", "customers", "negative", 2),
-        make_evidence("ev-3", "policy change employee operational concerns", "employees", "mixed", 3),
-        make_evidence("ev-4", "policy change regulator compliance review", "regulators", "neutral", 4),
+def test_source_prior_affects_scores():
+    official_score = score_evidence_for_stage("部门回应项目情况", "official", "response")
+    web_score = score_evidence_for_stage("部门回应项目情况", "public_web", "response")
+
+    assert official_score > web_score
+
+
+def test_generic_policy_content_is_detected_and_penalized():
+    result = detect_generic_policy_content("2026拆迁新政落地", "一文看懂房屋征收补偿标准有哪些")
+
+    assert result["is_generic"] is True
+    assert result["penalty"] > 0
+    assert "2026拆迁新政" in result["matched_terms"]
+
+
+def test_generic_policy_text_does_not_pass_event_relevance():
+    event = event_row()
+    evidence = evidence_row("generic", "E001", "news", "2026拆迁新政落地，一文看懂旧城改造补偿标准有哪些。")
+
+    relevance = compute_event_relevance_score(event, evidence)
+
+    assert relevance["score"] < 0.30
+    assert relevance["is_generic_penalized"] is True
+
+
+def test_event_specific_evidence_passes_relevance_gate():
+    event = event_row()
+    evidence = evidence_row("specific", "E001", "official", "明府城片区旧城改造补偿争议中，居民投诉院落补偿，住建局回应处理结果。")
+
+    relevance = compute_event_relevance_score(event, evidence)
+
+    assert relevance["score"] >= 0.30
+    assert relevance["matched_seed_keywords"] or relevance["matched_event_name_terms"]
+
+
+def test_same_evidence_is_not_repeated_across_stages():
+    events = [event_row()]
+    evidence = [
+        evidence_row("a", "E001", "official", "明府城片区发布征收公告，居民投诉补偿争议，官方回应并说明处理结果。"),
     ]
 
-    result = retrieve("policy change price increase reaction", evidence_pool, top_k=3)
-    stakeholders = {item.metadata["stakeholder"] for item in result}
+    result = EventChainRetriever(top_k_per_stage=3, min_stage_score=0.20, min_event_relevance=0.30).retrieve_for_event(events[0], evidence)
+    selected_ids = [ev["evidence_id"] for stage in result["stages"] for ev in stage["evidence"]]
 
-    assert len(stakeholders) == 3
-    assert result[0].evidence_id == "ev-1"
+    assert selected_ids == ["a"]
+    assert result["retrieval_diagnostics"]["deduplicated_evidence_count"] > 0
 
 
-def test_reranking_reduces_duplicate_evidence(monkeypatch) -> None:
-    monkeypatch.setenv("EPISOA_EMBEDDING_MODE", "mock")
-    evidence_pool = [
-        make_evidence("ev-1", "policy change price increase customer complaint", "customers", "negative", 1),
-        make_evidence("ev-2", "policy change price increase customer complaint", "customers", "negative", 2),
-        make_evidence("ev-3", "policy change price increase customer complaint", "customers", "negative", 3),
-        make_evidence("ev-4", "policy change employee scheduling concern", "employees", "mixed", 4),
+def test_resolution_requires_strong_resolution_signal():
+    weak = score_evidence_for_stage("项目持续推进补偿安置工作。", "official", "resolution")
+    strong = score_evidence_for_stage("部门答复后续处理结果，完成整改并解决问题。", "official", "resolution")
+
+    assert weak < 0.25
+    assert strong > weak
+
+
+def test_chain_confidence_depends_on_event_relevance():
+    high = fake_stage_output(0.9)
+    low = fake_stage_output(0.2)
+
+    assert chain_confidence(high) > chain_confidence(low)
+
+
+def test_single_event_generates_candidate_chain_with_top_k():
+    events = [event_row()]
+    evidence = [
+        evidence_row("a", "E001", "news", "明府城片区发布征收公告并启动旧城改造。"),
+        evidence_row("b", "E001", "forum", "明府城片区居民投诉补偿争议并质疑方案。"),
+        evidence_row("c", "E001", "official", "明府城片区官方回应称部门表示将说明情况。"),
+        evidence_row("d", "E001", "official", "明府城片区部门答复处理结果并完成整改。"),
     ]
 
-    result = retrieve("policy change price increase complaint", evidence_pool, top_k=3)
-    result_ids = [item.evidence_id for item in result]
+    result = EventChainRetriever(top_k_per_stage=1, min_stage_score=0.25, min_event_relevance=0.30).retrieve_for_event(events[0], evidence)
 
-    assert "ev-4" in result_ids
-    assert len({" ".join(item.text.split()) for item in result}) > 1
-
-
-def test_top_k_return_format_is_stable(monkeypatch) -> None:
-    monkeypatch.setenv("EPISOA_EMBEDDING_MODE", "mock")
-    evidence_pool = [
-        make_evidence("ev-1", "policy change customer reaction", "customers", "negative", 1),
-        make_evidence("ev-2", "policy change employee concern", "employees", "mixed", 2),
-    ]
-
-    result = retrieve("policy change", evidence_pool, top_k=5)
-
-    assert isinstance(result, list)
-    assert len(result) == 2
-    assert all(isinstance(item, EvidenceRecord) for item in result)
-    assert [item.evidence_id for item in result] == ["ev-2", "ev-1"]
+    assert result["event_id"] == "E001"
+    assert result["chain_id"] == "E001_CHAIN_CANDIDATE"
+    assert result["chain_confidence"] > 0
+    assert all(len(stage["evidence"]) <= 1 for stage in result["stages"])
+    assert result["retrieval_diagnostics"]["num_evidence_considered"] == 4
+    assert "trigger" not in result["missing_stages"]
+    assert "conflict" not in result["missing_stages"]
+    assert "response" not in result["missing_stages"]
 
 
-def test_auto_embedding_mode_is_mock_during_pytest(monkeypatch) -> None:
-    monkeypatch.setenv("EPISOA_TESTING", "1")
-    monkeypatch.setenv("EPISOA_EMBEDDING_MODE", "auto")
-    diversity_retriever._DEFAULT_RELEVANCE_SCORER = None
-
-    scorer = diversity_retriever._default_relevance_scorer()
-
-    assert scorer.mode == "mock"
-
-
-@pytest.mark.integration
-@pytest.mark.real_model
-def test_real_embedding_mode_caches_evidence_embedding(monkeypatch) -> None:
-    monkeypatch.setenv("EPISOA_ALLOW_REAL_MODEL_TESTS", "1")
-
-    class FakeSentenceTransformer:
-        def __init__(self, model_name: str) -> None:
-            self.model_name = model_name
-
-        def encode(self, text: str, normalize_embeddings: bool = True):
-            if "customer" in text.lower():
-                return [1.0, 0.0, 0.0]
-            return [0.0, 1.0, 0.0]
-
-    monkeypatch.setitem(
-        sys.modules,
-        "sentence_transformers",
-        SimpleNamespace(SentenceTransformer=FakeSentenceTransformer),
-    )
-    evidence = make_evidence("ev-1", "customer reaction to policy change", "customers", "negative", 1)
-    model_name = f"fake-bge-{uuid4().hex}"
-    cache_dir = Path("outputs/cache/embeddings/test")
-    scorer = EmbeddingRelevanceScorer(
-        mode="sentence_transformers",
-        model_name=model_name,
-        cache_dir=cache_dir,
-    )
-
-    first_score = scorer.score("customer policy", evidence)
-    second_score = scorer.score("customer policy", evidence)
-    cache_files = list((cache_dir / model_name).glob("*.json"))
-
-    assert first_score == second_score
-    assert first_score > 0
-    assert len(cache_files) == 1
-
-
-def test_cache_key_uses_model_evidence_id_and_text_hash() -> None:
-    first = cache_key("model-a", "ev-1", "same text")
-    same = cache_key("model-a", "ev-1", "same text")
-    changed_text = cache_key("model-a", "ev-1", "different text")
-    changed_id = cache_key("model-a", "ev-2", "same text")
-    changed_model = cache_key("model-b", "ev-1", "same text")
-
-    assert first == same
-    assert len({first, changed_text, changed_id, changed_model}) == 4
-
-
-@pytest.mark.integration
-@pytest.mark.real_model
-def test_bge_reranker_mode_uses_cross_encoder(monkeypatch) -> None:
-    monkeypatch.setenv("EPISOA_ALLOW_REAL_MODEL_TESTS", "1")
-
-    class FakeCrossEncoder:
-        def __init__(self, model_name: str) -> None:
-            self.model_name = model_name
-
-        def predict(self, pairs):
-            query, text = pairs[0]
-            return [2.0 if "policy" in query and "policy" in text else -2.0]
-
-    monkeypatch.setitem(
-        sys.modules,
-        "sentence_transformers",
-        SimpleNamespace(CrossEncoder=FakeCrossEncoder),
-    )
-    evidence = make_evidence("ev-rerank", "policy change customer reaction", "customers", "negative", 1)
-    client = EmbeddingClient(
-        EmbeddingClientConfig(
-            embedding_mode="mock",
-            reranker_mode="bge_reranker",
-            reranker_model_name=f"fake-reranker-{uuid4().hex}",
+def test_script_writes_outputs_and_does_not_create_gold(tmp_path):
+    events = tmp_path / "events.jsonl"
+    evidence = tmp_path / "evidence.jsonl"
+    output_dir = tmp_path / "run"
+    gold = tmp_path / "gold_event_chains.jsonl"
+    events.write_text(json.dumps(event_row(), ensure_ascii=False) + "\n", encoding="utf-8")
+    evidence.write_text(
+        "\n".join(
+            [
+                json.dumps(evidence_row("a", "E001", "news", "明府城片区发布征收公告并启动旧城改造。"), ensure_ascii=False),
+                json.dumps(evidence_row("b", "E001", "forum", "明府城片区居民投诉补偿争议并质疑方案。"), ensure_ascii=False),
+                json.dumps(evidence_row("c", "E001", "official", "明府城片区官方回应称部门表示将说明情况。"), ensure_ascii=False),
+            ]
         )
+        + "\n",
+        encoding="utf-8",
     )
 
-    score = client.relevance_score("policy reaction", evidence)
+    code = retrieve_script.main(
+        [
+            "--events",
+            str(events),
+            "--evidence",
+            str(evidence),
+            "--graph-dir",
+            str(tmp_path / "missing_graph"),
+            "--output-dir",
+            str(output_dir),
+            "--top-k-per-stage",
+            "2",
+            "--min-stage-score",
+            "0.25",
+            "--min-event-relevance",
+            "0.30",
+            "--deduplicate-evidence-across-stages",
+        ]
+    )
 
-    assert score > 0.5
+    candidates = [json.loads(line) for line in (output_dir / "event_chain_candidates.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((output_dir / "event_chain_retrieval_summary.json").read_text(encoding="utf-8"))
+    with (output_dir / "event_chain_retrieval_table.csv").open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    with (output_dir / "event_chain_audit_sample.csv").open("r", encoding="utf-8", newline="") as handle:
+        audit_rows = list(csv.DictReader(handle))
+
+    assert code == 0
+    assert candidates[0]["retrieval_diagnostics"]["graph_mode"] == "evidence_only"
+    assert summary["num_events"] == 1
+    assert "avg_chain_confidence" in summary
+    assert "avg_event_relevance" in summary
+    assert "event_relevance_score" in rows[0]
+    assert "matched_event_name_terms" in rows[0]
+    assert "generic_penalty_terms" in rows[0]
+    assert audit_rows
+    assert "stage_keyword_score" in audit_rows[0]
+    assert not gold.exists()
+
+
+def event_row() -> dict:
+    return {
+        "event_id": "E001",
+        "event_name": "明府城片区旧城改造补偿争议",
+        "event_description": "围绕明府城片区旧城改造补偿标准、院落补偿和居民利益表达形成的公共事件。",
+        "seed_keywords": ["明府城 旧城改造 补偿", "院落补偿 争议"],
+        "stakeholder_hints": ["居民", "住建局"],
+    }
+
+
+def evidence_row(evidence_id: str, event_id: str, source: str, text: str) -> dict:
+    return {
+        "evidence_id": evidence_id,
+        "event_id": event_id,
+        "source": source,
+        "domain": "example.test",
+        "url": f"https://example.test/{evidence_id}",
+        "title": text[:40],
+        "text": text,
+        "publish_time": "2025-01-01T00:00:00+08:00",
+        "quality_score": 0.8,
+    }
+
+
+def fake_stage_output(relevance: float) -> list[dict]:
+    evidence = {
+        "evidence_id": "x",
+        "final_stage_score": 0.7,
+        "event_relevance_score": relevance,
+        "source": "official",
+        "domain": "example.test",
+        "is_generic_penalized": False,
+    }
+    return [
+        {"stage": "trigger", "evidence": [evidence]},
+        {"stage": "conflict", "evidence": [evidence | {"evidence_id": "y"}]},
+        {"stage": "response", "evidence": [evidence | {"evidence_id": "z"}]},
+    ]
