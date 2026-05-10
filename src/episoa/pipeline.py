@@ -14,7 +14,7 @@ from episoa.collector.cfsm_collector import collect_evidence
 from episoa.config import api_config_status, load_config, print_api_config_status
 from episoa.data.loader import read_jsonl, read_typed_jsonl, write_jsonl
 from episoa.data.schema import EventRecord, EvidenceRecord, GoldEventChain, GoldTuple, PredictionTuple
-from episoa.data.validator import validate_event_instantiation_data, validate_paper_data
+from episoa.data.validator import validate_formal_event_record, validate_paper_data
 from episoa.evaluation.evaluate_ablation import evaluate_ablation
 from episoa.evaluation.evaluate_main import evaluate_main
 from episoa.evaluation.evaluate_retrieval import evaluate_retrieval
@@ -92,7 +92,7 @@ def run_ablation_pipeline(config_path: str | Path) -> dict:
 def paper_status() -> dict:
     config = load_config("configs/paper.yaml")
     validation = validate_paper_data()
-    instantiation = validate_event_instantiation_data()
+    events_status = _events_status(Path(config.data["events_path"]))
     latest_run = Path("outputs/runs/pubevent-soa-lite-paper")
     artifacts = {
         name: (latest_run / name).exists()
@@ -106,13 +106,10 @@ def paper_status() -> dict:
     }
     return {
         "dataset": validation["dataset"],
-        "event_instantiation": instantiation,
         "artifacts": artifacts,
         "paper_readiness": {
             "data_ready": validation["paper_data_ready"],
-            "topics_ready": instantiation["topic_seed_valid"] and instantiation["num_topic_seeds"] > 0,
-            "candidate_events_ready": instantiation["candidate_instances_valid"],
-            "formal_events_ready": instantiation["formal_events_ready"],
+            "events_ready": events_status["events_ready"],
             "main_results_ready": artifacts["main_results.csv"],
             "ablation_ready": artifacts["ablation_results.csv"],
             "retrieval_ready": artifacts["retrieval_results.csv"],
@@ -120,16 +117,28 @@ def paper_status() -> dict:
             "case_study_ready": artifacts["case_studies.jsonl"],
         },
         "api_config": api_config_status(config),
-        "next_commands": _next_commands(validation["paper_data_ready"], artifacts, instantiation),
+        "next_commands": _next_commands(validation["paper_data_ready"], artifacts, events_status),
     }
 
 
-def _next_commands(data_ready: bool, artifacts: dict[str, bool], instantiation: dict | None = None) -> list[str]:
-    if instantiation is not None and not instantiation.get("formal_events_ready", False):
+def _events_status(events_path: Path) -> dict[str, object]:
+    try:
+        events = read_jsonl(events_path)
+    except (FileNotFoundError, ValueError) as exc:
+        return {"num_events": 0, "hard_errors": [str(exc)], "events_ready": False}
+    errors = [
+        error
+        for index, event in enumerate(events, start=1)
+        for error in validate_formal_event_record(event, f"events:{index}")
+    ]
+    return {"num_events": len(events), "hard_errors": errors, "events_ready": bool(events) and not errors}
+
+
+def _next_commands(data_ready: bool, artifacts: dict[str, bool], events_status: dict[str, object] | None = None) -> list[str]:
+    if events_status is not None and not events_status.get("events_ready", False):
         return [
-            "python scripts/make_candidate_event_instance_sheet.py",
-            "python scripts/validate_event_instantiation_data.py",
-            "manually fill data/pubevent_soa_lite/candidate_event_instances.jsonl with accepted concrete event instances",
+            "populate data/pubevent_soa_lite/events.jsonl with accepted concrete public events",
+            "python scripts/validate_events.py",
         ]
     if not data_ready:
         return [

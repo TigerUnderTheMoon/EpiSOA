@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from episoa.data.loader import read_jsonl
-from episoa.data.schema import CandidateEventInstance, EventRecord, TopicSeedRecord
+from episoa.data.schema import EventRecord
 
 DATA_DIR = Path("data/pubevent_soa_lite")
 REQUIRED_FILES = {
@@ -17,7 +17,6 @@ REQUIRED_FILES = {
     "gold_event_chains": DATA_DIR / "gold_event_chains.jsonl",
 }
 MOCK_MARKERS = ("mock", "sample", "demo", "fictional", "example.org")
-PLACEHOLDER_MARKERS = ("某市", "某地", "某校", "某医院", "某平台")
 SOURCE_ALIASES = {"social_media": "public_social"}
 SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
 SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "insufficient_evidence"}
@@ -64,9 +63,7 @@ def validate_paper_data(data_dir: str | Path = DATA_DIR, outputs_dir: str | Path
     }
 
     if not events:
-        errors.append(
-            "no accepted formal event instances found; complete topic-to-event instantiation before evidence collection"
-        )
+        errors.append("no accepted formal event records found; populate events.jsonl before evidence collection")
     for index, event in enumerate(events, start=1):
         errors.extend(validate_formal_event_record(event, f"events:{index}"))
 
@@ -170,111 +167,14 @@ def validate_paper_data(data_dir: str | Path = DATA_DIR, outputs_dir: str | Path
     }
 
 
-def validate_event_instantiation_data(data_dir: str | Path = DATA_DIR) -> dict[str, Any]:
-    data_dir = Path(data_dir)
-    paths = {
-        "topic_seeds": data_dir / "topic_seeds.jsonl",
-        "candidate_event_instances": data_dir / "candidate_event_instances.jsonl",
-        "events": data_dir / "events.jsonl",
-    }
-    hard_errors: list[str] = []
-    warnings: list[str] = []
-    records: dict[str, list[dict[str, Any]]] = {}
-
-    for name, path in paths.items():
-        if not path.exists():
-            if name == "topic_seeds":
-                hard_errors.append(f"missing required data file: {path}")
-            records[name] = []
-            continue
-        try:
-            records[name] = read_jsonl(path)
-        except ValueError as exc:
-            hard_errors.append(str(exc))
-            records[name] = []
-
-    topic_seeds = records["topic_seeds"]
-    candidates = records["candidate_event_instances"]
-    formal_events = records["events"]
-    topic_ids: set[str] = set()
-
-    for index, seed in enumerate(topic_seeds, start=1):
-        label = f"topic_seeds:{index}"
-        try:
-            TopicSeedRecord.model_validate(seed)
-        except Exception as exc:  # pydantic error text is useful in the report
-            hard_errors.append(f"{label} schema error: {exc}")
-            continue
-        topic_id = str(seed.get("topic_id", ""))
-        topic_ids.add(topic_id)
-        if "social_media" in [str(item) for item in seed.get("source_scope", [])]:
-            hard_errors.append(f"{label} source_scope uses social_media; use public_social")
-
-    for index, candidate in enumerate(candidates, start=1):
-        label = f"candidate_event_instances:{index}"
-        try:
-            CandidateEventInstance.model_validate(candidate)
-        except Exception as exc:
-            hard_errors.append(f"{label} schema error: {exc}")
-            continue
-        if candidate.get("topic_id") not in topic_ids:
-            hard_errors.append(f"{label} references unknown topic_id: {candidate.get('topic_id')!r}")
-        if candidate.get("candidate_status") == "accepted":
-            hard_errors.extend(validate_candidate_for_promotion(candidate, label))
-
-    for index, event in enumerate(formal_events, start=1):
-        label = f"events:{index}"
-        hard_errors.extend(validate_formal_event_record(event, label))
-        if event.get("topic_id") not in topic_ids:
-            hard_errors.append(f"{label} references unknown topic_id: {event.get('topic_id')!r}")
-
-    if not topic_seeds:
-        hard_errors.append("topic_seeds.jsonl is empty")
-    if not formal_events:
-        warnings.append("formal_events_ready=false: no accepted formal event instances found")
-
-    topic_seed_valid = not any(error.startswith("topic_seeds:") or "topic_seeds.jsonl" in error for error in hard_errors)
-    candidate_instances_valid = not any(error.startswith("candidate_event_instances:") for error in hard_errors)
-    formal_events_valid = not any(error.startswith("events:") for error in hard_errors)
-    return {
-        "topic_seed_valid": topic_seed_valid,
-        "candidate_instances_valid": candidate_instances_valid,
-        "formal_events_valid": formal_events_valid,
-        "formal_events_ready": formal_events_valid and bool(formal_events),
-        "num_topic_seeds": len(topic_seeds),
-        "num_candidate_instances": len(candidates),
-        "num_formal_events": len(formal_events),
-        "hard_errors": hard_errors,
-        "warnings": warnings,
-    }
-
-
-def validate_candidate_for_promotion(candidate: dict[str, Any], label: str) -> list[str]:
-    event = {
-        "event_id": candidate.get("candidate_event_id"),
-        "topic_id": candidate.get("topic_id"),
-        "event_name": candidate.get("candidate_event_name"),
-        "event_description": candidate.get("candidate_event_description"),
-        "location": candidate.get("location"),
-        "time_window": candidate.get("time_window"),
-        "trigger": candidate.get("trigger"),
-        "anchor_entities": candidate.get("anchor_entities"),
-        "anchor_urls": candidate.get("anchor_urls"),
-        "source_scope": candidate.get("source_scope"),
-        "queries": candidate.get("discovery_queries"),
-        "selection_status": "accepted",
-        "instance_version": candidate.get("instance_version") or "v1",
-    }
-    return [error.replace("formal_event", label) for error in validate_formal_event_record(event, "formal_event")]
-
-
 def validate_formal_event_record(event: dict[str, Any], label: str = "event") -> list[str]:
     errors: list[str] = []
     _require(
         event,
         [
             "event_id",
-            "topic_id",
+            "domain",
+            "event_type",
             "event_name",
             "event_description",
             "location",
@@ -283,9 +183,10 @@ def validate_formal_event_record(event: dict[str, Any], label: str = "event") ->
             "anchor_entities",
             "anchor_urls",
             "source_scope",
-            "queries",
-            "selection_status",
-            "instance_version",
+            "query_seeds",
+            "stakeholder_hints",
+            "stance_hints",
+            "temporal_stages",
         ],
         label,
         errors,
@@ -294,10 +195,12 @@ def validate_formal_event_record(event: dict[str, Any], label: str = "event") ->
         EventRecord.model_validate(event)
     except Exception as exc:
         errors.append(f"{label} schema error: {exc}")
-    if _contains_placeholder(event):
-        errors.append(f"{label} contains topic-level placeholder text")
     if not _has_factual_time_window(event.get("time_window")):
         errors.append(f"{label} missing factual time_window")
+    errors.extend(_validate_anchor_entities(event.get("anchor_entities"), label))
+    for key in ("query_seeds", "stakeholder_hints", "stance_hints", "temporal_stages"):
+        if not _non_empty_string_list(event.get(key)):
+            errors.append(f"{label} {key} must be a non-empty list of non-empty strings")
     if "social_media" in [str(item) for item in event.get("source_scope", []) if isinstance(event.get("source_scope"), list)]:
         errors.append(f"{label} source_scope uses social_media; use public_social")
     return errors
@@ -321,19 +224,31 @@ def _contains_marker(value: Any) -> bool:
     return False
 
 
-def _contains_placeholder(value: Any) -> bool:
-    if isinstance(value, str):
-        return any(marker in value for marker in PLACEHOLDER_MARKERS)
-    if isinstance(value, dict):
-        return any(_contains_placeholder(item) for item in value.values())
-    if isinstance(value, list):
-        return any(_contains_placeholder(item) for item in value)
-    return False
-
-
 def _has_factual_time_window(value: Any) -> bool:
     if not isinstance(value, dict):
         return False
     start = str(value.get("start") or "").strip()
     end = str(value.get("end") or "").strip()
     return bool(start and end)
+
+
+def _validate_anchor_entities(value: Any, label: str) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(value, dict) or not value:
+        return [f"{label} anchor_entities must be a non-empty object"]
+    for key, item in value.items():
+        if not isinstance(key, str) or not key.strip():
+            errors.append(f"{label} anchor_entities contains an empty role key")
+        if isinstance(item, str):
+            if not item.strip():
+                errors.append(f"{label} anchor_entities.{key} must be a non-empty string")
+        elif isinstance(item, list):
+            if not _non_empty_string_list(item):
+                errors.append(f"{label} anchor_entities.{key} must be a non-empty list of non-empty strings")
+        else:
+            errors.append(f"{label} anchor_entities.{key} must be a string or list of strings")
+    return errors
+
+
+def _non_empty_string_list(value: Any) -> bool:
+    return isinstance(value, list) and bool(value) and all(isinstance(item, str) and item.strip() for item in value)

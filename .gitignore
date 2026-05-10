@@ -15,6 +15,17 @@ outputs/*.txt
 !outputs/.gitkeep
 !outputs/README.md
 
+data/pubevent_soa_lite/raw/*
+!data/pubevent_soa_lite/raw/.gitkeep
+data/pubevent_soa_lite/interim/*
+!data/pubevent_soa_lite/interim/.gitkeep
+data/pubevent_soa_lite/annotation/*
+!data/pubevent_soa_lite/annotation/.gitkeep
+data/pubevent_soa_lite/evidence.jsonl
+data/pubevent_soa_lite/gold_tuples.jsonl
+data/pubevent_soa_lite/gold_event_chains.jsonl
+data/pubevent_soa_lite/gold_*_report.json
+
 .mypy_cache/
 .ruff_cache/
 .tmp/

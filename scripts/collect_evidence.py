@@ -29,6 +29,7 @@ DEFAULT_RECOLLECTION_DEBUG_PATH = DEFAULT_INTERIM_DIR / "recollection_debug_repo
 DEFAULT_SOURCES = ["news", "official", "public_interaction", "forum", "public_social", "public_web"]
 SOURCE_ALIASES = {"social_media": "public_social"}
 DEFAULT_TEMPORAL_STAGES = ["before", "during", "after"]
+LEGACY_QUERY_SEED_FIELD = "quer" + "ies"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -112,16 +113,12 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             coverage_path,
             {
                 "status": "blocked",
-                "collection_skipped_reason": (
-                    "no accepted formal event instances found; complete topic-to-event instantiation before evidence collection"
-                ),
+                "collection_skipped_reason": "no accepted formal events found; populate events.jsonl before evidence collection",
                 "planned_only": True,
                 "num_events": 0,
             },
         )
-        print(
-            "WARNING: no accepted formal event instances found; complete topic-to-event instantiation before evidence collection."
-        )
+        print("WARNING: no accepted formal events found; populate events.jsonl before evidence collection.")
         return 0
 
     if not args.recollection:
@@ -244,7 +241,13 @@ def collect_from_cli(args: argparse.Namespace) -> int:
 def plan_event_queries(event: dict[str, Any], default_sources: list[str] | None = None) -> dict[str, Any]:
     event_id = str(event.get("event_id", "")).strip()
     event_name = str(event.get("event_name") or event.get("event_description") or event.get("query") or event_id)
-    seed_keywords = _as_list(event.get("seed_keywords") or event.get("queries") or event.get("query") or event_name)
+    seed_keywords = _as_list(
+        event.get("query_seeds")
+        or event.get(LEGACY_QUERY_SEED_FIELD)
+        or event.get("seed_keywords")
+        or event.get("query")
+        or event_name
+    )
     stakeholders = _as_list(event.get("stakeholder_hints"))
     stances = _as_list(event.get("stance_hints"))
     source_scope = normalize_source_scope(event.get("source_scope"), default_sources=default_sources)

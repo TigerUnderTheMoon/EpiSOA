@@ -22,13 +22,14 @@ def test_collect_evidence_planned_only_when_search_api_missing(tmp_path):
     coverage = tmp_path / "coverage.json"
 
     events.write_text(
-        '{"event_id":"e1","topic_id":"T001","event_name":"Transit plan vote",'
+        '{"event_id":"e1","event_name":"Transit plan vote",'
         '"event_description":"A concrete transit plan vote in Test City",'
         '"location":{"city":"Test City"},"time_window":{"start":"2025-01-01","end":"2025-01-02"},'
-        '"trigger":"city council vote","anchor_entities":["Test City Council"],'
-        '"anchor_urls":["https://source.test/event"],"queries":["transit plan"],'
-        '"source_scope":["news"],"selection_status":"accepted","instance_version":"v1",'
-        '"seed_keywords":["transit plan"],"stakeholder_hints":["residents"],"stance_hints":["concern"]}\n',
+        '"trigger":"city council vote","anchor_entities":{"government":"Test City Council"},'
+        '"anchor_urls":["https://source.test/event"],"query_seeds":["transit plan"],'
+        '"source_scope":["news"],"domain":"urban_mobility","event_type":"concrete_event",'
+        '"stakeholder_hints":["residents"],"stance_hints":["concern"],'
+        '"temporal_stages":["trigger","conflict","response"]}\n',
         encoding="utf-8",
     )
     config.write_text(
@@ -99,8 +100,8 @@ def test_recollection_plan_builds_site_scoped_queries():
         }
     )
 
-    queries = [item["query"] for item in plan["query_rounds"]]
-    assert "site:gov.cn Transit plan 官方回应" in queries
+    query_texts = [item["query"] for item in plan["query_rounds"]]
+    assert "site:gov.cn Transit plan 官方回应" in query_texts
     assert plan["query_rounds"][0]["source_scope"] == ["official", "public_interaction"]
 
 
