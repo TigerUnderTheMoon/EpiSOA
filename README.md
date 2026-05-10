@@ -36,20 +36,20 @@ Recommended method wording: "cross-source public web retrieval", "publicly acces
 
 ```text
 data/pubevent_soa_lite/
-├── events.jsonl
-├── raw/
-│   └── raw_posts.jsonl
-├── interim/
-│   ├── evidence_candidates.jsonl
-│   ├── duplicate_report.csv
-│   └── collection_coverage_report.json
-├── evidence.jsonl
-├── annotation/
-│   ├── annotation_sheet.csv
-│   └── annotation_guideline.md
-├── gold_tuples.jsonl
-├── gold_event_chains.jsonl
-└── README.md
+|-- events.jsonl
+|-- raw/
+|   `-- raw_posts.jsonl
+|-- interim/
+|   |-- evidence_candidates.jsonl
+|   |-- duplicate_report.csv
+|   `-- collection_coverage_report.json
+|-- evidence.jsonl
+|-- annotation/
+|   |-- annotation_sheet.csv
+|   `-- annotation_guideline.md
+|-- gold_tuples.jsonl
+|-- gold_event_chains.jsonl
+`-- README.md
 ```
 
 `events.jsonl` is an event/query configuration file. It is not evidence.
@@ -72,6 +72,21 @@ python scripts/collect_evidence.py
 python scripts/normalize_evidence.py
 python scripts/make_annotation_sheet.py
 ```
+
+Check UTF-8 display and replacement-character damage without rewriting data:
+
+```bash
+python scripts/check_utf8_display.py
+```
+
+On Windows, apparent strings such as `鏌愬競` or `鈥揺vent` are often console display issues rather than file corruption. Prefer VS Code, Python, or another UTF-8-aware editor for JSONL/CSV/Markdown inspection. For PowerShell sessions, set UTF-8 output before printing Chinese text:
+
+```powershell
+chcp 65001
+$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8
+```
+
+Avoid using `type` or older terminal sessions as the source of truth for file encoding. If `scripts/check_utf8_display.py` reports `�` replacement characters, treat them as evidence text already lost during collection or earlier decoding; the checker reports them but does not rewrite source data.
 
 ## API Configuration
 
@@ -137,18 +152,18 @@ Formal runs write artifacts to:
 
 ```text
 outputs/runs/{run_id}/
-├── config.yaml
-├── predictions.jsonl
-├── candidate_soa_tuples.jsonl
-├── verified_soa_tuples.jsonl
-├── metrics.json
-├── summary.json
-├── main_results.csv
-├── ablation_results.csv
-├── retrieval_results.csv
-├── verifier_results.csv
-├── human_eval_sheet.csv
-└── case_studies.jsonl
+|-- config.yaml
+|-- predictions.jsonl
+|-- candidate_soa_tuples.jsonl
+|-- verified_soa_tuples.jsonl
+|-- metrics.json
+|-- summary.json
+|-- main_results.csv
+|-- ablation_results.csv
+|-- retrieval_results.csv
+|-- verifier_results.csv
+|-- human_eval_sheet.csv
+`-- case_studies.jsonl
 ```
 
 ## What Not To Commit

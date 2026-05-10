@@ -1,0 +1,7 @@
+node_id,node_type,neo4j_label,label,event_id,event_name,evidence_id,source,domain,url,publish_time,quality_score,text,attributes_json
+stage:trigger,temporal_stage_candidate,TemporalStageCandidate,trigger,,,,,,,,,,"{""label"": ""trigger"", ""stage"": ""trigger""}"
+stage:conflict,temporal_stage_candidate,TemporalStageCandidate,conflict,,,,,,,,,,"{""label"": ""conflict"", ""stage"": ""conflict""}"
+stage:diffusion,temporal_stage_candidate,TemporalStageCandidate,diffusion,,,,,,,,,,"{""label"": ""diffusion"", ""stage"": ""diffusion""}"
+stage:response,temporal_stage_candidate,TemporalStageCandidate,response,,,,,,,,,,"{""label"": ""response"", ""stage"": ""response""}"
+stage:resolution,temporal_stage_candidate,TemporalStageCandidate,resolution,,,,,,,,,,"{""label"": ""resolution"", ""stage"": ""resolution""}"
+stage:follow_up,temporal_stage_candidate,TemporalStageCandidate,follow_up,,,,,,,,,,"{""label"": ""follow_up"", ""stage"": ""follow_up""}"
