@@ -3,9 +3,12 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 from episoa.collector.genetic_query_planner import (
     GeneticPlannerConfig,
     ProbeCache,
+    _active_weights,
     build_candidate_query_pool,
     fitness_for_individual,
     plan_event_queries_ga,
@@ -23,6 +26,10 @@ SPEC.loader.exec_module(collect_evidence_script)
 
 class FakeSearchConfig:
     configured = True
+
+
+class MissingSearchConfig:
+    configured = False
 
 
 class FakeSearchClient:
@@ -43,6 +50,23 @@ class FakeSearchClient:
                     "url": f"https://example.test/{source_type}/{abs(hash(query)) % 1000}",
                     "source": source_type,
                     "platform": source_type,
+                }
+            ][:max_results],
+        }
+
+
+class UnlabeledSearchClient:
+    def search_with_debug(self, *, query, max_results, source_type=None, time_window=None):
+        return {
+            "ok": True,
+            "error": None,
+            "error_type": None,
+            "results": [
+                {
+                    "title": f"{query} Central Park",
+                    "snippet": "usable result without provider source labels",
+                    "text": "Central Park agency response",
+                    "url": f"https://example.test/{source_type}/{max_results}",
                 }
             ][:max_results],
         }
@@ -104,6 +128,21 @@ def test_fitness_calculation_uses_synthetic_probe_results():
     assert breakdown["traceability"] == 1
 
 
+def test_source_coverage_uses_requested_probe_source_for_unlabeled_results():
+    event = _event(stakeholder_hints=["residents"], stance_hints=["support"])
+    cache = ProbeCache()
+    _, breakdown = fitness_for_individual(
+        event,
+        ["park renovation"],
+        ["news", "official"],
+        UnlabeledSearchClient(),
+        GeneticPlannerConfig(enabled=True, individual_size=1),
+        cache,
+    )
+
+    assert breakdown["source_coverage"] == 1
+
+
 def test_probe_cache_hits_on_repeated_query():
     event = _event()
     client = FakeSearchClient()
@@ -117,6 +156,32 @@ def test_probe_cache_hits_on_repeated_query():
     assert cache.stats()["hits"] == 1
 
 
+def test_probe_cache_key_includes_max_results():
+    event = _event()
+    client = FakeSearchClient()
+    cache = ProbeCache()
+
+    fitness_for_individual(
+        event,
+        ["park renovation"],
+        ["news"],
+        client,
+        GeneticPlannerConfig(enabled=True, individual_size=1, probe_max_results_per_query=1),
+        cache,
+    )
+    fitness_for_individual(
+        event,
+        ["park renovation"],
+        ["news"],
+        client,
+        GeneticPlannerConfig(enabled=True, individual_size=1, probe_max_results_per_query=2),
+        cache,
+    )
+
+    assert client.calls == 2
+    assert cache.stats()["entries"] == 2
+
+
 def test_ga_reproducible_with_fixed_seed_and_outputs_query_plan_shape():
     event = _event(stakeholder_hints=["residents"], stance_hints=["support"])
     config = GeneticPlannerConfig(enabled=True, population_size=6, generations=2, individual_size=3, random_seed=7)
@@ -126,21 +191,92 @@ def test_ga_reproducible_with_fixed_seed_and_outputs_query_plan_shape():
 
     assert [item["query"] for item in plan_a["query_rounds"]] == [item["query"] for item in plan_b["query_rounds"]]
     assert debug_a["best_fitness"] == debug_b["best_fitness"]
+    assert debug_a["temporal_stage_coverage_mode"] == "not_used_in_ga_fitness"
     assert plan_a["query_rounds"][0]["generated_by"] == "coverage_aware_ga_query_planning"
+
+
+def test_active_weight_renormalization_for_optional_components():
+    both_present = _active_weights(
+        GeneticPlannerConfig.from_dict({}).weights or {},
+        stakeholders=["residents"],
+        stances=["support"],
+    )
+    no_stakeholders = _active_weights(
+        GeneticPlannerConfig.from_dict({}).weights or {},
+        stakeholders=[],
+        stances=["support"],
+    )
+    no_stances = _active_weights(
+        GeneticPlannerConfig.from_dict({}).weights or {},
+        stakeholders=["residents"],
+        stances=[],
+    )
+    neither = _active_weights(
+        GeneticPlannerConfig.from_dict({}).weights or {},
+        stakeholders=[],
+        stances=[],
+    )
+
+    assert both_present["stakeholder_coverage"] == 0.08
+    assert both_present["stance_diversity"] == 0.05
+    assert "stakeholder_coverage" not in no_stakeholders
+    assert "stance_diversity" in no_stakeholders
+    assert "stakeholder_coverage" in no_stances
+    assert "stance_diversity" not in no_stances
+    assert "stakeholder_coverage" not in neither
+    assert "stance_diversity" not in neither
+    assert sum(value for key, value in no_stakeholders.items() if not key.endswith("_penalty")) == pytest.approx(0.93)
+    assert sum(value for key, value in no_stances.items() if not key.endswith("_penalty")) == pytest.approx(0.93)
+    assert sum(value for key, value in neither.items() if not key.endswith("_penalty")) == pytest.approx(0.93)
 
 
 def test_heuristic_mode_matches_existing_planner():
     event = _event(stakeholder_hints=["residents"], stance_hints=["support"])
     direct = plan_event_queries(event, default_sources=["news"])
-    script = collect_evidence_script.build_initial_query_plans(
+    script, debug = collect_evidence_script.build_initial_query_plans(
         events=[event],
         planner_mode="heuristic",
         planner_config={},
         search_config=FakeSearchConfig(),
         default_sources=["news"],
-    )[0][0]
+    )
 
-    assert script == direct
+    assert script[0] == direct
+    assert debug["requested_mode"] == "heuristic"
+    assert debug["effective_mode"] == "heuristic"
+    assert debug["fallback_reason"] is None
+    assert debug["events"][0]["temporal_stage_coverage_mode"] == "literal_string_match_legacy"
+
+
+def test_ga_disabled_fallback_debug_fields_are_explicit():
+    plans, debug = collect_evidence_script.build_initial_query_plans(
+        events=[_event(stakeholder_hints=["residents"], stance_hints=["support"])],
+        planner_mode="ga",
+        planner_config={"ga": {"enabled": False}},
+        search_config=FakeSearchConfig(),
+        default_sources=["news"],
+    )
+
+    assert plans[0]["query_rounds"][0]["generated_by"] == "cfsm_s1_query_planning"
+    assert debug["requested_mode"] == "ga"
+    assert debug["effective_mode"] == "heuristic"
+    assert debug["fallback_reason"] == "ga_disabled"
+    assert debug["events"][0]["fallback_reason"] == "ga_disabled"
+
+
+def test_search_unavailable_fallback_debug_fields_are_explicit():
+    plans, debug = collect_evidence_script.build_initial_query_plans(
+        events=[_event(stakeholder_hints=["residents"], stance_hints=["support"])],
+        planner_mode="ga",
+        planner_config={"ga": {"enabled": True}},
+        search_config=MissingSearchConfig(),
+        default_sources=["news"],
+    )
+
+    assert plans[0]["query_rounds"][0]["generated_by"] == "cfsm_s1_query_planning"
+    assert debug["requested_mode"] == "ga"
+    assert debug["effective_mode"] == "heuristic"
+    assert debug["fallback_reason"] == "search_api_not_configured"
 
 
 def test_ga_does_not_run_for_empty_events_or_invalid_formal_event(tmp_path):
@@ -152,6 +288,7 @@ def test_ga_does_not_run_for_empty_events_or_invalid_formal_event(tmp_path):
     planner_debug = tmp_path / "planner_debug.json"
     events.write_text("", encoding="utf-8")
     config.write_text(_ga_config_text(api_key="key", base_url="https://example.test"), encoding="utf-8")
+    planner_debug.write_text('{"status":"stale","events":[{"event_id":"OLD"}]}', encoding="utf-8")
 
     code = collect_evidence_script.collect_from_cli(
         Namespace(
@@ -169,9 +306,15 @@ def test_ga_does_not_run_for_empty_events_or_invalid_formal_event(tmp_path):
     )
 
     assert code == 0
-    assert json.loads(planner_debug.read_text(encoding="utf-8"))["events"] == []
+    debug = json.loads(planner_debug.read_text(encoding="utf-8"))
+    assert debug["status"] == "blocked"
+    assert debug["fallback_reason"] == "no_events"
+    assert debug["requested_mode"] == "ga"
+    assert debug["effective_mode"] is None
+    assert debug["events"] == []
 
     events.write_text('{"event_id":"E1","event_name":"Broken"}\n', encoding="utf-8")
+    planner_debug.write_text('{"status":"stale","events":[{"event_id":"OLD"}]}', encoding="utf-8")
     code = collect_evidence_script.collect_from_cli(
         Namespace(
             events=str(events),
@@ -187,6 +330,12 @@ def test_ga_does_not_run_for_empty_events_or_invalid_formal_event(tmp_path):
         )
     )
     assert code == 1
+    debug = json.loads(planner_debug.read_text(encoding="utf-8"))
+    assert debug["status"] == "blocked"
+    assert debug["fallback_reason"] == "formal_validation_failed"
+    assert debug["requested_mode"] == "ga"
+    assert debug["effective_mode"] is None
+    assert debug["events"] == []
 
 
 def test_ga_planned_only_without_search_config_falls_back_to_heuristic(tmp_path):
@@ -217,7 +366,11 @@ def test_ga_planned_only_without_search_config_falls_back_to_heuristic(tmp_path)
     assert code == 0
     rows = [json.loads(line) for line in query_plan.read_text(encoding="utf-8").splitlines()]
     assert rows[0]["query_rounds"][0]["generated_by"] == "cfsm_s1_query_planning"
-    assert json.loads(planner_debug.read_text(encoding="utf-8"))["events"][0]["planner_mode"] == "heuristic"
+    debug = json.loads(planner_debug.read_text(encoding="utf-8"))
+    assert debug["requested_mode"] == "ga"
+    assert debug["effective_mode"] == "heuristic"
+    assert debug["fallback_reason"] == "search_api_not_configured"
+    assert debug["events"][0]["planner_mode"] == "heuristic"
 
 
 def test_recollection_mode_remains_unchanged(tmp_path):

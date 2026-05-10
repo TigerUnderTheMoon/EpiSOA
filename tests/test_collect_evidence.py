@@ -87,6 +87,7 @@ def test_social_media_source_scope_is_normalized_to_public_social():
     assert plan["query_rounds"][0]["source_scope"] == ["news", "public_social"]
     assert "social_media" not in coverage["source_coverage"]
     assert "public_social" in coverage["source_coverage"]
+    assert coverage["temporal_stage_coverage_mode"] == "literal_string_match_legacy"
 
 
 def test_recollection_plan_builds_site_scoped_queries():

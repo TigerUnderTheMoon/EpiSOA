@@ -118,6 +118,8 @@ def evaluate_coverage(
     source_coverage = {source: _contains_source(source_counts, source) for source in source_scope}
     stakeholder_coverage = {item: _any_contains(combined_texts, item) for item in stakeholders}
     stance_coverage = {item: _any_contains(combined_texts, item) for item in stances}
+    # Legacy repair diagnostics only: this is literal string matching over
+    # configured stage labels, not a semantic temporal-stage model.
     temporal_stage_coverage = {item: _any_contains(combined_texts, item) for item in temporal_stages}
     urls = [post.get("url") for post in posts if post.get("url")]
     duplicate_urls = len(urls) - len(set(urls))
@@ -134,6 +136,7 @@ def evaluate_coverage(
         "stakeholder_coverage": stakeholder_coverage,
         "stance_coverage": stance_coverage,
         "temporal_stage_coverage": temporal_stage_coverage,
+        "temporal_stage_coverage_mode": "literal_string_match_legacy",
         "traceability_rate": (len(urls) / len(posts)) if posts else 0.0,
         "redundancy_rate": (duplicate_urls / len(posts)) if posts else 0.0,
         "missing_sources": missing_sources,

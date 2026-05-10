@@ -72,12 +72,19 @@ def build_initial_query_plans(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if planner_mode != "ga":
         plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
-        return plans, {
-            "planner_mode": "heuristic",
-            "events": [
+        return plans, _planner_debug_payload(
+            requested_mode=planner_mode,
+            effective_mode="heuristic",
+            fallback_reason=None if planner_mode == "heuristic" else "unsupported_planner_mode",
+            status="completed",
+            num_events=len(events),
+            events=[
                 {
                     "event_id": event.get("event_id"),
                     "planner_mode": "heuristic",
+                    "requested_mode": planner_mode,
+                    "effective_mode": "heuristic",
+                    "fallback_reason": None if planner_mode == "heuristic" else "unsupported_planner_mode",
                     "candidate_pool_size": None,
                     "selected_queries": [item["query"] for item in plan["query_rounds"]],
                     "population_size": None,
@@ -85,44 +92,59 @@ def build_initial_query_plans(
                     "best_fitness": None,
                     "best_fitness_breakdown": {},
                     "optional_components_used": {},
+                    "temporal_stage_coverage_mode": "literal_string_match_legacy",
                     "cache_stats": {},
                     "notes": [],
                 }
                 for event, plan in zip(events, plans, strict=True)
             ],
-        }
+        )
 
     ga_config = GeneticPlannerConfig.from_dict(dict(planner_config.get("ga") or {}))
     if not ga_config.enabled:
         plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
-        return plans, {
-            "planner_mode": "heuristic",
-            "requested_mode": "ga",
-            "events": [
+        return plans, _planner_debug_payload(
+            requested_mode="ga",
+            effective_mode="heuristic",
+            fallback_reason="ga_disabled",
+            status="completed",
+            num_events=len(events),
+            events=[
                 {
                     "event_id": event.get("event_id"),
                     "planner_mode": "heuristic",
+                    "requested_mode": "ga",
+                    "effective_mode": "heuristic",
+                    "fallback_reason": "ga_disabled",
                     "selected_queries": [item["query"] for item in plan["query_rounds"]],
+                    "temporal_stage_coverage_mode": "literal_string_match_legacy",
                     "notes": ["GA mode requested but collector.query_planner.ga.enabled=false; used heuristic planner"],
                 }
                 for event, plan in zip(events, plans, strict=True)
             ],
-        }
+        )
     if not search_config.configured:
         plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
-        return plans, {
-            "planner_mode": "heuristic",
-            "requested_mode": "ga",
-            "events": [
+        return plans, _planner_debug_payload(
+            requested_mode="ga",
+            effective_mode="heuristic",
+            fallback_reason="search_api_not_configured",
+            status="completed",
+            num_events=len(events),
+            events=[
                 {
                     "event_id": event.get("event_id"),
                     "planner_mode": "heuristic",
+                    "requested_mode": "ga",
+                    "effective_mode": "heuristic",
+                    "fallback_reason": "search_api_not_configured",
                     "selected_queries": [item["query"] for item in plan["query_rounds"]],
+                    "temporal_stage_coverage_mode": "literal_string_match_legacy",
                     "notes": ["GA planner requires configured search API; used heuristic planner for planned-only run"],
                 }
                 for event, plan in zip(events, plans, strict=True)
             ],
-        }
+        )
 
     client = SearchClient(search_config)
     cache = ProbeCache()
@@ -136,9 +158,41 @@ def build_initial_query_plans(
             config=ga_config,
             cache=cache,
         )
+        event_debug["requested_mode"] = "ga"
+        event_debug["effective_mode"] = "ga"
+        event_debug["fallback_reason"] = None
         plans.append(plan)
         debug_events.append(event_debug)
-    return plans, {"planner_mode": "ga", "events": debug_events}
+    return plans, _planner_debug_payload(
+        requested_mode="ga",
+        effective_mode="ga",
+        fallback_reason=None,
+        status="completed",
+        num_events=len(events),
+        events=debug_events,
+    )
+
+
+def _planner_debug_payload(
+    *,
+    requested_mode: str,
+    effective_mode: str | None,
+    fallback_reason: str | None,
+    status: str,
+    num_events: int,
+    events: list[dict[str, Any]],
+    blocked_reason: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "blocked_reason": blocked_reason,
+        "num_events": num_events,
+        "requested_mode": requested_mode,
+        "effective_mode": effective_mode,
+        "fallback_reason": fallback_reason,
+        "planner_mode": effective_mode or "not_run",
+        "events": events,
+    }
 
 
 def collect_from_cli(args: argparse.Namespace) -> int:
@@ -161,6 +215,8 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     max_results_per_query = int(collector_config.get("max_results_per_query", 10))
     max_evidence_per_event = int(collector_config.get("max_evidence_per_event", 50))
     sleep_seconds = float(collector_config.get("sleep_seconds", 0.5))
+    planner_config = dict(collector_config.get("query_planner") or {})
+    requested_planner_mode = str(planner_config.get("mode", "heuristic")).strip().lower() or "heuristic"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     query_plan_path.parent.mkdir(parents=True, exist_ok=True)
@@ -178,6 +234,18 @@ def collect_from_cli(args: argparse.Namespace) -> int:
         write_jsonl(query_plan_path, [])
         write_jsonl(output_path, [])
         _write_json(
+            planner_debug_path,
+            _planner_debug_payload(
+                requested_mode=requested_planner_mode,
+                effective_mode=None,
+                fallback_reason="events_read_failed",
+                status="blocked",
+                blocked_reason=str(exc),
+                num_events=0,
+                events=[],
+            ),
+        )
+        _write_json(
             coverage_path,
             {
                 "status": "blocked",
@@ -190,7 +258,19 @@ def collect_from_cli(args: argparse.Namespace) -> int:
 
     if not events:
         write_jsonl(query_plan_path, [])
-        _write_json(planner_debug_path, {"events": [], "planner_mode": "recollection" if args.recollection else "heuristic"})
+        empty_requested_mode = "recollection" if args.recollection else requested_planner_mode
+        _write_json(
+            planner_debug_path,
+            _planner_debug_payload(
+                requested_mode=empty_requested_mode,
+                effective_mode=None,
+                fallback_reason="no_events",
+                status="blocked",
+                blocked_reason="no accepted formal events found; populate events.jsonl before evidence collection",
+                num_events=0,
+                events=[],
+            ),
+        )
         if not output_path.exists():
             write_jsonl(output_path, [])
         if args.recollection:
@@ -217,6 +297,18 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             if not output_path.exists():
                 write_jsonl(output_path, [])
             _write_json(
+                planner_debug_path,
+                _planner_debug_payload(
+                    requested_mode=requested_planner_mode,
+                    effective_mode=None,
+                    fallback_reason="formal_validation_failed",
+                    status="blocked",
+                    blocked_reason="events.jsonl contains non-formal event records",
+                    num_events=len(events),
+                    events=[],
+                ),
+            )
+            _write_json(
                 coverage_path,
                 {
                     "status": "blocked",
@@ -231,15 +323,23 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             print("WARNING: events.jsonl contains non-formal event records; no raw posts were collected.")
             return 1
 
-    planner_config = dict(collector_config.get("query_planner") or {})
-    planner_mode = str(planner_config.get("mode", "heuristic")).strip().lower() or "heuristic"
     if args.recollection:
         query_plans = [plan_recollection_queries(event, default_sources=default_sources) for event in events]
-        _write_json(planner_debug_path, {"planner_mode": "recollection", "events": []})
+        _write_json(
+            planner_debug_path,
+            _planner_debug_payload(
+                requested_mode="recollection",
+                effective_mode="recollection",
+                fallback_reason=None,
+                status="completed",
+                num_events=len(events),
+                events=[],
+            ),
+        )
     else:
         query_plans, planner_debug = build_initial_query_plans(
             events=events,
-            planner_mode=planner_mode,
+            planner_mode=requested_planner_mode,
             planner_config=planner_config,
             search_config=search_config,
             default_sources=default_sources,

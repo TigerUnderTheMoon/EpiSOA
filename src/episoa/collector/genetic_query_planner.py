@@ -60,12 +60,12 @@ class GeneticPlannerConfig:
 
 class ProbeCache:
     def __init__(self) -> None:
-        self._cache: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+        self._cache: dict[tuple[str, str, str, int], list[dict[str, Any]]] = {}
         self.hits = 0
         self.misses = 0
 
     def get(self, client: Any, *, query: str, source_type: str, time_window: Any, max_results: int) -> list[dict[str, Any]]:
-        key = (query, source_type, _time_window_key(time_window))
+        key = (query, source_type, _time_window_key(time_window), max_results)
         if key in self._cache:
             self.hits += 1
             return self._cache[key]
@@ -166,6 +166,7 @@ def plan_event_queries_ga(
             "stance_diversity": bool(stances),
             "temporal_stage_coverage": False,
         },
+        "temporal_stage_coverage_mode": "not_used_in_ga_fitness",
         "cache_stats": cache.stats(),
         "notes": warnings,
     }
@@ -181,19 +182,22 @@ def fitness_for_individual(
     cache: ProbeCache,
 ) -> tuple[float, dict[str, float]]:
     results_by_query: dict[str, list[dict[str, Any]]] = {}
+    covered_source_types: set[str] = set()
     all_results: list[dict[str, Any]] = []
     for query in queries:
         query_results: list[dict[str, Any]] = []
         for source_type in source_scope:
-            query_results.extend(
-                cache.get(
-                    client,
-                    query=query,
-                    source_type=source_type,
-                    time_window=event.get("time_window"),
-                    max_results=config.probe_max_results_per_query,
-                )
+            source_results = cache.get(
+                client,
+                query=query,
+                source_type=source_type,
+                time_window=event.get("time_window"),
+                max_results=config.probe_max_results_per_query,
             )
+            usable_results = [result for result in source_results if _result_text(result).strip() or result.get("url")]
+            if usable_results:
+                covered_source_types.add(source_type)
+            query_results.extend(source_results)
         results_by_query[query] = query_results
         all_results.extend(query_results)
 
@@ -209,7 +213,7 @@ def fitness_for_individual(
     breakdown = {
         "relevance": _result_overlap_rate(all_results, relevance_terms),
         "entity_coverage": _covered_terms_rate(all_results, anchors),
-        "source_coverage": _covered_sources_rate(all_results, source_scope),
+        "source_coverage": _covered_sources_rate(covered_source_types, source_scope),
         "traceability": _traceability(all_results),
         "stakeholder_coverage": _covered_terms_rate(all_results, stakeholders) if stakeholders else 0.0,
         "stance_diversity": _covered_terms_rate(all_results, stances) if stances else 0.0,
@@ -298,15 +302,10 @@ def _covered_terms_rate(results: list[dict[str, Any]], terms: list[str]) -> floa
     return covered / len(terms)
 
 
-def _covered_sources_rate(results: list[dict[str, Any]], source_scope: list[str]) -> float:
+def _covered_sources_rate(covered_source_types: set[str], source_scope: list[str]) -> float:
     if not source_scope:
         return 0.0
-    covered = set()
-    for result in results:
-        source = str(result.get("source") or result.get("platform") or "").lower()
-        for target in source_scope:
-            if target.lower() in source:
-                covered.add(target)
+    covered = {target for target in source_scope if target in covered_source_types}
     return len(covered) / len(source_scope)
 
 

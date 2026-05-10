@@ -110,7 +110,8 @@ query set, writes planner diagnostics to
 through the same collection and repair-round mechanism as heuristic mode.
 Temporal-stage coverage is still handled by the existing repair diagnostics; it
 is not part of GA fitness because the current temporal labels are generic and
-string-matched.
+string-matched. Planner and coverage debug reports label this behavior as
+`literal_string_match_legacy`.
 
 Run paper experiments after `paper_data_ready=true`:
 
