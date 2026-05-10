@@ -1,7 +1,0 @@
-node_id,node_type,neo4j_label,label,event_id,event_name,evidence_id,source,domain,url,publish_time,quality_score,text,attributes_json
-source:official,source,Source,official,,,,official,,,,,,"{""label"": ""official"", ""source"": ""official""}"
-source:public_interaction,source,Source,public_interaction,,,,public_interaction,,,,,,"{""label"": ""public_interaction"", ""source"": ""public_interaction""}"
-source:public_social,source,Source,public_social,,,,public_social,,,,,,"{""label"": ""public_social"", ""source"": ""public_social""}"
-source:news,source,Source,news,,,,news,,,,,,"{""label"": ""news"", ""source"": ""news""}"
-source:public_web,source,Source,public_web,,,,public_web,,,,,,"{""label"": ""public_web"", ""source"": ""public_web""}"
-source:forum,source,Source,forum,,,,forum,,,,,,"{""label"": ""forum"", ""source"": ""forum""}"
