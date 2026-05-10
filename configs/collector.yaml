@@ -17,3 +17,23 @@ collector:
   max_results_per_query: 10
   max_evidence_per_event: 50
   sleep_seconds: 0.5
+  query_planner:
+    mode: heuristic
+    ga:
+      enabled: false
+      population_size: 12
+      generations: 2
+      individual_size: 6
+      tournament_size: 3
+      mutation_rate: 0.25
+      probe_max_results_per_query: 3
+      random_seed: 42
+      weights:
+        relevance: 0.30
+        entity_coverage: 0.25
+        source_coverage: 0.15
+        traceability: 0.10
+        stakeholder_coverage: 0.08
+        stance_diversity: 0.05
+        redundancy_penalty: 0.05
+        cost_penalty: 0.02

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -13,6 +12,21 @@ from typing import Any
 
 import yaml
 
+from episoa.collector.genetic_query_planner import GeneticPlannerConfig, ProbeCache, plan_event_queries_ga
+from episoa.collector.query_planner import (
+    DEFAULT_SOURCES,
+    DEFAULT_TEMPORAL_STAGES,
+    SOURCE_ALIASES,
+    as_list as _planner_as_list,
+    build_repair_rounds as _planner_build_repair_rounds,
+    dedupe_rounds as _planner_dedupe_rounds,
+    evaluate_coverage as _planner_evaluate_coverage,
+    normalize_source_scope as _planner_normalize_source_scope,
+    normalize_source_type as _planner_normalize_source_type,
+    plan_event_queries as _planner_plan_event_queries,
+    plan_recollection_queries as _planner_plan_recollection_queries,
+    unique as _planner_unique,
+)
 from episoa.collector.search_client import SearchClient, load_search_config
 from episoa.data.loader import read_jsonl, write_jsonl
 from episoa.data.validator import validate_formal_event_record
@@ -25,11 +39,7 @@ DEFAULT_INTERIM_DIR = Path("data/pubevent_soa_lite/interim")
 DEFAULT_QUERY_PLAN_PATH = DEFAULT_INTERIM_DIR / "query_plan.jsonl"
 DEFAULT_COVERAGE_REPORT_PATH = DEFAULT_INTERIM_DIR / "collection_coverage_report.json"
 DEFAULT_RECOLLECTION_DEBUG_PATH = DEFAULT_INTERIM_DIR / "recollection_debug_report.json"
-
-DEFAULT_SOURCES = ["news", "official", "public_interaction", "forum", "public_social", "public_web"]
-SOURCE_ALIASES = {"social_media": "public_social"}
-DEFAULT_TEMPORAL_STAGES = ["before", "during", "after"]
-LEGACY_QUERY_SEED_FIELD = "quer" + "ies"
+DEFAULT_QUERY_PLANNER_DEBUG_PATH = DEFAULT_INTERIM_DIR / "query_planner_debug.json"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -44,11 +54,91 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", default=str(DEFAULT_RAW_POSTS_PATH))
     parser.add_argument("--query-plan-output", default=str(DEFAULT_QUERY_PLAN_PATH))
     parser.add_argument("--coverage-output", default=str(DEFAULT_COVERAGE_REPORT_PATH))
+    parser.add_argument("--planner-debug-output", default=str(DEFAULT_QUERY_PLANNER_DEBUG_PATH))
     parser.add_argument("--recollection", action="store_true", help="Read recollection_plan.jsonl rows instead of full event configs.")
     parser.add_argument("--max-events", type=int, default=None)
     parser.add_argument("--max-queries-per-event", type=int, default=6)
     parser.add_argument("--debug-output", default=str(DEFAULT_RECOLLECTION_DEBUG_PATH))
     return parser
+
+
+def build_initial_query_plans(
+    *,
+    events: list[dict[str, Any]],
+    planner_mode: str,
+    planner_config: dict[str, Any],
+    search_config: Any,
+    default_sources: list[str],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if planner_mode != "ga":
+        plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
+        return plans, {
+            "planner_mode": "heuristic",
+            "events": [
+                {
+                    "event_id": event.get("event_id"),
+                    "planner_mode": "heuristic",
+                    "candidate_pool_size": None,
+                    "selected_queries": [item["query"] for item in plan["query_rounds"]],
+                    "population_size": None,
+                    "generations": None,
+                    "best_fitness": None,
+                    "best_fitness_breakdown": {},
+                    "optional_components_used": {},
+                    "cache_stats": {},
+                    "notes": [],
+                }
+                for event, plan in zip(events, plans, strict=True)
+            ],
+        }
+
+    ga_config = GeneticPlannerConfig.from_dict(dict(planner_config.get("ga") or {}))
+    if not ga_config.enabled:
+        plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
+        return plans, {
+            "planner_mode": "heuristic",
+            "requested_mode": "ga",
+            "events": [
+                {
+                    "event_id": event.get("event_id"),
+                    "planner_mode": "heuristic",
+                    "selected_queries": [item["query"] for item in plan["query_rounds"]],
+                    "notes": ["GA mode requested but collector.query_planner.ga.enabled=false; used heuristic planner"],
+                }
+                for event, plan in zip(events, plans, strict=True)
+            ],
+        }
+    if not search_config.configured:
+        plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
+        return plans, {
+            "planner_mode": "heuristic",
+            "requested_mode": "ga",
+            "events": [
+                {
+                    "event_id": event.get("event_id"),
+                    "planner_mode": "heuristic",
+                    "selected_queries": [item["query"] for item in plan["query_rounds"]],
+                    "notes": ["GA planner requires configured search API; used heuristic planner for planned-only run"],
+                }
+                for event, plan in zip(events, plans, strict=True)
+            ],
+        }
+
+    client = SearchClient(search_config)
+    cache = ProbeCache()
+    plans: list[dict[str, Any]] = []
+    debug_events: list[dict[str, Any]] = []
+    for event in events:
+        plan, event_debug = plan_event_queries_ga(
+            event,
+            client=client,
+            default_sources=default_sources,
+            config=ga_config,
+            cache=cache,
+        )
+        plans.append(plan)
+        debug_events.append(event_debug)
+    return plans, {"planner_mode": "ga", "events": debug_events}
 
 
 def collect_from_cli(args: argparse.Namespace) -> int:
@@ -58,6 +148,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     query_plan_path = Path(args.query_plan_output)
     coverage_path = Path(args.coverage_output)
     debug_path = Path(args.debug_output)
+    planner_debug_path = Path(getattr(args, "planner_debug_output", DEFAULT_QUERY_PLANNER_DEBUG_PATH))
     if args.recollection and args.query_plan_output == str(DEFAULT_QUERY_PLAN_PATH):
         query_plan_path = DEFAULT_INTERIM_DIR / "recollection_query_plan.jsonl"
     if args.recollection and args.coverage_output == str(DEFAULT_COVERAGE_REPORT_PATH):
@@ -75,6 +166,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     query_plan_path.parent.mkdir(parents=True, exist_ok=True)
     coverage_path.parent.mkdir(parents=True, exist_ok=True)
     debug_path.parent.mkdir(parents=True, exist_ok=True)
+    planner_debug_path.parent.mkdir(parents=True, exist_ok=True)
     if args.recollection:
         output_path.write_text("", encoding="utf-8")
 
@@ -96,15 +188,9 @@ def collect_from_cli(args: argparse.Namespace) -> int:
         print(f"WARNING: {exc}")
         return 1
 
-    query_plans = [
-        plan_recollection_queries(event, default_sources=default_sources)
-        if args.recollection
-        else plan_event_queries(event, default_sources=default_sources)
-        for event in events
-    ]
-    write_jsonl(query_plan_path, query_plans)
-
     if not events:
+        write_jsonl(query_plan_path, [])
+        _write_json(planner_debug_path, {"events": [], "planner_mode": "recollection" if args.recollection else "heuristic"})
         if not output_path.exists():
             write_jsonl(output_path, [])
         if args.recollection:
@@ -144,6 +230,22 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             )
             print("WARNING: events.jsonl contains non-formal event records; no raw posts were collected.")
             return 1
+
+    planner_config = dict(collector_config.get("query_planner") or {})
+    planner_mode = str(planner_config.get("mode", "heuristic")).strip().lower() or "heuristic"
+    if args.recollection:
+        query_plans = [plan_recollection_queries(event, default_sources=default_sources) for event in events]
+        _write_json(planner_debug_path, {"planner_mode": "recollection", "events": []})
+    else:
+        query_plans, planner_debug = build_initial_query_plans(
+            events=events,
+            planner_mode=planner_mode,
+            planner_config=planner_config,
+            search_config=search_config,
+            default_sources=default_sources,
+        )
+        _write_json(planner_debug_path, planner_debug)
+    write_jsonl(query_plan_path, query_plans)
 
     if not search_config.configured:
         for plan in query_plans:
@@ -239,160 +341,23 @@ def collect_from_cli(args: argparse.Namespace) -> int:
 
 
 def plan_event_queries(event: dict[str, Any], default_sources: list[str] | None = None) -> dict[str, Any]:
-    event_id = str(event.get("event_id", "")).strip()
-    event_name = str(event.get("event_name") or event.get("event_description") or event.get("query") or event_id)
-    seed_keywords = _as_list(
-        event.get("query_seeds")
-        or event.get(LEGACY_QUERY_SEED_FIELD)
-        or event.get("seed_keywords")
-        or event.get("query")
-        or event_name
-    )
-    stakeholders = _as_list(event.get("stakeholder_hints"))
-    stances = _as_list(event.get("stance_hints"))
-    source_scope = normalize_source_scope(event.get("source_scope"), default_sources=default_sources)
-    temporal_stages = _as_list(event.get("temporal_stages")) or _as_list(event.get("time_window")) or DEFAULT_TEMPORAL_STAGES
-
-    expanded_keywords = _unique(
-        seed_keywords
-        + [f"{keyword} {stakeholder}" for keyword in seed_keywords for stakeholder in stakeholders]
-        + [f"{keyword} {stance}" for keyword in seed_keywords for stance in stances]
-    )
-    query_rounds: list[dict[str, Any]] = []
-    for query in _unique(seed_keywords + expanded_keywords):
-        query_rounds.append(
-            {
-                "round": 0,
-                "query": query,
-                "source_scope": source_scope,
-                "target_stakeholder": None,
-                "target_stance": None,
-                "target_temporal_stage": None,
-                "reason": "seed_or_expanded_keyword",
-                "generated_by": "cfsm_s1_query_planning",
-                "used_for_collection": True,
-            }
-        )
-    return {
-        "event_id": event_id,
-        "event_name": event_name,
-        "seed_keywords": seed_keywords,
-        "expanded_keywords": [item for item in expanded_keywords if item not in seed_keywords],
-        "repair_keywords": [],
-        "query_rounds": query_rounds,
-    }
+    return _planner_plan_event_queries(event, default_sources=default_sources)
 
 
 def plan_recollection_queries(event: dict[str, Any], default_sources: list[str] | None = None) -> dict[str, Any]:
-    event_id = str(event.get("event_id", "")).strip()
-    event_name = str(event.get("event_name") or event_id)
-    repair_keywords = _as_list(event.get("repair_keywords") or event.get("seed_keywords") or event.get("query") or event_name)
-    source_scope = normalize_source_scope(event.get("target_sources") or event.get("source_scope"), default_sources=default_sources)
-    site_scope = _as_list(event.get("site_scope"))
-    query_rounds: list[dict[str, Any]] = []
-    for query in repair_keywords:
-        scoped_queries = [query]
-        scoped_queries.extend([f"site:{site} {query}" for site in site_scope if "." in site])
-        for scoped_query in _unique(scoped_queries):
-            query_rounds.append(
-                {
-                    "round": 0,
-                    "query": scoped_query,
-                    "source_scope": source_scope,
-                    "target_stakeholder": None,
-                    "target_stance": None,
-                    "target_temporal_stage": None,
-                    "reason": "; ".join(_as_list(event.get("reason"))) or "targeted recollection",
-                    "generated_by": "quality_filter_recollection_plan",
-                    "used_for_collection": True,
-                }
-            )
-    return {
-        "event_id": event_id,
-        "event_name": event_name,
-        "seed_keywords": [],
-        "expanded_keywords": [],
-        "repair_keywords": repair_keywords,
-        "query_rounds": query_rounds,
-    }
+    return _planner_plan_recollection_queries(event, default_sources=default_sources)
 
 
 def evaluate_coverage(
     event: dict[str, Any], posts: list[dict[str, Any]], default_sources: list[str] | None = None
 ) -> dict[str, Any]:
-    source_scope = normalize_source_scope(event.get("source_scope"), default_sources=default_sources)
-    stakeholders = _as_list(event.get("stakeholder_hints"))
-    stances = _as_list(event.get("stance_hints"))
-    temporal_stages = _as_list(event.get("temporal_stages")) or DEFAULT_TEMPORAL_STAGES
-
-    combined_texts = [f"{post.get('title', '')} {post.get('snippet', '')} {post.get('text', '')}".lower() for post in posts]
-    source_counts = Counter(str(post.get("source") or post.get("platform") or "unknown") for post in posts)
-    source_coverage = {source: _contains_source(source_counts, source) for source in source_scope}
-    stakeholder_coverage = {item: _any_contains(combined_texts, item) for item in stakeholders}
-    stance_coverage = {item: _any_contains(combined_texts, item) for item in stances}
-    temporal_stage_coverage = {item: _any_contains(combined_texts, item) for item in temporal_stages}
-    urls = [post.get("url") for post in posts if post.get("url")]
-    duplicate_urls = len(urls) - len(set(urls))
-
-    missing_sources = [key for key, covered in source_coverage.items() if not covered]
-    missing_stakeholders = [key for key, covered in stakeholder_coverage.items() if not covered]
-    missing_stances = [key for key, covered in stance_coverage.items() if not covered]
-    missing_temporal = [key for key, covered in temporal_stage_coverage.items() if not covered]
-    need_repair = bool(posts) and bool(missing_sources or missing_stakeholders or missing_stances or missing_temporal)
-    if not posts:
-        need_repair = True
-    return {
-        "source_coverage": source_coverage,
-        "stakeholder_coverage": stakeholder_coverage,
-        "stance_coverage": stance_coverage,
-        "temporal_stage_coverage": temporal_stage_coverage,
-        "traceability_rate": (len(urls) / len(posts)) if posts else 0.0,
-        "redundancy_rate": (duplicate_urls / len(posts)) if posts else 0.0,
-        "missing_sources": missing_sources,
-        "missing_stakeholders": missing_stakeholders,
-        "missing_stances": missing_stances,
-        "missing_temporal_stages": missing_temporal,
-        "need_query_repair": need_repair,
-        "repair_reason": _repair_reason(missing_sources, missing_stakeholders, missing_stances, missing_temporal, posts),
-    }
+    return _planner_evaluate_coverage(event, posts, default_sources=default_sources)
 
 
 def build_repair_rounds(
     event: dict[str, Any], coverage: dict[str, Any], repair_round: int, default_sources: list[str] | None = None
 ) -> list[dict[str, Any]]:
-    base = _as_list(event.get("seed_keywords") or event.get("query") or event.get("event_name") or event.get("event_id"))
-    source_scope = coverage["missing_sources"] or normalize_source_scope(event.get("source_scope"), default_sources=default_sources)
-    repair_targets: list[tuple[str | None, str | None, str | None, str]] = []
-    for source in coverage["missing_sources"]:
-        repair_targets.append((None, None, None, f"missing source: {source}"))
-    for stakeholder in coverage["missing_stakeholders"]:
-        repair_targets.append((stakeholder, None, None, f"missing stakeholder: {stakeholder}"))
-    for stance in coverage["missing_stances"]:
-        repair_targets.append((None, stance, None, f"missing stance: {stance}"))
-    for stage in coverage["missing_temporal_stages"]:
-        repair_targets.append((None, None, stage, f"missing temporal stage: {stage}"))
-    if not repair_targets:
-        repair_targets.append((None, None, None, "no posts collected"))
-
-    rounds: list[dict[str, Any]] = []
-    for keyword in base:
-        for stakeholder, stance, stage, reason in repair_targets:
-            parts = [keyword, stakeholder, stance, stage]
-            query = " ".join([str(part) for part in parts if part])
-            rounds.append(
-                {
-                    "round": repair_round,
-                    "query": query,
-                    "source_scope": source_scope,
-                    "target_stakeholder": stakeholder,
-                    "target_stance": stance,
-                    "target_temporal_stage": stage,
-                    "reason": reason,
-                    "generated_by": "cfsm_s6_query_repair",
-                    "used_for_collection": True,
-                }
-            )
-    return _dedupe_rounds(rounds)
+    return _planner_build_repair_rounds(event, coverage, repair_round, default_sources=default_sources)
 
 
 def build_coverage_report(

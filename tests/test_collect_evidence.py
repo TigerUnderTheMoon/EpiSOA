@@ -59,6 +59,7 @@ collector:
             max_events=None,
             max_queries_per_event=6,
             debug_output=str(tmp_path / "debug.json"),
+            planner_debug_output=str(tmp_path / "planner_debug.json"),
         )
     )
 
@@ -141,6 +142,7 @@ collector:
             max_events=1,
             max_queries_per_event=1,
             debug_output=str(debug),
+            planner_debug_output=str(tmp_path / "planner_debug.json"),
         )
     )
 
