@@ -1,0 +1,13 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/c:\\Users\\27162\\AppData\\Local\\Temp\\BNZ.69fd6d111022256\\scs_manuscript.aux": true,
+        "**/c:\\Users\\27162\\AppData\\Local\\Temp\\BNZ.69fd6d111022256\\scs_manuscript.log": true,
+        "**/c:\\Users\\27162\\AppData\\Local\\Temp\\BNZ.69fd6d111022256\\scs_manuscript.gz": true,
+        "**/c:\\Users\\27162\\AppData\\Local\\Temp\\BNZ.69fd6d111022256\\scs_manuscript.out": true
+    }
+}
