@@ -10,7 +10,7 @@ The core output schema is:
 
 ## Five-Stage Paper Workflow
 
-1. Event selection and query configuration
+1. Topic-to-event instantiation
 2. Evidence collection with C-FSM
 3. Gold test-set construction through human annotation
 4. Experiment execution and automatic evaluation
@@ -36,6 +36,8 @@ Recommended method wording: "cross-source public web retrieval", "publicly acces
 
 ```text
 data/pubevent_soa_lite/
+|-- topic_seeds.jsonl
+|-- candidate_event_instances.jsonl
 |-- events.jsonl
 |-- raw/
 |   `-- raw_posts.jsonl
@@ -52,7 +54,19 @@ data/pubevent_soa_lite/
 `-- README.md
 ```
 
-`events.jsonl` is an event/query configuration file. It is not evidence.
+The upstream event data is now three-layered:
+
+- `topic_seeds.jsonl` stores topic-level issue seeds. The current 50 legacy records were migrated here from the old `events.jsonl`; they preserve the original coverage design but are not concrete public events.
+- `candidate_event_instances.jsonl` stores manually discovered and screened candidate concrete events.
+- `events.jsonl` stores only accepted concrete formal event instances. It may be empty until human screening is complete.
+
+`topic seed != concrete event`. Topic seeds often contain placeholders such as "某市", "某地", "某校", "某医院", or "某平台"; such records are invalid in formal `events.jsonl`.
+
+Use `public_social` in `source_scope`; do not use the legacy `social_media` label.
+
+Formal `gold_tuples.jsonl` and `gold_event_chains.jsonl` can only be built from accepted concrete events and their evidence. The earlier 10-event gold pilot is now only a topic-level diagnostic pilot and must not be treated as formal gold.
+
+Legacy topic-level raw posts, evidence, annotation sheets, and pilot outputs are archived under `data/pubevent_soa_lite/discovery/`. That directory is a discovery corpus for finding concrete candidate events and diagnosing prompts; formal validators and paper experiments do not read it.
 
 `gold_tuples.jsonl` and `gold_event_chains.jsonl` must be created only after `evidence.jsonl` has been produced from collected raw posts and manually annotated.
 
@@ -62,16 +76,33 @@ Validate current data state:
 
 ```bash
 python scripts/validate_paper_data.py
+python scripts/validate_event_instantiation_data.py
 python -m episoa.cli paper-status
 ```
 
 Run the data-preparation interfaces:
 
 ```bash
+python scripts/migrate_events_to_topic_seeds.py
+python scripts/make_candidate_event_instance_sheet.py
+python scripts/promote_candidate_events.py
 python scripts/collect_evidence.py
 python scripts/normalize_evidence.py
 python scripts/make_annotation_sheet.py
+python scripts/build_gold_review_sheets.py
+python scripts/run_llm_gold_preannotation.py
+python scripts/convert_review_sheets_to_gold.py
+python scripts/validate_gold_dataset.py
+python scripts/inspect_gold_samples.py --num-events 3 --seed 42
 ```
+
+Gold construction uses LLM preannotation only as review assistance. Formal
+`gold_tuples.jsonl` and `gold_event_chains.jsonl` are exported only from
+human-reviewed sheets with final decisions such as `accept`, `edit`, `add_new`,
+or `merge`; `reject` and unreviewed rows are excluded.
+
+`run_llm_gold_preannotation.py` defaults to a one-event smoke run. Use
+`--all-events` for the full formal LLM preannotation pass.
 
 Check UTF-8 display and replacement-character damage without rewriting data:
 

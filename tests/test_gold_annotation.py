@@ -2,10 +2,12 @@ import json
 from pathlib import Path
 
 from episoa.annotation.gold_annotation import (
+    SUPPORT_LABELS,
     build_gold_review_outputs,
     build_gold_event_chains,
     build_review_rows,
     convert_review_sheets_to_gold,
+    read_csv_rows,
     read_jsonl,
     validate_gold_dataset,
     write_csv_rows,
@@ -21,6 +23,11 @@ def test_reads_verified_and_generates_review_rows():
     assert len(rows) == 1
     assert rows[0]["tuple_id"] == "E012_SOA_001"
     assert rows[0]["review_status"] == "unreviewed"
+
+
+def test_support_label_vocabulary_matches_formal_schema():
+    assert SUPPORT_LABELS == {"supported", "partially_supported", "unsupported", "insufficient_evidence"}
+    assert "irrelevant" not in SUPPORT_LABELS
 
 
 def test_supported_tuple_prefills_gold_fields():
@@ -88,6 +95,32 @@ def test_accept_reviewed_row_enters_gold(tmp_path):
     assert gold[0]["annotation_provenance"]["source"] == "human_reviewed_llm_assisted"
 
 
+def test_accept_edit_reject_add_new_merge_conversion_logic(tmp_path):
+    review_path, new_path, evidence_path, events_path, output_dir = write_conversion_inputs(tmp_path)
+    rows = [
+        reviewed_row(human_decision="accept"),
+        reviewed_row(human_decision="edit"),
+        reviewed_row(human_decision="reject"),
+        reviewed_row(human_decision="merge"),
+    ]
+    rows[1]["gold_opinion"] = "人工编辑后的观点"
+    rows[3]["gold_opinion"] = "合并后的观点"
+    new_row = reviewed_row(human_decision="add_new")
+    new_row["gold_opinion"] = "新增观点"
+    write_csv_rows(review_path, rows, TUPLE_REVIEW_FIELDS)
+    write_csv_rows(new_path, [new_row], NEW_TUPLE_FIELDS)
+
+    report = convert_review_sheets_to_gold(review_path, new_path, evidence_path, events_path, output_dir)
+    gold = read_jsonl(output_dir / "gold_tuples.jsonl")
+
+    assert report["accepted"] == 1
+    assert report["edited"] == 1
+    assert report["rejected"] == 1
+    assert report["added"] == 1
+    assert report["merged"] == 1
+    assert len(gold) == 4
+
+
 def test_revise_uses_gold_fields_not_candidate_fields(tmp_path):
     review_path, new_path, evidence_path, events_path, output_dir = write_conversion_inputs(tmp_path)
     row = reviewed_row(human_decision="revise")
@@ -107,6 +140,25 @@ def test_missing_evidence_id_validation_is_hard_error(tmp_path):
     report = validate_gold_dataset(*paths)
 
     assert any(err["check"] == "evidence_id_exists" for err in report["hard_errors"])
+
+
+def test_cross_event_evidence_id_validation_is_hard_error(tmp_path):
+    evidence_path = write_jsonl_file(
+        tmp_path / "evidence.jsonl",
+        [
+            {"event_id": "E012", "evidence_id": "ev-1", "source": "news", "text": "text"},
+            {"event_id": "E999", "evidence_id": "ev-2", "source": "news", "text": "other"},
+        ],
+    )
+    events_path = write_jsonl_file(tmp_path / "events.jsonl", events() + [{"event_id": "E999", "event_name": "other"}])
+    gold_tuples = tmp_path / "gold_tuples.jsonl"
+    gold_chains = tmp_path / "gold_event_chains.jsonl"
+    write_jsonl(gold_tuples, [gold_tuple("G_E012_001", evidence_ids=["ev-2"])])
+    write_jsonl(gold_chains, [{"event_id": "E012", "event_chain": ["node"], "evidence_ids": ["ev-1"]}])
+
+    report = validate_gold_dataset(gold_tuples, gold_chains, evidence_path, events_path)
+
+    assert any(err["check"] == "evidence_id_same_event" for err in report["hard_errors"])
 
 
 def test_invalid_sentiment_validation_is_hard_error(tmp_path):
@@ -138,6 +190,37 @@ def test_gold_event_chains_group_by_event_and_stage():
     conflict = next(row for row in chains_out if row["stage"] == "conflict")
     assert conflict["evidence_ids"] == ["ev-1", "ev-2"]
     assert conflict["source_gold_tuple_ids"] == ["G_E012_001", "G_E012_002"]
+
+
+def test_duplicate_tuple_deduped_during_conversion(tmp_path):
+    review_path, new_path, evidence_path, events_path, output_dir = write_conversion_inputs(tmp_path)
+    row_a = reviewed_row(human_decision="accept")
+    row_b = reviewed_row(human_decision="edit")
+    write_csv_rows(review_path, [row_a, row_b], TUPLE_REVIEW_FIELDS)
+    write_csv_rows(new_path, [], NEW_TUPLE_FIELDS)
+
+    report = convert_review_sheets_to_gold(review_path, new_path, evidence_path, events_path, output_dir)
+
+    assert report["exported_gold_tuples"] == 1
+    assert report["exclusion_reasons"]["duplicate_tuples_dropped"] == 1
+
+
+def test_empty_candidates_still_generate_review_sheets(tmp_path):
+    summary = build_gold_review_outputs(
+        events_path=write_jsonl_file(tmp_path / "events.jsonl", events()),
+        evidence_path=write_jsonl_file(tmp_path / "evidence.jsonl", evidence_rows()),
+        verified_path=tmp_path / "missing_verified.jsonl",
+        chains_path=tmp_path / "missing_chains.jsonl",
+        annotation_sheet_path=tmp_path / "annotation.csv",
+        output_dir=tmp_path / "annotation",
+    )
+
+    tuple_rows = read_csv_rows(tmp_path / "annotation" / "gold_tuple_review_sheet.csv")
+    chain_rows = read_csv_rows(tmp_path / "annotation" / "gold_chain_review_sheet.csv")
+
+    assert summary["num_candidate_tuples"] == 0
+    assert tuple_rows[0]["source_type"] == "blank_template"
+    assert chain_rows[0]["source_type"] == "blank_template"
 
 
 def test_default_does_not_overwrite_dataset_gold(tmp_path):
@@ -294,4 +377,3 @@ def gold_tuple(tuple_id, stage="conflict", evidence_ids=None, sentiment="negativ
             "notes": "",
         },
     }
-

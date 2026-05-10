@@ -1,0 +1,45 @@
+{
+  "event_id": "E002",
+  "tuples": [
+    {
+      "stakeholder": "低层住户",
+      "opinion": "反对加装电梯，认为影响采光且补偿方案未协商好，多次阻挠施工",
+      "sentiment": "negative",
+      "rationale": "ev-00062中低层业主因采光问题阻挠施工，并对补偿方案不满，被施工单位起诉",
+      "evidence_ids": ["ev-00062"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "高层住户",
+      "opinion": "支持加装电梯，愿意出资并推动工程，认为出行便利受益大",
+      "sentiment": "positive",
+      "rationale": "ev-00068中32户业主同意加装电梯并出资，ev-00070反映高层老年住户出行困难，加梯需求强烈",
+      "evidence_ids": ["ev-00068", "ev-00070"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "社区居委会",
+      "opinion": "组织居民协商，宣传政策，协调各方利益，推动加装电梯",
+      "sentiment": "positive",
+      "rationale": "ev-00075明确街道和社区利用党建工作协调委员会作为协商平台，ev-00070展示街道社区开展线上线下宣传和协商",
+      "evidence_ids": ["ev-00075", "ev-00070"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "高层住户",
+      "opinion": "认为费用应按楼层受益大小分摊，高层应多出资，低层少或不出资",
+      "sentiment": "neutral",
+      "rationale": "ev-00059给出各层出资比例指导，体现高层多出、低层少出原则，反映多数高层用户接受此分摊方案",
+      "evidence_ids": ["ev-00059"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "施工单位",
+      "opinion": "因低层住户阻挠施工导致工期延误，起诉要求停止阻挠并赔偿损失",
+      "sentiment": "negative",
+      "rationale": "ev-00062中施工单位将阻挠施工的低层业主诉至法院，要求排除妨害并赔偿每日3000元损失",
+      "evidence_ids": ["ev-00062"],
+      "support_label": "supported"
+    }
+  ]
+}

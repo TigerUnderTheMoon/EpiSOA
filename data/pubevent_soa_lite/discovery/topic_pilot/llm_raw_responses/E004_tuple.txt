@@ -1,0 +1,37 @@
+{
+  "event_id": "E004",
+  "tuples": [
+    {
+      "stakeholder": "租户",
+      "opinion": "城中村改造导致租金上涨，租户生活负担加重",
+      "sentiment": "negative",
+      "rationale": "多篇新闻报道显示租户因拆迁面临房租上涨，转租困难",
+      "evidence_ids": ["ev-00169", "ev-00161", "ev-00162"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "外来务工人员",
+      "opinion": "要求改善住房条件，出台农民工住房保障制度",
+      "sentiment": "negative",
+      "rationale": "人大代表调研揭示民工住房困境，建议住房保障",
+      "evidence_ids": ["ev-00174"],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "街道办/政府",
+      "opinion": "承认房租上涨但表示将趋于平稳",
+      "sentiment": "neutral",
+      "rationale": "政府答复中说明房租由市场决定，随房源增加将平稳",
+      "evidence_ids": ["ev-00166"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "搬迁居民",
+      "opinion": "面临就业、生活成本、产业配套三大困难",
+      "sentiment": "negative",
+      "rationale": "调查显示搬迁户收入增加但后续发展乏力",
+      "evidence_ids": ["ev-00170"],
+      "support_label": "partially_supported"
+    }
+  ]
+}

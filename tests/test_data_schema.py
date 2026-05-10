@@ -2,7 +2,21 @@ from episoa.data.schema import EvidenceRecord, EventRecord, GoldEventChain, Gold
 
 
 def test_paper_schema_accepts_required_records() -> None:
-    EventRecord(event_id="evt-1", event_name="Event")
+    EventRecord(
+        event_id="evt-1",
+        topic_id="T001",
+        event_name="Event",
+        event_description="Concrete event",
+        location={"province": "Test Province", "city": "Test City"},
+        time_window={"start": "2025-01-01", "end": "2025-01-02"},
+        trigger="Reported public decision",
+        anchor_entities=["Test agency"],
+        anchor_urls=["https://source.test/event"],
+        source_scope=["news"],
+        queries=["test event"],
+        selection_status="accepted",
+        instance_version="v1",
+    )
     EvidenceRecord(evidence_id="ev-1", event_id="evt-1", text="Evidence", platform="News", url="https://source.test")
     GoldTuple(
         event_id="evt-1",

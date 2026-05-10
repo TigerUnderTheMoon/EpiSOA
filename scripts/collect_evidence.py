@@ -15,6 +15,7 @@ import yaml
 
 from episoa.collector.search_client import SearchClient, load_search_config
 from episoa.data.loader import read_jsonl, write_jsonl
+from episoa.data.validator import validate_formal_event_record
 
 
 DEFAULT_EVENTS_PATH = Path("data/pubevent_soa_lite/events.jsonl")
@@ -103,20 +104,49 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     write_jsonl(query_plan_path, query_plans)
 
     if not events:
-        write_jsonl(output_path, [])
+        if not output_path.exists():
+            write_jsonl(output_path, [])
         if args.recollection:
             write_debug_report(debug_path, init_debug_report(0), output_path)
         _write_json(
             coverage_path,
             {
                 "status": "blocked",
-                "collection_skipped_reason": "events.jsonl is empty",
+                "collection_skipped_reason": (
+                    "no accepted formal event instances found; complete topic-to-event instantiation before evidence collection"
+                ),
                 "planned_only": True,
                 "num_events": 0,
             },
         )
-        print("WARNING: events.jsonl is empty; no raw posts were collected.")
+        print(
+            "WARNING: no accepted formal event instances found; complete topic-to-event instantiation before evidence collection."
+        )
         return 0
+
+    if not args.recollection:
+        formal_errors = [
+            error
+            for index, event in enumerate(events, start=1)
+            for error in validate_formal_event_record(event, f"events:{index}")
+        ]
+        if formal_errors:
+            if not output_path.exists():
+                write_jsonl(output_path, [])
+            _write_json(
+                coverage_path,
+                {
+                    "status": "blocked",
+                    "collection_skipped_reason": (
+                        "events.jsonl must contain accepted concrete formal event instances before evidence collection"
+                    ),
+                    "errors": formal_errors,
+                    "planned_only": True,
+                    "num_events": len(events),
+                },
+            )
+            print("WARNING: events.jsonl contains non-formal event records; no raw posts were collected.")
+            return 1
 
     if not search_config.configured:
         for plan in query_plans:

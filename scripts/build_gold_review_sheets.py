@@ -38,11 +38,11 @@ def main(argv: list[str] | None = None) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build human review sheets for EpiSOA gold annotation.")
     parser.add_argument("--events", default="data/pubevent_soa_lite/events.jsonl")
-    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_filtered.jsonl")
+    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence.jsonl")
     parser.add_argument("--verified", default="outputs/runs/faithfulness_verification/verified_soa_tuples.jsonl")
     parser.add_argument("--chains", default="outputs/runs/event_chain_retrieval/event_chain_candidates.jsonl")
     parser.add_argument("--annotation-sheet", default="data/pubevent_soa_lite/annotation/annotation_sheet.csv")
-    parser.add_argument("--output-dir", default="outputs/runs/gold_annotation")
+    parser.add_argument("--output-dir", default="data/pubevent_soa_lite/annotation")
     parser.add_argument("--event-ids", default="")
     parser.add_argument("--max-events", type=int, default=None)
     parser.add_argument("--include-supported-only", action="store_true")
@@ -56,4 +56,3 @@ def build_parser() -> argparse.ArgumentParser:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

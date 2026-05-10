@@ -1,0 +1,18 @@
+{
+  "accepted": 0,
+  "edited": 0,
+  "added": 0,
+  "rejected": 0,
+  "merged": 0,
+  "exported_gold_tuples": 0,
+  "exported_gold_event_chains": 0,
+  "exclusion_reasons": {
+    "not_final_human_decision": 171
+  },
+  "output_files": {
+    "gold_tuples": "data\\pubevent_soa_lite\\gold_tuples.jsonl",
+    "gold_event_chains": "data\\pubevent_soa_lite\\gold_event_chains.jsonl",
+    "conversion_report": "data\\pubevent_soa_lite\\gold_conversion_report.json"
+  },
+  "created_at": "2026-05-10T17:12:59.224024+00:00"
+}

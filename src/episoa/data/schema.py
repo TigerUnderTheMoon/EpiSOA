@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,14 +15,57 @@ class EventRecord(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     event_id: str = Field(..., min_length=1)
-    event_name: str | None = None
-    event_description: str | None = None
-    query: str | None = None
-    queries: list[str] | None = None
+    topic_id: str = Field(..., min_length=1)
+    event_name: str = Field(..., min_length=1)
+    event_description: str = Field(..., min_length=1)
+    location: dict[str, Any] = Field(..., min_length=1)
+    time_window: dict[str, Any] = Field(..., min_length=1)
+    trigger: str = Field(..., min_length=1)
+    anchor_entities: list[str] = Field(..., min_length=1)
+    anchor_urls: list[str] = Field(..., min_length=1)
+    source_scope: list[str] = Field(..., min_length=1)
+    queries: list[str] = Field(..., min_length=1)
+    selection_status: str = Field(..., min_length=1)
+    instance_version: str = Field(..., min_length=1)
 
     @property
     def text(self) -> str:
         return self.event_name or self.event_description or ""
+
+
+class TopicSeedRecord(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    topic_id: str = Field(..., min_length=1)
+    legacy_event_id: str = Field(..., min_length=1)
+    field: str | None = None
+    topic_name: str = Field(..., min_length=1)
+    topic_description: str = Field(..., min_length=1)
+    discovery_window: dict[str, Any] | None = None
+    source_scope: list[str] = Field(default_factory=list)
+    seed_keywords: list[str] = Field(default_factory=list)
+    stakeholder_hints: list[str] = Field(default_factory=list)
+    stance_hints: list[str] = Field(default_factory=list)
+
+
+class CandidateEventInstance(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    candidate_event_id: str = Field(..., min_length=1)
+    topic_id: str = Field(..., min_length=1)
+    candidate_event_name: str = Field(..., min_length=1)
+    candidate_event_description: str = Field(..., min_length=1)
+    location: dict[str, Any] | None = None
+    time_window: dict[str, Any] | None = None
+    trigger: str | None = None
+    anchor_entities: list[str] = Field(default_factory=list)
+    anchor_urls: list[str] = Field(default_factory=list)
+    discovery_queries: list[str] = Field(default_factory=list)
+    source_scope: list[str] = Field(default_factory=list)
+    candidate_status: str = Field(..., min_length=1)
+    screening: dict[str, Any] | None = None
+    rejection_reason: str | None = None
+    notes: str | None = None
 
 
 class RawPost(BaseModel):

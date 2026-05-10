@@ -1,0 +1,37 @@
+{
+  "event_id": "E007",
+  "tuples": [
+    {
+      "stakeholder": "业主",
+      "opinion": "反对开发商擅自减少地面停车位数量，认为侵犯了全体业主的权益",
+      "sentiment": "negative",
+      "rationale": "证据ev-00308中业主明确表示小区少了一百多个地面停车位，是对全体业主权益的侵犯",
+      "evidence_ids": ["ev-00308"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "开发商",
+      "opinion": "擅自更改停车位规划数量，未完成法定变更手续，属于违规变动",
+      "sentiment": "negative",
+      "rationale": "律师在ev-00308中指出开发商在修建过程中擅自更改规划且未完成变更手续，是违规的",
+      "evidence_ids": ["ev-00308"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "物业公司",
+      "opinion": "考虑通过改建小区绿化带增加停车位，但须经业主表决决定",
+      "sentiment": "neutral",
+      "rationale": "ev-00313中物业咨询律师，律师明确表示绿化带属业主共有，改建须由业主决定",
+      "evidence_ids": ["ev-00313"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "规划部门",
+      "opinion": "回应业主投诉，表示丽丰一品小区尚未办理竣工规划验收，车位尚未核实，已介入调查",
+      "sentiment": "neutral",
+      "rationale": "ev-00304中市自然资源和规划局答复称车位尚未核实，并已开展调查",
+      "evidence_ids": ["ev-00304"],
+      "support_label": "supported"
+    }
+  ]
+}

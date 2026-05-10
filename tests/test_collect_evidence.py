@@ -22,8 +22,13 @@ def test_collect_evidence_planned_only_when_search_api_missing(tmp_path):
     coverage = tmp_path / "coverage.json"
 
     events.write_text(
-        '{"event_id":"e1","event_name":"Transit plan","seed_keywords":["transit plan"],'
-        '"stakeholder_hints":["residents"],"stance_hints":["concern"],"source_scope":["news"]}\n',
+        '{"event_id":"e1","topic_id":"T001","event_name":"Transit plan vote",'
+        '"event_description":"A concrete transit plan vote in Test City",'
+        '"location":{"city":"Test City"},"time_window":{"start":"2025-01-01","end":"2025-01-02"},'
+        '"trigger":"city council vote","anchor_entities":["Test City Council"],'
+        '"anchor_urls":["https://source.test/event"],"queries":["transit plan"],'
+        '"source_scope":["news"],"selection_status":"accepted","instance_version":"v1",'
+        '"seed_keywords":["transit plan"],"stakeholder_hints":["residents"],"stance_hints":["concern"]}\n',
         encoding="utf-8",
     )
     config.write_text(

@@ -855,3 +855,812 @@ def inspect_gold_samples(
                 parts.append(f"    {eid}: {make_excerpt(evidence_index.get(eid, {}).get('text', ''), 240)}")
     return "\n".join(parts)
 
+
+# Gold annotation pipeline v1 -------------------------------------------------
+#
+# The definitions below intentionally override the earlier compatibility helpers
+# while keeping their public names. Existing tests and scripts still import the
+# same symbols, but the default workflow now matches the formal PubEvent-SOA data
+# flow based on data/pubevent_soa_lite/evidence.jsonl.
+
+SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
+SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "insufficient_evidence"}
+HUMAN_DECISIONS = {"accept", "edit", "reject", "add_new", "merge"}
+EXPORT_DECISIONS = {"accept", "edit", "add_new", "merge", "revise", "revised", "approved", "added", "add_missing"}
+FINAL_STATUSES = {"", "final", "adjudicated", "approved", "reviewed"}
+
+TUPLE_REVIEW_FIELDS = [
+    "event_id",
+    "candidate_id",
+    "source_type",
+    "stakeholder",
+    "opinion",
+    "sentiment",
+    "rationale",
+    "evidence_ids",
+    "support_label",
+    "human_decision",
+    "gold_stakeholder",
+    "gold_opinion",
+    "gold_sentiment",
+    "gold_rationale",
+    "gold_evidence_ids",
+    "gold_support_label",
+    "edit_reason",
+    "reviewer_id",
+    "adjudication_status",
+    "notes",
+    # Backward-compatible fields used by older review tooling/tests.
+    "event_name",
+    "tuple_id",
+    "candidate_stakeholder",
+    "candidate_opinion",
+    "candidate_sentiment",
+    "candidate_rationale",
+    "candidate_evidence_ids",
+    "candidate_event_chain_stage",
+    "candidate_confidence",
+    "verification_label",
+    "verification_score",
+    "verification_rationale",
+    "issue_flags",
+    "evidence_quotes",
+    "evidence_texts",
+    "chain_confidence",
+    "missing_stages",
+    "gold_event_chain_stage",
+    "gold_event_chain_order",
+    "gold_notes",
+    "annotator_id",
+    "review_status",
+]
+
+CHAIN_REVIEW_FIELDS = [
+    "event_id",
+    "candidate_chain_id",
+    "source_type",
+    "event_chain",
+    "evidence_ids",
+    "human_decision",
+    "gold_event_chain",
+    "gold_evidence_ids",
+    "edit_reason",
+    "reviewer_id",
+    "adjudication_status",
+    "notes",
+]
+
+NEW_TUPLE_FIELDS = [
+    "event_id",
+    "event_name",
+    "gold_stakeholder",
+    "gold_opinion",
+    "gold_sentiment",
+    "gold_rationale",
+    "gold_evidence_ids",
+    "gold_event_chain_stage",
+    "gold_support_label",
+    "gold_event_chain_order",
+    "gold_notes",
+    "annotator_id",
+    "review_status",
+    "adjudication_status",
+    "human_decision",
+]
+
+
+def normalize_label(value: Any) -> str:
+    text = str(value or "").strip()
+    if text in SUPPORT_LABELS:
+        return text
+    if text == "irrelevant":
+        return "insufficient_evidence"
+    return "insufficient_evidence"
+
+
+def normalize_sentiment(value: Any) -> str:
+    text = str(value or "").strip()
+    return text if text in SENTIMENTS else "unknown"
+
+
+def parse_json_or_cell(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value or "").strip()
+    if not text:
+        return []
+    if text.startswith("["):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if str(item).strip()]
+    return split_cell(text)
+
+
+def unique(values: Iterable[str]) -> list[str]:
+    output: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        if text and text not in seen:
+            seen.add(text)
+            output.append(text)
+    return output
+
+
+def load_optional_jsonl(path: str | Path | None) -> list[dict[str, Any]]:
+    if not path:
+        return []
+    path = Path(path)
+    if not path.exists():
+        return []
+    return read_jsonl(path)
+
+
+def event_name(event: dict[str, Any]) -> str:
+    return str(event.get("event_name") or event.get("event_description") or "")
+
+
+def candidate_id(row: dict[str, Any], index: int) -> str:
+    return str(
+        row.get("candidate_id")
+        or row.get("tuple_id")
+        or row.get("gold_tuple_id")
+        or f"{row.get('event_id', 'event')}_candidate_{index:04d}"
+    )
+
+
+def chain_id(row: dict[str, Any], index: int) -> str:
+    return str(row.get("candidate_chain_id") or row.get("chain_id") or row.get("gold_chain_id") or f"chain_{index:04d}")
+
+
+def build_review_rows(
+    verified_rows: list[dict[str, Any]],
+    events: list[dict[str, Any]],
+    evidence_rows: list[dict[str, Any]],
+    chains: list[dict[str, Any]],
+    event_ids: list[str] | None = None,
+    max_events: int | None = None,
+    include_supported_only: bool = False,
+    include_weak: bool = False,
+    include_issues: bool = False,
+    sample_strategy: str = "input",
+) -> list[dict[str, Any]]:
+    _ = (include_weak, include_issues, sample_strategy)
+    event_index = load_event_index(events)
+    evidence_index = load_evidence_index(evidence_rows)
+    chain_index = load_chain_index(chains)
+    allowed = set(event_ids or [])
+    if max_events is not None and not allowed:
+        allowed = {str(event.get("event_id")) for event in events[:max_events] if event.get("event_id")}
+
+    rows: list[dict[str, Any]] = []
+    for index, candidate in enumerate(verified_rows, start=1):
+        event_id = str(candidate.get("event_id") or "")
+        if allowed and event_id not in allowed:
+            continue
+        label = normalize_label(candidate.get("support_label") or candidate.get("verification_label"))
+        if include_supported_only and label != "supported":
+            continue
+        ids = unique(parse_json_or_cell(candidate.get("evidence_ids") or candidate.get("candidate_evidence_ids")))
+        cid = candidate_id(candidate, index)
+        stakeholder = str(candidate.get("stakeholder") or candidate.get("gold_stakeholder") or "")
+        opinion = str(candidate.get("opinion") or candidate.get("gold_opinion") or "")
+        sentiment = normalize_sentiment(candidate.get("sentiment") or candidate.get("gold_sentiment"))
+        rationale = str(candidate.get("rationale") or candidate.get("gold_rationale") or "")
+        evidence_texts = [make_excerpt(evidence_index.get(eid, {}).get("text", ""), 260) for eid in ids]
+        chain = chain_index.get(event_id, {})
+        stage = str(candidate.get("event_chain_stage") or candidate.get("gold_event_chain_stage") or "unknown")
+        gold_notes = ""
+        if label == "partially_supported":
+            gold_notes = f"verification_rationale: {candidate.get('verification_rationale', '')}; issue_flags: {';'.join(parse_json_or_cell(candidate.get('issue_flags')))}"
+        elif label in {"unsupported", "insufficient_evidence"}:
+            gold_notes = "requires human review before entering gold"
+        row = {
+            "event_id": event_id,
+            "candidate_id": cid,
+            "source_type": str(candidate.get("source_type") or candidate.get("source") or "system_candidate"),
+            "stakeholder": stakeholder,
+            "opinion": opinion,
+            "sentiment": sentiment,
+            "rationale": rationale,
+            "evidence_ids": ids,
+            "support_label": label,
+            "human_decision": "need_review",
+            "gold_stakeholder": stakeholder,
+            "gold_opinion": opinion,
+            "gold_sentiment": sentiment,
+            "gold_rationale": rationale,
+            "gold_evidence_ids": ids,
+            "gold_support_label": label,
+            "edit_reason": "",
+            "reviewer_id": "",
+            "adjudication_status": "",
+            "notes": "",
+            "event_name": event_name(event_index.get(event_id, {})),
+            "tuple_id": cid,
+            "candidate_stakeholder": stakeholder,
+            "candidate_opinion": opinion,
+            "candidate_sentiment": sentiment,
+            "candidate_rationale": rationale,
+            "candidate_evidence_ids": ids,
+            "candidate_event_chain_stage": stage,
+            "candidate_confidence": candidate.get("candidate_confidence", candidate.get("confidence", "")),
+            "verification_label": label,
+            "verification_score": candidate.get("verification_score", ""),
+            "verification_rationale": candidate.get("verification_rationale", ""),
+            "issue_flags": parse_json_or_cell(candidate.get("issue_flags")),
+            "evidence_quotes": parse_json_or_cell(candidate.get("evidence_quotes")),
+            "evidence_texts": evidence_texts,
+            "chain_confidence": chain.get("chain_confidence", ""),
+            "missing_stages": parse_json_or_cell(chain.get("missing_stages")),
+            "gold_event_chain_stage": stage,
+            "gold_event_chain_order": "",
+            "gold_notes": gold_notes,
+            "annotator_id": "",
+            "review_status": "unreviewed",
+        }
+        if not verified_rows:
+            row["source_type"] = "blank_template"
+        rows.append(row)
+    return rows
+
+
+def blank_tuple_rows_for_events(events: list[dict[str, Any]], event_ids: list[str] | None = None) -> list[dict[str, Any]]:
+    allowed = set(event_ids or [])
+    rows: list[dict[str, Any]] = []
+    for event in events:
+        event_id = str(event.get("event_id") or "")
+        if allowed and event_id not in allowed:
+            continue
+        rows.append(
+            {
+                "event_id": event_id,
+                "candidate_id": "",
+                "source_type": "blank_template",
+                "stakeholder": "",
+                "opinion": "",
+                "sentiment": "",
+                "rationale": "",
+                "evidence_ids": "",
+                "support_label": "",
+                "human_decision": "",
+                "gold_stakeholder": "",
+                "gold_opinion": "",
+                "gold_sentiment": "",
+                "gold_rationale": "",
+                "gold_evidence_ids": "",
+                "gold_support_label": "",
+                "edit_reason": "",
+                "reviewer_id": "",
+                "adjudication_status": "",
+                "notes": "",
+                "event_name": event_name(event),
+                "tuple_id": "",
+                "review_status": "unreviewed",
+            }
+        )
+    return rows
+
+
+def build_chain_review_rows(
+    events: list[dict[str, Any]],
+    chains: list[dict[str, Any]],
+    event_ids: list[str] | None = None,
+    max_events: int | None = None,
+) -> list[dict[str, Any]]:
+    allowed = set(event_ids or [])
+    if max_events is not None and not allowed:
+        allowed = {str(event.get("event_id")) for event in events[:max_events] if event.get("event_id")}
+    rows: list[dict[str, Any]] = []
+    for index, chain in enumerate(chains, start=1):
+        event_id = str(chain.get("event_id") or "")
+        if allowed and event_id not in allowed:
+            continue
+        nodes = chain.get("event_chain") or chain.get("chain_nodes") or chain.get("nodes") or []
+        if not nodes and isinstance(chain.get("stages"), list):
+            nodes = [str(stage.get("stage") or "") for stage in chain["stages"] if stage.get("stage")]
+        evidence_ids = unique(
+            item
+            for stage in chain.get("stages", []) or []
+            for evidence in stage.get("evidence", []) or []
+            for item in [str(evidence.get("evidence_id") or "")]
+        )
+        evidence_ids = evidence_ids or unique(parse_json_or_cell(chain.get("evidence_ids")))
+        rows.append(
+            {
+                "event_id": event_id,
+                "candidate_chain_id": chain_id(chain, index),
+                "source_type": str(chain.get("source_type") or "system_candidate"),
+                "event_chain": nodes,
+                "evidence_ids": evidence_ids,
+                "human_decision": "",
+                "gold_event_chain": nodes,
+                "gold_evidence_ids": evidence_ids,
+                "edit_reason": "",
+                "reviewer_id": "",
+                "adjudication_status": "",
+                "notes": "",
+            }
+        )
+    if not rows:
+        for event in events:
+            event_id = str(event.get("event_id") or "")
+            if allowed and event_id not in allowed:
+                continue
+            rows.append(
+                {
+                    "event_id": event_id,
+                    "candidate_chain_id": "",
+                    "source_type": "blank_template",
+                    "event_chain": "",
+                    "evidence_ids": "",
+                    "human_decision": "",
+                    "gold_event_chain": "",
+                    "gold_evidence_ids": "",
+                    "edit_reason": "",
+                    "reviewer_id": "",
+                    "adjudication_status": "",
+                    "notes": "",
+                }
+            )
+    return rows
+
+
+def build_gold_review_outputs(
+    events_path: str | Path,
+    evidence_path: str | Path,
+    verified_path: str | Path | None,
+    chains_path: str | Path | None,
+    annotation_sheet_path: str | Path,
+    output_dir: str | Path,
+    event_ids: list[str] | None = None,
+    max_events: int | None = None,
+    include_supported_only: bool = False,
+    include_weak: bool = False,
+    include_issues: bool = False,
+    sample_strategy: str = "input",
+    use_llm_prelabel: bool = False,
+    dry_run: bool = False,
+    llm_prelabeler: Callable[[dict[str, Any], dict[str, Any]], list[dict[str, Any]]] | None = None,
+) -> dict[str, Any]:
+    _ = (annotation_sheet_path, use_llm_prelabel, llm_prelabeler)
+    events = read_jsonl(events_path)
+    evidence = read_jsonl(evidence_path)
+    verified = load_optional_jsonl(verified_path)
+    chains = load_optional_jsonl(chains_path)
+    review_rows = build_review_rows(
+        verified,
+        events,
+        evidence,
+        chains,
+        event_ids=event_ids,
+        max_events=max_events,
+        include_supported_only=include_supported_only,
+        include_weak=include_weak,
+        include_issues=include_issues,
+        sample_strategy=sample_strategy,
+    )
+    if not review_rows:
+        review_rows = blank_tuple_rows_for_events(events, event_ids=event_ids)
+    chain_rows = build_chain_review_rows(events, chains, event_ids=event_ids, max_events=max_events)
+
+    output_dir = Path(output_dir)
+    output_files = {
+        "tuple_review_sheet": str(output_dir / "gold_tuple_review_sheet.csv"),
+        "chain_review_sheet": str(output_dir / "gold_chain_review_sheet.csv"),
+        "summary": str(output_dir / "gold_review_summary.json"),
+    }
+    summary = {
+        "num_events": len({str(row.get("event_id")) for row in events if row.get("event_id")}),
+        "num_evidence": len(evidence),
+        "num_candidate_tuples": len(verified),
+        "num_candidate_chains": len(chains),
+        "num_tuple_review_rows": len(review_rows),
+        "num_chain_review_rows": len(chain_rows),
+        "output_files": output_files,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if dry_run:
+        summary["dry_run"] = True
+        return summary
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_csv_rows(output_files["tuple_review_sheet"], review_rows, TUPLE_REVIEW_FIELDS)
+    write_csv_rows(output_files["chain_review_sheet"], chain_rows, CHAIN_REVIEW_FIELDS)
+    Path(output_files["summary"]).write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return summary
+
+
+def is_final_row(row: dict[str, Any]) -> bool:
+    status = str(row.get("adjudication_status") or row.get("review_status") or "").strip()
+    decision = str(row.get("human_decision") or "").strip()
+    if decision == "reject":
+        return False
+    return decision in EXPORT_DECISIONS and status in FINAL_STATUSES
+
+
+def row_can_enter_gold(row: dict[str, Any], evidence_ids: set[str], is_new: bool = False) -> tuple[bool, str]:
+    _ = is_new
+    if not is_final_row(row):
+        return False, "not_final_human_decision"
+    if not str(row.get("gold_stakeholder", "")).strip():
+        return False, "missing_gold_stakeholder"
+    if not str(row.get("gold_opinion", "")).strip():
+        return False, "missing_gold_opinion"
+    if normalize_sentiment(row.get("gold_sentiment")) != str(row.get("gold_sentiment", "")).strip():
+        return False, "invalid_gold_sentiment"
+    if not str(row.get("gold_rationale", "")).strip():
+        return False, "missing_gold_rationale"
+    ids = unique(parse_json_or_cell(row.get("gold_evidence_ids")))
+    if not ids:
+        return False, "missing_gold_evidence_ids"
+    missing = [eid for eid in ids if eid not in evidence_ids]
+    if missing:
+        return False, f"missing_evidence_id:{';'.join(missing)}"
+    if str(row.get("gold_support_label", "")).strip() not in SUPPORT_LABELS:
+        return False, "invalid_gold_support_label"
+    return True, ""
+
+
+def make_gold_tuple(row: dict[str, Any], source_candidate_tuple_id: str, human_decision: str) -> dict[str, Any]:
+    decision = str(human_decision or row.get("human_decision") or "").strip()
+    return {
+        "event_id": str(row.get("event_id", "")).strip(),
+        "gold_tuple_id": "",
+        "stakeholder": str(row.get("gold_stakeholder", "")).strip(),
+        "opinion": str(row.get("gold_opinion", "")).strip(),
+        "sentiment": str(row.get("gold_sentiment", "")).strip(),
+        "rationale": str(row.get("gold_rationale", "")).strip(),
+        "evidence_ids": unique(parse_json_or_cell(row.get("gold_evidence_ids"))),
+        "event_chain_stage": str(row.get("gold_event_chain_stage") or "unknown").strip() or "unknown",
+        "support_label": str(row.get("gold_support_label", "")).strip(),
+        "source_candidate_tuple_id": source_candidate_tuple_id,
+        "_gold_event_chain_order": str(row.get("gold_event_chain_order", "")).strip(),
+        "annotation_provenance": {
+            "source": "human_reviewed_llm_assisted",
+            "human_decision": decision,
+            "review_status": str(row.get("review_status") or row.get("adjudication_status") or "reviewed"),
+            "reviewer_id": str(row.get("reviewer_id") or row.get("annotator_id") or ""),
+            "annotator_id": str(row.get("annotator_id") or row.get("reviewer_id") or ""),
+            "adjudication_status": str(row.get("adjudication_status") or ""),
+            "notes": str(row.get("notes") or row.get("gold_notes") or ""),
+            "edit_reason": str(row.get("edit_reason") or ""),
+        },
+    }
+
+
+def tuple_dedupe_key(row: dict[str, Any]) -> tuple[str, str, str, str, tuple[str, ...]]:
+    return (
+        str(row.get("event_id", "")),
+        str(row.get("stakeholder", "")).strip().lower(),
+        str(row.get("opinion", "")).strip().lower(),
+        str(row.get("sentiment", "")).strip(),
+        tuple(sorted(row.get("evidence_ids", []) or [])),
+    )
+
+
+def assign_gold_tuple_ids(gold_rows: list[dict[str, Any]]) -> None:
+    counts: dict[str, int] = defaultdict(int)
+    for row in gold_rows:
+        event_id = str(row.get("event_id", ""))
+        counts[event_id] += 1
+        row["gold_tuple_id"] = f"G_{event_id}_{counts[event_id]:03d}"
+
+
+def convert_review_sheets_to_gold(
+    review_sheet: str | Path,
+    new_tuples: str | Path | None = None,
+    evidence_path: str | Path = "data/pubevent_soa_lite/evidence.jsonl",
+    events_path: str | Path = "data/pubevent_soa_lite/events.jsonl",
+    output_dir: str | Path = "data/pubevent_soa_lite",
+    write_to_dataset_gold: bool = False,
+    dataset_dir: str | Path = "data/pubevent_soa_lite",
+    chain_review_sheet: str | Path | None = None,
+) -> dict[str, Any]:
+    evidence = read_jsonl(evidence_path)
+    evidence_ids = set(load_evidence_index(evidence))
+    event_ids = set(load_event_index(read_jsonl(events_path)))
+    review_rows = read_csv_rows(review_sheet)
+    new_rows = read_csv_rows(new_tuples) if new_tuples else []
+    chain_rows = read_csv_rows(chain_review_sheet) if chain_review_sheet else []
+
+    counters: dict[str, int] = defaultdict(int)
+    rejected_rows: list[dict[str, Any]] = []
+    exported: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str, tuple[str, ...]]] = set()
+
+    for row in [*review_rows, *new_rows]:
+        decision = str(row.get("human_decision") or "").strip()
+        if decision == "reject":
+            counters["rejected"] += 1
+            rejected_rows.append({**row, "exclusion_reason": "rejected"})
+            continue
+        ok, reason = row_can_enter_gold(row, evidence_ids, is_new=row in new_rows)
+        if not ok:
+            counters[reason] += 1
+            rejected_rows.append({**row, "exclusion_reason": reason})
+            continue
+        if str(row.get("event_id") or "") not in event_ids:
+            counters["unknown_event_id"] += 1
+            rejected_rows.append({**row, "exclusion_reason": "unknown_event_id"})
+            continue
+        gold = make_gold_tuple(
+            row,
+            source_candidate_tuple_id=str(row.get("candidate_id") or row.get("tuple_id") or ""),
+            human_decision=decision,
+        )
+        key = tuple_dedupe_key(gold)
+        if key in seen:
+            counters["duplicate_tuples_dropped"] += 1
+            continue
+        seen.add(key)
+        exported.append(gold)
+        if decision in {"accept", "approved"}:
+            counters["accepted"] += 1
+        elif decision in {"edit", "revise", "revised"}:
+            counters["edited"] += 1
+        elif decision in {"add_new", "add_missing", "added"}:
+            counters["added"] += 1
+        elif decision == "merge":
+            counters["merged"] += 1
+
+    assign_gold_tuple_ids(exported)
+    chains = convert_chain_rows(chain_rows, exported, evidence_ids, event_ids)
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    gold_tuples_path = output_dir / "gold_tuples.jsonl"
+    gold_chains_path = output_dir / "gold_event_chains.jsonl"
+    report_path = output_dir / "gold_conversion_report.json"
+    rejected_path = output_dir / "annotation" / "gold_rejected_or_unreviewed_rows.csv"
+    write_jsonl(gold_tuples_path, exported)
+    write_jsonl(gold_chains_path, chains)
+    if rejected_rows:
+        write_csv_rows(rejected_path, rejected_rows, sorted({key for row in rejected_rows for key in row}))
+
+    if write_to_dataset_gold and Path(dataset_dir) != output_dir:
+        dataset_dir = Path(dataset_dir)
+        dataset_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(gold_tuples_path, dataset_dir / "gold_tuples.jsonl")
+        shutil.copyfile(gold_chains_path, dataset_dir / "gold_event_chains.jsonl")
+
+    report = {
+        "accepted": counters.get("accepted", 0),
+        "edited": counters.get("edited", 0),
+        "added": counters.get("added", 0),
+        "rejected": counters.get("rejected", 0),
+        "merged": counters.get("merged", 0),
+        "exported_gold_tuples": len(exported),
+        "exported_gold_event_chains": len(chains),
+        "exclusion_reasons": dict(counters),
+        "output_files": {
+            "gold_tuples": str(gold_tuples_path),
+            "gold_event_chains": str(gold_chains_path),
+            "conversion_report": str(report_path),
+        },
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+def convert_chain_rows(
+    chain_rows: list[dict[str, Any]],
+    gold_tuples: list[dict[str, Any]],
+    evidence_ids: set[str],
+    event_ids: set[str],
+) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+    counts: dict[str, int] = defaultdict(int)
+    for row in chain_rows:
+        decision = str(row.get("human_decision") or "").strip()
+        if decision not in EXPORT_DECISIONS:
+            continue
+        event_id = str(row.get("event_id") or "")
+        if event_id not in event_ids:
+            continue
+        ids = unique(parse_json_or_cell(row.get("gold_evidence_ids")))
+        if not ids or any(eid not in evidence_ids for eid in ids):
+            continue
+        nodes = parse_json_or_cell(row.get("gold_event_chain"))
+        if not nodes:
+            continue
+        counts[event_id] += 1
+        output.append(
+            {
+                "event_id": event_id,
+                "gold_chain_id": f"GC_{event_id}_{counts[event_id]:03d}",
+                "event_chain": nodes,
+                "evidence_ids": ids,
+                "annotation_provenance": {
+                    "source": "human_reviewed_llm_assisted",
+                    "human_decision": decision,
+                    "reviewer_id": str(row.get("reviewer_id") or ""),
+                    "adjudication_status": str(row.get("adjudication_status") or ""),
+                    "notes": str(row.get("notes") or ""),
+                },
+            }
+        )
+    if output:
+        return output
+    return build_gold_event_chains(gold_tuples)
+
+
+def build_gold_event_chains(gold_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in gold_rows:
+        grouped[(str(row.get("event_id", "")), str(row.get("event_chain_stage", "unknown")))].append(row)
+
+    chains: list[dict[str, Any]] = []
+    counts: dict[str, int] = defaultdict(int)
+    for (event_id, stage), rows in sorted(grouped.items(), key=lambda item: (item[0][0], parse_order(item[1][0].get("_gold_event_chain_order"), item[0][1]), item[0][1])):
+        counts[event_id] += 1
+        evidence_ids = unique(eid for row in rows for eid in row.get("evidence_ids", []) or [])
+        nodes = [f"{stage}: {row.get('stakeholder', '')} - {row.get('opinion', '')}" for row in rows]
+        chains.append(
+            {
+                "event_id": event_id,
+                "gold_chain_id": f"GC_{event_id}_{counts[event_id]:03d}",
+                "event_chain": nodes,
+                "chain_nodes": nodes,
+                "stage": stage,
+                "order": parse_order(rows[0].get("_gold_event_chain_order"), stage),
+                "evidence_ids": evidence_ids,
+                "summary": build_chain_summary(rows),
+                "source_gold_tuple_ids": [row.get("gold_tuple_id", "") for row in rows],
+                "annotation_provenance": {"source": "human_reviewed_llm_assisted"},
+            }
+        )
+    for row in gold_rows:
+        row.pop("_gold_event_chain_order", None)
+    return chains
+
+
+def build_chain_summary(rows: list[dict[str, Any]]) -> str:
+    snippets = []
+    for row in rows[:4]:
+        opinion = str(row.get("opinion", "")).strip()
+        rationale = str(row.get("rationale", "")).strip()
+        if opinion and rationale:
+            snippets.append(f"{opinion} ({rationale})")
+        elif opinion:
+            snippets.append(opinion)
+    return "; ".join(snippets)[:500]
+
+
+def validate_gold_dataset(
+    gold_tuples_path: str | Path,
+    gold_event_chains_path: str | Path,
+    evidence_path: str | Path,
+    events_path: str | Path,
+    output_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    hard_errors: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
+    gold_rows = read_jsonl(gold_tuples_path) if Path(gold_tuples_path).exists() else []
+    chain_rows = read_jsonl(gold_event_chains_path) if Path(gold_event_chains_path).exists() else []
+    events = read_jsonl(events_path)
+    evidence = read_jsonl(evidence_path)
+    event_ids = set(load_event_index(events))
+    evidence_event = {str(row.get("evidence_id")): str(row.get("event_id")) for row in evidence if row.get("evidence_id")}
+    seen: set[tuple[str, str, str, str, tuple[str, ...]]] = set()
+
+    for index, row in enumerate(gold_rows, start=1):
+        prefix = f"gold_tuple:{index}:{row.get('gold_tuple_id', '')}"
+        event_id = str(row.get("event_id") or "")
+        if event_id not in event_ids:
+            hard_errors.append({"check": "event_id_exists", "row": prefix, "message": event_id})
+        ids = row.get("evidence_ids") if isinstance(row.get("evidence_ids"), list) else []
+        if not ids:
+            hard_errors.append({"check": "evidence_ids_nonempty", "row": prefix, "message": "missing"})
+        for evidence_id in ids:
+            if evidence_id not in evidence_event:
+                hard_errors.append({"check": "evidence_id_exists", "row": prefix, "message": str(evidence_id)})
+            elif evidence_event[evidence_id] != event_id:
+                hard_errors.append({"check": "evidence_id_same_event", "row": prefix, "message": str(evidence_id)})
+        if row.get("sentiment") not in SENTIMENTS:
+            hard_errors.append({"check": "sentiment_valid", "row": prefix, "message": str(row.get("sentiment"))})
+        if row.get("support_label") not in SUPPORT_LABELS:
+            hard_errors.append({"check": "support_label_valid", "row": prefix, "message": str(row.get("support_label"))})
+        for field in ("stakeholder", "opinion", "rationale"):
+            if not str(row.get(field, "")).strip():
+                hard_errors.append({"check": f"{field}_nonempty", "row": prefix, "message": "empty"})
+        key = tuple_dedupe_key(row)
+        if key in seen:
+            hard_errors.append({"check": "duplicate_tuple", "row": prefix, "message": "|".join(key[:4])})
+        seen.add(key)
+
+    for index, row in enumerate(chain_rows, start=1):
+        prefix = f"gold_event_chain:{index}:{row.get('gold_chain_id', '')}"
+        event_id = str(row.get("event_id") or "")
+        if event_id not in event_ids:
+            hard_errors.append({"check": "chain_event_id_exists", "row": prefix, "message": event_id})
+        nodes = row.get("event_chain") or row.get("chain_nodes") or row.get("nodes")
+        if not nodes:
+            hard_errors.append({"check": "chain_nodes_nonempty", "row": prefix, "message": "missing"})
+        ids = row.get("evidence_ids") if isinstance(row.get("evidence_ids"), list) else []
+        if not ids:
+            hard_errors.append({"check": "chain_evidence_ids_nonempty", "row": prefix, "message": "missing"})
+        for evidence_id in ids:
+            if evidence_id not in evidence_event:
+                hard_errors.append({"check": "chain_evidence_id_exists", "row": prefix, "message": str(evidence_id)})
+            elif evidence_event[evidence_id] != event_id:
+                hard_errors.append({"check": "chain_evidence_id_same_event", "row": prefix, "message": str(evidence_id)})
+
+    schema_valid = not hard_errors
+    nonempty_gold = bool(gold_rows and chain_rows)
+    report = {
+        "valid": schema_valid,
+        "schema_valid": schema_valid,
+        "nonempty_gold": nonempty_gold,
+        "ready_for_paper": schema_valid and nonempty_gold,
+        "hard_error_count": len(hard_errors),
+        "warning_count": len(warnings),
+        "hard_errors": hard_errors,
+        "warnings": warnings,
+        "num_gold_tuples": len(gold_rows),
+        "num_gold_event_chains": len(chain_rows),
+        "validated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if output_dir:
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "gold_validation_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+def inspect_gold_samples(
+    gold_tuples_path: str | Path,
+    evidence_path: str | Path,
+    gold_event_chains_path: str | Path | None = None,
+    events_path: str | Path | None = None,
+    num_events: int = 3,
+    seed: int = 42,
+    output_path: str | Path | None = None,
+    event_id: str | None = None,
+    limit: int | None = None,
+    show_evidence: bool = True,
+) -> str:
+    import random
+
+    tuples = read_jsonl(gold_tuples_path) if Path(gold_tuples_path).exists() else []
+    chains = read_jsonl(gold_event_chains_path) if gold_event_chains_path and Path(gold_event_chains_path).exists() else []
+    evidence_index = load_evidence_index(read_jsonl(evidence_path)) if Path(evidence_path).exists() else {}
+    events = load_event_index(read_jsonl(events_path)) if events_path and Path(events_path).exists() else {}
+    by_event: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in tuples:
+        by_event[str(row.get("event_id") or "")].append(row)
+    event_ids = [event_id] if event_id else sorted(by_event)
+    random.Random(seed).shuffle(event_ids)
+    event_ids = event_ids[: (limit or num_events)]
+    chains_by_event: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for chain in chains:
+        chains_by_event[str(chain.get("event_id") or "")].append(chain)
+
+    parts = ["# Gold Inspection Samples", ""]
+    for eid in event_ids:
+        parts.append(f"## {eid} {event_name(events.get(eid, {}))}".rstrip())
+        for row in by_event.get(eid, [])[:5]:
+            parts.append("")
+            parts.append(f"- stakeholder: {row.get('stakeholder', '')}")
+            parts.append(f"- opinion: {row.get('opinion', '')}")
+            parts.append(f"- sentiment: {row.get('sentiment', '')}")
+            parts.append(f"- rationale: {row.get('rationale', '')}")
+            parts.append(f"- evidence_ids: {', '.join(row.get('evidence_ids', []) or [])}")
+            if show_evidence:
+                for evidence_id in row.get("evidence_ids", []) or []:
+                    text = make_excerpt(evidence_index.get(evidence_id, {}).get("text", ""), 400)
+                    parts.append(f"  - {evidence_id}: {text}")
+        for chain in chains_by_event.get(eid, [])[:3]:
+            nodes = chain.get("event_chain") or chain.get("chain_nodes") or []
+            parts.append("")
+            parts.append(f"- event_chain: {' -> '.join(str(node) for node in nodes)}")
+            parts.append(f"- chain_evidence_ids: {', '.join(chain.get('evidence_ids', []) or [])}")
+        parts.append("")
+    text = "\n".join(parts).rstrip() + "\n"
+    if output_path:
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(output_path).write_text(text, encoding="utf-8")
+    return text
