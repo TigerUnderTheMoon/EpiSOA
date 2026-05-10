@@ -113,6 +113,27 @@ is not part of GA fitness because the current temporal labels are generic and
 string-matched. Planner and coverage debug reports label this behavior as
 `literal_string_match_legacy`.
 
+Compare heuristic and GA query planning with a paired A/B collection ablation:
+
+```bash
+python scripts/run_query_planner_ablation.py --config configs/collector.yaml --events data/pubevent_soa_lite/events.jsonl --output-dir outputs/runs/query_planner_ablation
+```
+
+For deterministic fixture output without a live search API, add `--dry-run`.
+The command writes per-event metrics, aggregate metrics, and paired
+GA-minus-heuristic differences under the output directory.
+
+For a reproducible 10-event diagnostic subset and post-run inspection:
+
+```bash
+python scripts/run_query_planner_diagnostic_subset.py --config configs/collector.yaml --events data/pubevent_soa_lite/events.jsonl --output-dir outputs/runs/query_planner_diagnostic_10 --seed 42
+python scripts/analyze_query_planner_ablation.py --per-event outputs/runs/query_planner_diagnostic_10/query_planner_ablation_per_event.csv --summary outputs/runs/query_planner_diagnostic_10/query_planner_ablation_summary.csv --output-dir outputs/runs/query_planner_diagnostic_10/analysis
+```
+
+The subset manifest records selected event IDs, strata, feature counts, and the
+selection rationale. Use `--dry-run` on the diagnostic command for deterministic
+fixture output without live retrieval.
+
 Run paper experiments after `paper_data_ready=true`:
 
 ```bash
