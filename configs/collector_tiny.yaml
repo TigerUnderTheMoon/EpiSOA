@@ -30,9 +30,9 @@ collector:
     - public_social
     - public_web
 
-  max_results_per_query: 10
-  max_evidence_per_event: 50
-  sleep_seconds: 0.5
+  max_results_per_query: 2
+  max_evidence_per_event: 10
+  sleep_seconds: 0.1
 
   query_planner:
     mode: heuristic

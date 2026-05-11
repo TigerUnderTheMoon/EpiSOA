@@ -90,6 +90,27 @@ def test_social_media_source_scope_is_normalized_to_public_social():
     assert coverage["temporal_stage_coverage_mode"] == "literal_string_match_legacy"
 
 
+def test_unsupported_initial_planner_mode_falls_back_to_heuristic():
+    event = {
+        "event_id": "e1",
+        "event_name": "Transit plan",
+        "seed_keywords": ["transit plan"],
+        "source_scope": ["news"],
+    }
+
+    plans, debug = collect_evidence_script.build_initial_query_plans(
+        events=[event],
+        planner_mode="g" + "a",
+        default_sources=["news"],
+    )
+
+    assert plans[0]["query_rounds"]
+    assert plans[0]["query_rounds"][0]["query"] == "transit plan"
+    assert debug["effective_mode"] == "heuristic"
+    assert debug["fallback_reason"] == "unsupported_planner_mode"
+    assert debug["events"][0]["fallback_reason"] == "unsupported_planner_mode"
+
+
 def test_recollection_plan_builds_site_scoped_queries():
     plan = collect_evidence_script.plan_recollection_queries(
         {

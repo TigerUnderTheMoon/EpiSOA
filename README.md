@@ -96,43 +96,12 @@ python scripts/validate_gold_dataset.py
 python scripts/inspect_gold_samples.py --num-events 3 --seed 42
 ```
 
-`scripts/collect_evidence.py` supports two initial query planner modes through
-`configs/collector.yaml`:
-
-- `heuristic`: default C-FSM seed expansion baseline.
-- `ga`: optional coverage-aware genetic query planning. It is disabled by
-  default and only runs when `collector.query_planner.mode=ga`,
-  `collector.query_planner.ga.enabled=true`, and the search API is configured.
-
-GA mode probes candidate queries before collection, selects a fixed-size initial
-query set, writes planner diagnostics to
-`data/pubevent_soa_lite/interim/query_planner_debug.json`, and then continues
-through the same collection and repair-round mechanism as heuristic mode.
-Temporal-stage coverage is still handled by the existing repair diagnostics; it
-is not part of GA fitness because the current temporal labels are generic and
-string-matched. Planner and coverage debug reports label this behavior as
+`scripts/collect_evidence.py` uses the heuristic C-FSM seed expansion planner
+configured through `configs/collector.yaml`. It writes planner diagnostics to
+`data/pubevent_soa_lite/interim/query_planner_debug.json`, then continues
+through the coverage repair-round mechanism. Temporal-stage coverage is handled
+by the existing repair diagnostics and reported as
 `literal_string_match_legacy`.
-
-Compare heuristic and GA query planning with a paired A/B collection ablation:
-
-```bash
-python scripts/run_query_planner_ablation.py --config configs/collector.yaml --events data/pubevent_soa_lite/events.jsonl --output-dir outputs/runs/query_planner_ablation
-```
-
-For deterministic fixture output without a live search API, add `--dry-run`.
-The command writes per-event metrics, aggregate metrics, and paired
-GA-minus-heuristic differences under the output directory.
-
-For a reproducible 10-event diagnostic subset and post-run inspection:
-
-```bash
-python scripts/run_query_planner_diagnostic_subset.py --config configs/collector.yaml --events data/pubevent_soa_lite/events.jsonl --output-dir outputs/runs/query_planner_diagnostic_10 --seed 42
-python scripts/analyze_query_planner_ablation.py --per-event outputs/runs/query_planner_diagnostic_10/query_planner_ablation_per_event.csv --summary outputs/runs/query_planner_diagnostic_10/query_planner_ablation_summary.csv --output-dir outputs/runs/query_planner_diagnostic_10/analysis
-```
-
-The subset manifest records selected event IDs, strata, feature counts, and the
-selection rationale. Use `--dry-run` on the diagnostic command for deterministic
-fixture output without live retrieval.
 
 Run paper experiments after `paper_data_ready=true`:
 

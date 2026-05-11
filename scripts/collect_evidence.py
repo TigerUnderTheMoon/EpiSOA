@@ -12,7 +12,6 @@ from typing import Any
 
 import yaml
 
-from episoa.collector.genetic_query_planner import GeneticPlannerConfig, ProbeCache, plan_event_queries_ga
 from episoa.collector.query_planner import (
     DEFAULT_SOURCES,
     DEFAULT_TEMPORAL_STAGES,
@@ -66,110 +65,30 @@ def build_initial_query_plans(
     *,
     events: list[dict[str, Any]],
     planner_mode: str,
-    planner_config: dict[str, Any],
-    search_config: Any,
     default_sources: list[str],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    if planner_mode != "ga":
-        plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
-        return plans, _planner_debug_payload(
-            requested_mode=planner_mode,
-            effective_mode="heuristic",
-            fallback_reason=None if planner_mode == "heuristic" else "unsupported_planner_mode",
-            status="completed",
-            num_events=len(events),
-            events=[
-                {
-                    "event_id": event.get("event_id"),
-                    "planner_mode": "heuristic",
-                    "requested_mode": planner_mode,
-                    "effective_mode": "heuristic",
-                    "fallback_reason": None if planner_mode == "heuristic" else "unsupported_planner_mode",
-                    "candidate_pool_size": None,
-                    "selected_queries": [item["query"] for item in plan["query_rounds"]],
-                    "population_size": None,
-                    "generations": None,
-                    "best_fitness": None,
-                    "best_fitness_breakdown": {},
-                    "optional_components_used": {},
-                    "temporal_stage_coverage_mode": "literal_string_match_legacy",
-                    "cache_stats": {},
-                    "notes": [],
-                }
-                for event, plan in zip(events, plans, strict=True)
-            ],
-        )
-
-    ga_config = GeneticPlannerConfig.from_dict(dict(planner_config.get("ga") or {}))
-    if not ga_config.enabled:
-        plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
-        return plans, _planner_debug_payload(
-            requested_mode="ga",
-            effective_mode="heuristic",
-            fallback_reason="ga_disabled",
-            status="completed",
-            num_events=len(events),
-            events=[
-                {
-                    "event_id": event.get("event_id"),
-                    "planner_mode": "heuristic",
-                    "requested_mode": "ga",
-                    "effective_mode": "heuristic",
-                    "fallback_reason": "ga_disabled",
-                    "selected_queries": [item["query"] for item in plan["query_rounds"]],
-                    "temporal_stage_coverage_mode": "literal_string_match_legacy",
-                    "notes": ["GA mode requested but collector.query_planner.ga.enabled=false; used heuristic planner"],
-                }
-                for event, plan in zip(events, plans, strict=True)
-            ],
-        )
-    if not search_config.configured:
-        plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
-        return plans, _planner_debug_payload(
-            requested_mode="ga",
-            effective_mode="heuristic",
-            fallback_reason="search_api_not_configured",
-            status="completed",
-            num_events=len(events),
-            events=[
-                {
-                    "event_id": event.get("event_id"),
-                    "planner_mode": "heuristic",
-                    "requested_mode": "ga",
-                    "effective_mode": "heuristic",
-                    "fallback_reason": "search_api_not_configured",
-                    "selected_queries": [item["query"] for item in plan["query_rounds"]],
-                    "temporal_stage_coverage_mode": "literal_string_match_legacy",
-                    "notes": ["GA planner requires configured search API; used heuristic planner for planned-only run"],
-                }
-                for event, plan in zip(events, plans, strict=True)
-            ],
-        )
-
-    client = SearchClient(search_config)
-    cache = ProbeCache()
-    plans: list[dict[str, Any]] = []
-    debug_events: list[dict[str, Any]] = []
-    for event in events:
-        plan, event_debug = plan_event_queries_ga(
-            event,
-            client=client,
-            default_sources=default_sources,
-            config=ga_config,
-            cache=cache,
-        )
-        event_debug["requested_mode"] = "ga"
-        event_debug["effective_mode"] = "ga"
-        event_debug["fallback_reason"] = None
-        plans.append(plan)
-        debug_events.append(event_debug)
+    plans = [plan_event_queries(event, default_sources=default_sources) for event in events]
+    fallback_reason = None if planner_mode == "heuristic" else "unsupported_planner_mode"
+    notes = [] if fallback_reason is None else ["unsupported planner mode requested; used heuristic planner"]
     return plans, _planner_debug_payload(
-        requested_mode="ga",
-        effective_mode="ga",
-        fallback_reason=None,
+        requested_mode=planner_mode,
+        effective_mode="heuristic",
+        fallback_reason=fallback_reason,
         status="completed",
         num_events=len(events),
-        events=debug_events,
+        events=[
+            {
+                "event_id": event.get("event_id"),
+                "planner_mode": "heuristic",
+                "requested_mode": planner_mode,
+                "effective_mode": "heuristic",
+                "fallback_reason": fallback_reason,
+                "selected_queries": [item["query"] for item in plan["query_rounds"]],
+                "temporal_stage_coverage_mode": "literal_string_match_legacy",
+                "notes": notes,
+            }
+            for event, plan in zip(events, plans, strict=True)
+        ],
     )
 
 
@@ -340,8 +259,6 @@ def collect_from_cli(args: argparse.Namespace) -> int:
         query_plans, planner_debug = build_initial_query_plans(
             events=events,
             planner_mode=requested_planner_mode,
-            planner_config=planner_config,
-            search_config=search_config,
             default_sources=default_sources,
         )
         _write_json(planner_debug_path, planner_debug)
