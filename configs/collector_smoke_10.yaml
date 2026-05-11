@@ -1,36 +1,31 @@
 search:
   provider: custom
-
-  # Active provider: Bocha
-  # Prefer environment variables in public repositories.
-  api_key: ""
+  api_key: ''
   api_key_env: BOCHA_API_KEY
-  base_url: "https://api.bocha.cn/v1/web-search"
+  base_url: https://api.bocha.cn/v1/web-search
   base_url_env: BOCHA_BASE_URL
-
   timeout_seconds: 10
   max_retries: 0
-
 search_backups:
   anspire:
     provider: custom
-    api_key: ""
+    api_key: ''
     api_key_env: SEARCH_API_KEY
-    base_url: "https://plugin.anspire.cn/api/ntsearch/search"
+    base_url: https://plugin.anspire.cn/api/ntsearch/search
     base_url_env: SEARCH_BASE_URL
     timeout_seconds: 30
     max_retries: 2
-
 collector:
   force_source_types: true
   source_types:
-    - news
-
-  max_results_per_query: 3
-  max_evidence_per_event: 5
-  max_queries_per_event: 5
+  - news
+  - official
+  max_results_per_query: 5
+  max_evidence_per_event: 20
+  max_queries_per_event: 10
   max_repair_rounds: 0
   sleep_seconds: 0.1
-
   query_planner:
     mode: heuristic
+  events_path: data/pubevent_soa_lite/events_smoke_10.jsonl
+  run_dir: outputs/runs/collector_smoke_10

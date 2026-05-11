@@ -56,6 +56,8 @@ python scripts/collect_evidence.py
 
 `interim/` stores generated query plans, coverage reports, deduplication reports, and other temporary data products. It is ignored by git except for `.gitkeep`.
 
+The default collector coverage file is `interim/coverage.json`. It is a continuously refreshed JSON snapshot and should be read with `json.load`, not as JSONL.
+
 ## annotation/
 
 `annotation/` stores generated evidence annotation sheets, LLM preannotation outputs, review sheets, and inspection samples. It is ignored by git except for `.gitkeep`.

@@ -25,10 +25,11 @@ collector:
   force_source_types: true
   source_types:
     - news
+    - official
 
-  max_results_per_query: 3
-  max_evidence_per_event: 5
-  max_queries_per_event: 5
+  max_results_per_query: 5
+  max_evidence_per_event: 20
+  max_queries_per_event: 10
   max_repair_rounds: 0
   sleep_seconds: 0.1
 

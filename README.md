@@ -98,10 +98,19 @@ python scripts/inspect_gold_samples.py --num-events 3 --seed 42
 
 `scripts/collect_evidence.py` uses the heuristic C-FSM seed expansion planner
 configured through `configs/collector.yaml`. It writes planner diagnostics to
-`data/pubevent_soa_lite/interim/query_planner_debug.json`, then continues
+`data/pubevent_soa_lite/interim/query_planner_debug.json` and the live coverage
+snapshot to `data/pubevent_soa_lite/interim/coverage.json`, then continues
 through the coverage repair-round mechanism. Temporal-stage coverage is handled
 by the existing repair diagnostics and reported as
 `literal_string_match_legacy`.
+
+Resume an interrupted collection without repeating completed events:
+
+```bash
+python scripts/collect_evidence.py --resume
+```
+
+`coverage.json` is a JSON snapshot; read it with `json.load`, not as JSONL.
 
 Run paper experiments after `paper_data_ready=true`:
 

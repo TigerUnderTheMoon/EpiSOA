@@ -142,6 +142,10 @@ def _extract_records(payload: Any) -> list[dict[str, Any]]:
         value = payload.get(key)
         if isinstance(value, list):
             return [item for item in value if isinstance(item, dict)]
+        if isinstance(value, dict):
+            nested = _extract_records(value)
+            if nested and nested != [value]:
+                return nested
     web_pages = payload.get("webPages")
     if isinstance(web_pages, dict) and isinstance(web_pages.get("value"), list):
         return [item for item in web_pages["value"] if isinstance(item, dict)]

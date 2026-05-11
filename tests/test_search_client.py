@@ -27,6 +27,30 @@ def test_normalize_search_response_accepts_common_field_aliases():
     assert result["platform"] == "Local News"
 
 
+def test_normalize_search_response_accepts_nested_web_pages_payload():
+    payload = {
+        "code": 200,
+        "data": {
+            "webPages": {
+                "value": [
+                    {
+                        "name": "Public response",
+                        "url": "https://news.example/response",
+                        "summary": "Agency published a response.",
+                        "site": "News",
+                    }
+                ]
+            }
+        },
+    }
+
+    result = normalize_search_response(payload)[0]
+
+    assert result["title"] == "Public response"
+    assert result["url"] == "https://news.example/response"
+    assert result["text"] == "Agency published a response."
+
+
 def test_placeholder_search_config_is_not_configured():
     config = load_search_config(
         {

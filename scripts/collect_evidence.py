@@ -36,7 +36,7 @@ DEFAULT_CONFIG_PATH = Path("configs/collector.yaml")
 DEFAULT_RAW_POSTS_PATH = Path("data/pubevent_soa_lite/raw/raw_posts.jsonl")
 DEFAULT_INTERIM_DIR = Path("data/pubevent_soa_lite/interim")
 DEFAULT_QUERY_PLAN_PATH = DEFAULT_INTERIM_DIR / "query_plan.jsonl"
-DEFAULT_COVERAGE_REPORT_PATH = DEFAULT_INTERIM_DIR / "collection_coverage_report.json"
+DEFAULT_COVERAGE_REPORT_PATH = DEFAULT_INTERIM_DIR / "coverage.json"
 DEFAULT_RECOLLECTION_DEBUG_PATH = DEFAULT_INTERIM_DIR / "recollection_debug_report.json"
 DEFAULT_QUERY_PLANNER_DEBUG_PATH = DEFAULT_INTERIM_DIR / "query_planner_debug.json"
 
@@ -55,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--coverage-output", default=str(DEFAULT_COVERAGE_REPORT_PATH))
     parser.add_argument("--planner-debug-output", default=str(DEFAULT_QUERY_PLANNER_DEBUG_PATH))
     parser.add_argument("--recollection", action="store_true", help="Read recollection_plan.jsonl rows instead of full event configs.")
+    parser.add_argument("--resume", action="store_true", help="Continue an interrupted collection without repeating completed events.")
     parser.add_argument("--max-events", type=int, default=None)
     parser.add_argument("--max-queries-per-event", type=int, default=6)
     parser.add_argument("--debug-output", default=str(DEFAULT_RECOLLECTION_DEBUG_PATH))
@@ -131,8 +132,11 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     search_config = load_search_config(dict(config.get("search", {})))
     collector_config = dict(config.get("collector", {}))
     default_sources = normalize_source_scope(collector_config.get("source_types") or DEFAULT_SOURCES)
+    force_source_types = bool(collector_config.get("force_source_types", False))
     max_results_per_query = int(collector_config.get("max_results_per_query", 10))
     max_evidence_per_event = int(collector_config.get("max_evidence_per_event", 50))
+    max_queries_per_event = int(collector_config.get("max_queries_per_event", args.max_queries_per_event))
+    max_repair_rounds = int(collector_config.get("max_repair_rounds", 2))
     sleep_seconds = float(collector_config.get("sleep_seconds", 0.5))
     planner_config = dict(collector_config.get("query_planner") or {})
     requested_planner_mode = str(planner_config.get("mode", "heuristic")).strip().lower() or "heuristic"
@@ -142,6 +146,11 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     coverage_path.parent.mkdir(parents=True, exist_ok=True)
     debug_path.parent.mkdir(parents=True, exist_ok=True)
     planner_debug_path.parent.mkdir(parents=True, exist_ok=True)
+    resume = bool(getattr(args, "resume", False))
+    if args.recollection and resume:
+        print("WARNING: --resume is only supported for initial collection, not recollection.")
+        return 1
+
     if args.recollection:
         output_path.write_text("", encoding="utf-8")
 
@@ -242,6 +251,9 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             print("WARNING: events.jsonl contains non-formal event records; no raw posts were collected.")
             return 1
 
+    if force_source_types:
+        events = [_with_forced_source_scope(event, default_sources) for event in events]
+
     if args.recollection:
         query_plans = [plan_recollection_queries(event, default_sources=default_sources) for event in events]
         _write_json(
@@ -261,6 +273,8 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             planner_mode=requested_planner_mode,
             default_sources=default_sources,
         )
+        if resume:
+            query_plans = _merge_existing_query_plans(query_plan_path, query_plans)
         _write_json(planner_debug_path, planner_debug)
     write_jsonl(query_plan_path, query_plans)
 
@@ -271,7 +285,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
         write_jsonl(output_path, [])
         if args.recollection:
             debug = init_debug_report(len(events))
-            debug["queries_generated"] = sum(min(len(plan["query_rounds"]), args.max_queries_per_event) for plan in query_plans)
+            debug["queries_generated"] = sum(min(len(plan["query_rounds"]), max_queries_per_event) for plan in query_plans)
             write_debug_report(debug_path, debug, output_path)
         _write_json(
             coverage_path,
@@ -293,7 +307,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     client = SearchClient(search_config)
     if args.recollection:
         debug = init_debug_report(len(events))
-        debug["queries_generated"] = sum(min(len(plan["query_rounds"]), args.max_queries_per_event) for plan in query_plans)
+        debug["queries_generated"] = sum(min(len(plan["query_rounds"]), max_queries_per_event) for plan in query_plans)
         per_event_posts, errors = collect_recollection_streaming(
             client=client,
             events=events,
@@ -302,7 +316,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             max_results_per_query=max_results_per_query,
             max_evidence_per_event=max_evidence_per_event,
             sleep_seconds=sleep_seconds,
-            max_queries_per_event=args.max_queries_per_event,
+            max_queries_per_event=max_queries_per_event,
             debug=debug,
             debug_path=debug_path,
         )
@@ -316,20 +330,38 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     all_posts: list[dict[str, Any]] = []
     per_event_posts: dict[str, list[dict[str, Any]]] = {}
     errors: list[dict[str, Any]] = []
+    completed_event_ids: set[str] = set()
+    if resume:
+        existing_posts = _read_existing_jsonl(output_path)
+        per_event_posts.update(_group_posts_by_event(existing_posts))
+        completed_event_ids = set(per_event_posts)
+        completed_event_ids.update(_read_completed_event_ids(coverage_path))
+        completed_event_ids.intersection_update(str(event.get("event_id", "")) for event in events)
+        completed_event_ids = {event_id for event_id in completed_event_ids if event_id}
+        all_posts.extend(existing_posts)
+        print(f"[resume] completed_events={len(completed_event_ids)}", flush=True)
+    else:
+        output_path.write_text("", encoding="utf-8")
 
-    for event, plan in zip(events, query_plans, strict=True):
+    for event_index, (event, plan) in enumerate(zip(events, query_plans, strict=True), start=1):
+        event_id = str(event.get("event_id", ""))
+        if event_id in completed_event_ids:
+            print(f"[event {event_index}/{len(events)}] skip completed event_id={event_id}", flush=True)
+            continue
+        print(f"[event {event_index}/{len(events)}] start event_id={event_id}", flush=True)
         event_posts = _collect_for_plan(
             client,
             event,
             plan,
             max_results_per_query=max_results_per_query,
             max_evidence_per_event=max_evidence_per_event,
+            max_queries_per_event=max_queries_per_event,
             sleep_seconds=sleep_seconds,
             errors=errors,
         )
         coverage = evaluate_coverage(event, event_posts, default_sources=default_sources)
         repair_round = 1
-        while coverage["need_query_repair"] and repair_round <= 2 and len(event_posts) < max_evidence_per_event:
+        while coverage["need_query_repair"] and repair_round <= max_repair_rounds and len(event_posts) < max_evidence_per_event:
             repair_rounds = build_repair_rounds(event, coverage, repair_round, default_sources=default_sources)
             plan["query_rounds"].extend(repair_rounds)
             plan["repair_keywords"].extend([item["query"] for item in repair_rounds])
@@ -346,10 +378,17 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             )
             coverage = evaluate_coverage(event, event_posts, default_sources=default_sources)
             repair_round += 1
-        per_event_posts[str(event.get("event_id", ""))] = event_posts
+        per_event_posts[event_id] = event_posts
         all_posts.extend(event_posts)
+        with output_path.open("a", encoding="utf-8") as handle:
+            for post in event_posts:
+                handle.write(json.dumps(post, ensure_ascii=False) + "\n")
+            handle.flush()
+        write_jsonl(query_plan_path, query_plans)
+        report = build_coverage_report(events[:event_index], per_event_posts, errors, default_sources=default_sources)
+        _write_json(coverage_path, report)
+        print(f"[event {event_index}/{len(events)}] done event_id={event_id} raw_posts={len(event_posts)}", flush=True)
 
-    write_jsonl(output_path, all_posts)
     write_jsonl(query_plan_path, query_plans)
     report = build_coverage_report(events, per_event_posts, errors, default_sources=default_sources)
     _write_json(coverage_path, report)
@@ -363,6 +402,12 @@ def plan_event_queries(event: dict[str, Any], default_sources: list[str] | None 
 
 def plan_recollection_queries(event: dict[str, Any], default_sources: list[str] | None = None) -> dict[str, Any]:
     return _planner_plan_recollection_queries(event, default_sources=default_sources)
+
+
+def _with_forced_source_scope(event: dict[str, Any], source_scope: list[str]) -> dict[str, Any]:
+    updated = dict(event)
+    updated["source_scope"] = list(source_scope)
+    return updated
 
 
 def evaluate_coverage(
@@ -529,13 +574,14 @@ def _collect_for_plan(
     *,
     max_results_per_query: int,
     max_evidence_per_event: int,
+    max_queries_per_event: int,
     sleep_seconds: float,
     errors: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     return _collect_rounds(
         client,
         event,
-        list(plan["query_rounds"]),
+        list(plan["query_rounds"])[:max_queries_per_event],
         max_results_per_query=max_results_per_query,
         remaining=max_evidence_per_event,
         sleep_seconds=sleep_seconds,
@@ -686,6 +732,50 @@ def _repair_reason(
     if temporal:
         parts.append("missing temporal stages")
     return "; ".join(parts) if parts else "coverage sufficient"
+
+
+def _merge_existing_query_plans(path: Path, generated_plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not path.exists():
+        return generated_plans
+    existing_plans = _read_existing_jsonl(path)
+    existing_by_event: dict[str, dict[str, Any]] = {}
+    for plan in existing_plans:
+        event_id = str(plan.get("event_id", ""))
+        if event_id and event_id not in existing_by_event:
+            existing_by_event[event_id] = plan
+    merged: list[dict[str, Any]] = []
+    for plan in generated_plans:
+        event_id = str(plan.get("event_id", ""))
+        merged.append(existing_by_event.get(event_id, plan))
+    return merged
+
+
+def _read_existing_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return read_jsonl(path)
+
+
+def _read_completed_event_ids(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    with path.open("r", encoding="utf-8") as handle:
+        report = json.load(handle)
+    if not isinstance(report, dict):
+        raise ValueError(f"{path} must contain a JSON object")
+    events = report.get("events")
+    if not isinstance(events, dict):
+        return set()
+    return {str(event_id) for event_id in events if str(event_id)}
+
+
+def _group_posts_by_event(posts: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for post in posts:
+        event_id = str(post.get("event_id", ""))
+        if event_id:
+            grouped.setdefault(event_id, []).append(post)
+    return grouped
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
