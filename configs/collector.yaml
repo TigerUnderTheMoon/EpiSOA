@@ -1,6 +1,6 @@
 search:
   provider: custom
-  api_key: "sk-pNyeh6BI766bdhSiiSWPjSHsRZAUgtdc"
+  api_key: "sk-C2ok3iexMI79MoBWBRwmvlicJ8mHgK4H"
   api_key_env: SEARCH_API_KEY
   base_url: "https://plugin.anspire.cn/api/ntsearch/search"
   base_url_env: SEARCH_BASE_URL
