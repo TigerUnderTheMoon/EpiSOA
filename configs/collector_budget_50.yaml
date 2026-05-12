@@ -9,7 +9,8 @@ search:
   base_url_env: BOCHA_BASE_URL
 
   timeout_seconds: 10
-  max_retries: 0
+  max_retries: 2
+  retry_backoff_seconds: 0.5
 
 search_backups:
   anspire:
@@ -26,11 +27,15 @@ collector:
   source_types:
     - news
     - official
+    - public_interaction
+    - forum
+    - public_social
 
   max_results_per_query: 5
   max_evidence_per_event: 20
   max_queries_per_event: 10
-  max_repair_rounds: 0
+  max_repair_rounds: 1
+  min_raw_per_event: 15
   sleep_seconds: 0.1
 
   query_planner:

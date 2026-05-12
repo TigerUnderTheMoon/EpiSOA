@@ -8,7 +8,9 @@ import csv
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from episoa.collector.coverage_extractor import classify_source, coverage_debug_rows, evaluate_event_coverage
 from episoa.data.loader import read_jsonl
 
 
@@ -49,9 +51,15 @@ def run_qc(args: argparse.Namespace) -> int:
     event_ids = [str(event.get("event_id", "")).strip() for event in events if str(event.get("event_id", "")).strip()]
     expected_event_ids = set(event_ids)
     raw_by_event = _group_by_event(raw_rows)
+    source_warnings = _source_fallback_warnings(raw_rows)
+    warnings.extend(source_warnings)
+    events_by_id = {str(event.get("event_id", "")).strip(): event for event in events}
+    coverage_events = {
+        event_id: evaluate_event_coverage(events_by_id.get(event_id, {"event_id": event_id}), raw_by_event.get(event_id, []))
+        for event_id in event_ids
+    }
     source_by_event = _source_counts_by_event(raw_rows)
-    coverage_events = coverage.get("events") if isinstance(coverage.get("events"), dict) else {}
-    coverage_event_ids = {str(event_id) for event_id in coverage_events}
+    coverage_event_ids = set(coverage_events)
 
     null_rows, null_fail_counts, null_warn_counts, required_null_by_event = _null_field_rows(raw_rows)
     for field, count in null_fail_counts.items():
@@ -63,6 +71,9 @@ def run_qc(args: argparse.Namespace) -> int:
 
     duplicate_raw_ids = _duplicates(str(row.get("raw_id", "")).strip() for row in raw_rows if str(row.get("raw_id", "")).strip())
     duplicate_raw_rows = _duplicates(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in raw_rows)
+    duplicate_event_url_pairs = _duplicates(
+        pair for row in raw_rows if (pair := _event_url_pair(row))
+    )
     plan_event_ids = [str(plan.get("event_id", "")).strip() for plan in query_plans]
     duplicate_plan_event_ids = _duplicates(event_id for event_id in plan_event_ids if event_id)
 
@@ -70,6 +81,8 @@ def run_qc(args: argparse.Namespace) -> int:
         failures.append(f"duplicate raw_id values: {len(duplicate_raw_ids)}")
     if duplicate_raw_rows:
         failures.append(f"duplicate raw rows: {sum(count - 1 for count in duplicate_raw_rows.values())}")
+    if duplicate_event_url_pairs:
+        failures.append(f"duplicate event-url pairs: {len(duplicate_event_url_pairs)}")
     if duplicate_plan_event_ids:
         failures.append(f"duplicate query plan event_id values: {len(duplicate_plan_event_ids)}")
 
@@ -77,10 +90,8 @@ def run_qc(args: argparse.Namespace) -> int:
         failures.append(f"query_plan_rows={len(query_plans)} does not match expected_events={len(event_ids)}")
     if set(plan_event_ids) != expected_event_ids:
         failures.append("query plan event_id set does not match events")
-    if coverage.get("num_events") != len(event_ids):
-        failures.append(f"coverage_num_events={coverage.get('num_events')} does not match expected_events={len(event_ids)}")
-    if coverage_event_ids != expected_event_ids:
-        failures.append("coverage event_id set does not match events")
+    if coverage and coverage.get("num_events") != len(event_ids):
+        warnings.append(f"input coverage_num_events={coverage.get('num_events')} does not match expected_events={len(event_ids)}")
     if set(raw_by_event) != expected_event_ids:
         missing_raw = sorted(expected_event_ids - set(raw_by_event))
         extra_raw = sorted(set(raw_by_event) - expected_event_ids)
@@ -110,13 +121,15 @@ def run_qc(args: argparse.Namespace) -> int:
         "raw_rows": len(raw_rows),
         "events_with_raw": len(raw_by_event),
         "query_plan_rows": len(query_plans),
-        "coverage_num_events": coverage.get("num_events"),
+        "coverage_num_events": len(coverage_events),
         "failures": failures,
         "warnings": warnings,
         "low_coverage_events": low_coverage_events,
         "events_need_recollection": events_need_recollection,
         "duplicate_raw_ids": duplicate_raw_ids,
         "duplicate_raw_rows": duplicate_raw_rows,
+        "duplicate_event_url_pairs": duplicate_event_url_pairs,
+        "duplicate_event_url_pair_count": len(duplicate_event_url_pairs),
         "duplicate_query_plan_event_ids": duplicate_plan_event_ids,
     }
 
@@ -129,6 +142,7 @@ def run_qc(args: argparse.Namespace) -> int:
         ["event_id", "raw_count", "need_recollection", "reason", "missing_sources", "coverage_need_query_repair"],
         low_coverage_events,
     )
+    _write_coverage_debug_artifacts(output_dir, coverage_events)
 
     print(f"post-collection QC {report['status']}: {output_dir / 'post_collect_qc_report.json'}")
     print(f"raw_rows={len(raw_rows)} events_with_raw={len(raw_by_event)} query_plan_rows={len(query_plans)}")
@@ -171,10 +185,15 @@ def _source_counts_by_event(rows: list[dict[str, Any]]) -> dict[str, Counter[str
     counts: dict[str, Counter[str]] = defaultdict(Counter)
     for row in rows:
         event_id = str(row.get("event_id", "")).strip()
-        source = str(row.get("source") or "unknown").strip() or "unknown"
+        source = str(classify_source(row).get("detected_source_type") or "unknown").strip() or "unknown"
         if event_id:
             counts[event_id][source] += 1
     return dict(counts)
+
+
+def _source_fallback_warnings(rows: list[dict[str, Any]]) -> list[str]:
+    missing = sum(1 for row in rows if not row.get("detected_source_type"))
+    return [f"raw rows missing detected_source_type; recomputed detected_source_type from source rules: {missing}"] if missing else []
 
 
 def _null_field_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], Counter[str], Counter[str], Counter[str]]:
@@ -211,6 +230,29 @@ def _duplicates(values: Any) -> dict[str, int]:
     return {value: count for value, count in counts.items() if count > 1}
 
 
+def _event_url_pair(row: dict[str, Any]) -> str:
+    event_id = str(row.get("event_id") or "").strip()
+    normalized_url = normalize_event_url(str(row.get("url") or ""))
+    return f"{event_id}|{normalized_url}" if event_id and normalized_url else ""
+
+
+def normalize_event_url(url: str) -> str:
+    text = str(url or "").strip()
+    if not text:
+        return ""
+    try:
+        parts = urlsplit(text)
+    except ValueError:
+        return text.split("#", 1)[0].strip()
+    filtered_query = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        lowered = key.lower()
+        if lowered.startswith("utm_") or lowered in {"spm", "from", "pvid", "share_from", "scene"}:
+            continue
+        filtered_query.append((key, value))
+    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path or "", urlencode(filtered_query, doseq=True), ""))
+
+
 def _raw_count_rows(event_ids: list[str], raw_by_event: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     return [{"event_id": event_id, "raw_count": len(raw_by_event.get(event_id, []))} for event_id in event_ids]
 
@@ -222,7 +264,7 @@ def _source_distribution_rows(
 ) -> list[dict[str, Any]]:
     rows = [
         {"scope": "all", "event_id": "", "source": source, "count": count}
-        for source, count in Counter(str(row.get("source") or "unknown") for row in raw_rows).most_common()
+        for source, count in Counter(str(classify_source(row).get("detected_source_type") or "unknown") for row in raw_rows).most_common()
     ]
     for event_id in event_ids:
         for source, count in source_by_event.get(event_id, Counter()).most_common():
@@ -278,9 +320,8 @@ def _missing_sources(source_counts: Counter[str]) -> list[str]:
     missing = []
     if source_counts.get("official", 0) == 0:
         missing.append("official")
-    for source in sorted(INTERACTION_SOURCES):
-        if source_counts.get(source, 0) == 0:
-            missing.append(source)
+    if all(source_counts.get(source, 0) == 0 for source in INTERACTION_SOURCES):
+        missing.extend(sorted(INTERACTION_SOURCES))
     return missing
 
 
@@ -307,6 +348,45 @@ def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) ->
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _write_coverage_debug_artifacts(output_dir: Path, coverage_by_event: dict[str, dict[str, Any]]) -> None:
+    source_rows: list[dict[str, Any]] = []
+    stakeholder_rows: list[dict[str, Any]] = []
+    stance_rows: list[dict[str, Any]] = []
+    temporal_rows: list[dict[str, Any]] = []
+    coverage_rows: list[dict[str, Any]] = []
+    for event_id, coverage in coverage_by_event.items():
+        for row in coverage.get("source_detection", []):
+            source_rows.append({"event_id": event_id, **row})
+        for row in coverage.get("stakeholder_evidence", []):
+            stakeholder_rows.append({"event_id": event_id, **row})
+        for row in coverage.get("stance_evidence", []):
+            stance_rows.append({"event_id": event_id, **row})
+        for row in coverage.get("temporal_stage_evidence", []):
+            temporal_rows.append({"event_id": event_id, **row})
+        coverage_rows.extend(coverage_debug_rows(event_id, coverage))
+    _write_jsonl(output_dir / "source_detection_debug.jsonl", source_rows)
+    _write_jsonl(output_dir / "coverage_extraction_debug.jsonl", coverage_rows)
+    _write_csv(
+        output_dir / "stakeholder_evidence.csv",
+        ["event_id", "stakeholder_type", "raw_id", "matched_text", "matched_rule", "source_type", "confidence", "rule_strength"],
+        stakeholder_rows,
+    )
+    _write_csv(
+        output_dir / "stance_evidence.csv",
+        ["event_id", "stance_type", "raw_id", "matched_text", "matched_rule", "source_type", "confidence", "rule_strength"],
+        stance_rows,
+    )
+    _write_csv(
+        output_dir / "temporal_stage_evidence.csv",
+        ["event_id", "stage_type", "raw_id", "matched_text", "matched_rule", "source_type", "confidence", "rule_strength"],
+        temporal_rows,
+    )
+
+
+def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + ("\n" if rows else ""), encoding="utf-8")
 
 
 if __name__ == "__main__":

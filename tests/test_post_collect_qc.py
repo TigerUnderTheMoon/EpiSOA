@@ -17,9 +17,15 @@ def test_post_collect_qc_passes_valid_collection(tmp_path):
         events=[event("E001"), event("E002")],
         raw_rows=[
             raw("r1", "E001", "official"),
-            raw("r2", "E001", "public_social"),
-            raw("r3", "E002", "official"),
-            raw("r4", "E002", "forum"),
+            raw("r2", "E001", "news"),
+            raw("r3", "E001", "forum"),
+            raw("r4", "E001", "public_social"),
+            raw("r5", "E001", "public_interaction"),
+            raw("r6", "E002", "official"),
+            raw("r7", "E002", "news"),
+            raw("r8", "E002", "forum"),
+            raw("r9", "E002", "public_social"),
+            raw("r10", "E002", "public_interaction"),
         ],
         plans=[plan("E001"), plan("E002")],
         coverage=coverage(["E001", "E002"]),
@@ -30,7 +36,7 @@ def test_post_collect_qc_passes_valid_collection(tmp_path):
     report = read_report(paths)
     assert code == 0
     assert report["status"] == "passed"
-    assert report["raw_rows"] == 4
+    assert report["raw_rows"] == 10
     assert report["events_with_raw"] == 2
     assert report["query_plan_rows"] == 2
     assert report["coverage_num_events"] == 2
@@ -77,6 +83,27 @@ def test_post_collect_qc_fails_duplicates(tmp_path):
     assert report["duplicate_query_plan_event_ids"] == {"E001": 2}
     assert report["duplicate_raw_rows"]
     assert any("duplicate raw_id" in item for item in report["failures"])
+
+
+def test_post_collect_qc_fails_duplicate_event_url_pairs(tmp_path):
+    first = raw("r1", "E001", "official")
+    second = raw("r2", "E001", "news")
+    first["url"] = "https://example.test/a?utm_source=x&keep=1#frag"
+    second["url"] = "https://example.test/a?keep=1&spm=abc"
+    paths = write_collection(
+        tmp_path,
+        events=[event("E001")],
+        raw_rows=[first, second],
+        plans=[plan("E001")],
+        coverage=coverage(["E001"]),
+    )
+
+    code = post_collect_qc.run_qc(args(paths, min_raw_per_event=1))
+
+    report = read_report(paths)
+    assert code == 1
+    assert report["duplicate_event_url_pair_count"] == 1
+    assert any("duplicate event-url pairs" in item for item in report["failures"])
 
 
 def test_post_collect_qc_splits_required_failures_from_optional_warnings(tmp_path):
@@ -143,6 +170,48 @@ def test_post_collect_qc_marks_low_coverage_for_recollection(tmp_path):
     assert "E001" in low_coverage_csv
 
 
+def test_post_collect_qc_fails_news_only_even_with_enough_raw(tmp_path):
+    raw_rows = [raw(f"r{i}", "E001", "news") for i in range(20)]
+    paths = write_collection(
+        tmp_path,
+        events=[event("E001")],
+        raw_rows=raw_rows,
+        plans=[plan("E001")],
+        coverage=coverage(["E001"]),
+    )
+
+    code = post_collect_qc.run_qc(args(paths, min_raw_per_event=15))
+
+    report = read_report(paths)
+    assert code == 1
+    assert report["events_need_recollection"][0]["event_id"] == "E001"
+    assert "official evidence missing" in report["events_need_recollection"][0]["reason"]
+    assert "public_interaction/forum/public_social evidence missing" in report["events_need_recollection"][0]["reason"]
+
+
+def test_post_collect_qc_accepts_multi_source_coverage(tmp_path):
+    paths = write_collection(
+        tmp_path,
+        events=[event("E001")],
+        raw_rows=[
+            raw("r1", "E001", "news"),
+            raw("r2", "E001", "official"),
+            raw("r3", "E001", "forum"),
+            raw("r4", "E001", "public_social"),
+            raw("r5", "E001", "public_interaction"),
+        ],
+        plans=[plan("E001")],
+        coverage=coverage(["E001"]),
+    )
+
+    code = post_collect_qc.run_qc(args(paths, min_raw_per_event=4))
+
+    report = read_report(paths)
+    assert code == 0
+    assert report["status"] == "passed"
+    assert not report["events_need_recollection"]
+
+
 def write_collection(tmp_path, *, events, raw_rows, plans, coverage):
     paths = {
         "events": tmp_path / "events.jsonl",
@@ -178,7 +247,11 @@ def write_jsonl(path, rows):
 
 
 def event(event_id):
-    return {"event_id": event_id, "event_name": f"{event_id} event"}
+    return {
+        "event_id": event_id,
+        "event_name": f"{event_id} event",
+        "source_scope": ["official", "news", "forum", "public_social", "public_interaction"],
+    }
 
 
 def plan(event_id):
@@ -186,13 +259,23 @@ def plan(event_id):
 
 
 def raw(raw_id, event_id, source):
+    source_urls = {
+        "official": "https://city.gov.cn/a",
+        "news": "https://people.com.cn/a",
+        "forum": "https://tieba.baidu.com/p/a",
+        "public_social": "https://weibo.com/a",
+        "public_interaction": "https://liuyan.people.com.cn/a",
+    }
     return {
         "event_id": event_id,
         "raw_id": raw_id,
         "source": source,
-        "url": f"https://example.test/{raw_id}",
-        "title": f"title {raw_id}",
-        "text": f"text {raw_id}",
+        "source_type": source,
+        "requested_source_type": source,
+        "detected_source_type": source,
+        "url": source_urls.get(source, f"https://example.test/{raw_id}"),
+        "title": f"{source} title {raw_id}",
+        "text": "居民投诉质疑改造方案，政府部门回应说明，媒体报道公告发布，专家支持整改完成后续追踪。",
     }
 
 

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
 import time
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import yaml
 
@@ -26,6 +28,8 @@ from episoa.collector.query_planner import (
     plan_recollection_queries as _planner_plan_recollection_queries,
     unique as _planner_unique,
 )
+from episoa.collector.coverage_extractor import coverage_debug_rows, enrich_record_source
+from episoa.collector.coverage_extractor import classify_source, extract_domain
 from episoa.collector.search_client import SearchClient, load_search_config
 from episoa.data.loader import read_jsonl, write_jsonl
 from episoa.data.validator import validate_formal_event_record
@@ -135,6 +139,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     force_source_types = bool(collector_config.get("force_source_types", False))
     max_results_per_query = int(collector_config.get("max_results_per_query", 10))
     max_evidence_per_event = int(collector_config.get("max_evidence_per_event", 50))
+    min_raw_per_event = int(collector_config.get("min_raw_per_event", 15))
     max_queries_per_event = int(collector_config.get("max_queries_per_event", args.max_queries_per_event))
     max_repair_rounds = int(collector_config.get("max_repair_rounds", 2))
     sleep_seconds = float(collector_config.get("sleep_seconds", 0.5))
@@ -321,7 +326,13 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             debug_path=debug_path,
         )
         write_jsonl(query_plan_path, query_plans)
-        report = build_coverage_report(events, per_event_posts, errors, default_sources=default_sources)
+        report = build_coverage_report(
+            events,
+            per_event_posts,
+            errors,
+            default_sources=default_sources,
+            min_raw_per_event=min_raw_per_event,
+        )
         _write_json(coverage_path, report)
         write_debug_report(debug_path, debug, output_path)
         print(f"Collected {debug['raw_posts_collected']} recollection raw posts into {output_path}")
@@ -330,6 +341,14 @@ def collect_from_cli(args: argparse.Namespace) -> int:
     all_posts: list[dict[str, Any]] = []
     per_event_posts: dict[str, list[dict[str, Any]]] = {}
     errors: list[dict[str, Any]] = []
+    first_pass_by_event: dict[str, dict[str, Any]] = {}
+    second_pass_by_event: dict[str, dict[str, Any]] = {}
+    repair_queries: list[dict[str, Any]] = []
+    repair_collection_summary: dict[str, Any] = {"events": {}, "attempts": []}
+    official_repair_queries: list[dict[str, Any]] = []
+    stance_repair_queries: list[dict[str, Any]] = []
+    temporal_repair_queries: list[dict[str, Any]] = []
+    low_raw_repair_queries: list[dict[str, Any]] = []
     completed_event_ids: set[str] = set()
     if resume:
         existing_posts = _read_existing_jsonl(output_path)
@@ -339,6 +358,15 @@ def collect_from_cli(args: argparse.Namespace) -> int:
         completed_event_ids.intersection_update(str(event.get("event_id", "")) for event in events)
         completed_event_ids = {event_id for event_id in completed_event_ids if event_id}
         all_posts.extend(existing_posts)
+        repair_collection_summary = _read_existing_repair_collection_summary(
+            query_plan_path.parent / "repair_collection_summary.json"
+        )
+        repair_queries = _read_existing_jsonl(query_plan_path.parent / "repair_queries.jsonl")
+        official_repair_queries = _read_existing_jsonl(query_plan_path.parent / "official_repair_queries.jsonl")
+        stance_repair_queries = _read_existing_jsonl(query_plan_path.parent / "stance_repair_queries.jsonl")
+        temporal_repair_queries = _read_existing_jsonl(query_plan_path.parent / "temporal_repair_queries.jsonl")
+        low_raw_repair_queries = _read_existing_jsonl(query_plan_path.parent / "low_raw_repair_queries.jsonl")
+        errors = _read_existing_coverage_errors(coverage_path)
         print(f"[resume] completed_events={len(completed_event_ids)}", flush=True)
     else:
         output_path.write_text("", encoding="utf-8")
@@ -349,6 +377,9 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             print(f"[event {event_index}/{len(events)}] skip completed event_id={event_id}", flush=True)
             continue
         print(f"[event {event_index}/{len(events)}] start event_id={event_id}", flush=True)
+        event_started_at = time.perf_counter()
+        first_pass_attempts: list[dict[str, Any]] = []
+        first_pass_started_at = time.perf_counter()
         event_posts = _collect_for_plan(
             client,
             event,
@@ -358,26 +389,87 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             max_queries_per_event=max_queries_per_event,
             sleep_seconds=sleep_seconds,
             errors=errors,
+            attempts=first_pass_attempts,
         )
+        event_posts = _dedupe_posts(event_posts)
+        first_pass_seconds = time.perf_counter() - first_pass_started_at
         coverage = evaluate_coverage(event, event_posts, default_sources=default_sources)
+        if len(event_posts) < min_raw_per_event:
+            coverage["missing_raw_count"] = max(0, min_raw_per_event - len(event_posts))
+            coverage["need_query_repair"] = True
+        first_pass_by_event[event_id] = coverage
         repair_round = 1
-        while coverage["need_query_repair"] and repair_round <= max_repair_rounds and len(event_posts) < max_evidence_per_event:
+        event_repair_attempts: list[dict[str, Any]] = []
+        event_repair_queries: list[dict[str, Any]] = []
+        repair_seconds = 0.0
+        before_repair_count = len(event_posts)
+        before_missing = _coverage_missing_summary(coverage)
+        while coverage["need_query_repair"] and repair_round <= max_repair_rounds:
             repair_rounds = build_repair_rounds(event, coverage, repair_round, default_sources=default_sources)
+            event_repair_queries.extend(repair_rounds)
+            repair_queries.extend([{"event_id": event_id, **item} for item in repair_rounds])
+            stance_repair_queries.extend(
+                [{"event_id": event_id, **item} for item in repair_rounds if item.get("reason") == "missing stance"]
+            )
+            temporal_repair_queries.extend(
+                [{"event_id": event_id, **item} for item in repair_rounds if item.get("reason") == "missing temporal stage"]
+            )
+            low_raw_repair_queries.extend(
+                [{"event_id": event_id, **item} for item in repair_rounds if item.get("reason") == "raw count below minimum"]
+            )
+            official_repair_queries.extend(
+                [
+                    {"event_id": event_id, **item}
+                    for item in repair_rounds
+                    if item.get("source_type") == "official" and item.get("reason") == "missing_official"
+                ]
+            )
             plan["query_rounds"].extend(repair_rounds)
             plan["repair_keywords"].extend([item["query"] for item in repair_rounds])
+            repair_started_at = time.perf_counter()
+            repair_remaining = max_evidence_per_event - len(event_posts)
+            if repair_remaining <= 0 and (
+                coverage.get("missing_sources") or coverage.get("missing_stances") or coverage.get("missing_temporal_stages")
+            ):
+                repair_remaining = max_results_per_query * min(len(repair_rounds), max_queries_per_event)
+            if repair_remaining <= 0:
+                break
             event_posts.extend(
                 _collect_rounds(
                     client,
                     event,
-                    repair_rounds,
+                    repair_rounds[:max_queries_per_event],
                     max_results_per_query=max_results_per_query,
-                    remaining=max_evidence_per_event - len(event_posts),
+                    remaining=repair_remaining,
                     sleep_seconds=sleep_seconds,
                     errors=errors,
+                    attempts=event_repair_attempts,
                 )
             )
+            repair_seconds += time.perf_counter() - repair_started_at
+            event_posts = _dedupe_posts(event_posts)
             coverage = evaluate_coverage(event, event_posts, default_sources=default_sources)
+            if len(event_posts) < min_raw_per_event:
+                coverage["missing_raw_count"] = max(0, min_raw_per_event - len(event_posts))
+                coverage["need_query_repair"] = True
             repair_round += 1
+        second_pass_by_event[event_id] = coverage
+        after_missing = _coverage_missing_summary(coverage)
+        repair_collection_summary["attempts"].extend(event_repair_attempts)
+        repair_collection_summary["events"][event_id] = {
+            "first_pass_attempts": first_pass_attempts,
+            "repair_attempts": event_repair_attempts,
+            "repair_queries": len(event_repair_queries),
+            "repair_queries_executed": len(event_repair_attempts),
+            "raw_posts_before_repair": before_repair_count,
+            "raw_posts_after_repair": len(event_posts),
+            "event_seconds": round(time.perf_counter() - event_started_at, 4),
+            "first_pass_seconds": round(first_pass_seconds, 4),
+            "repair_seconds": round(repair_seconds, 4),
+            "source_seconds": _source_seconds([*first_pass_attempts, *event_repair_attempts]),
+            "missing_before": before_missing,
+            "missing_after": after_missing,
+        }
         per_event_posts[event_id] = event_posts
         all_posts.extend(event_posts)
         with output_path.open("a", encoding="utf-8") as handle:
@@ -385,12 +477,49 @@ def collect_from_cli(args: argparse.Namespace) -> int:
                 handle.write(json.dumps(post, ensure_ascii=False) + "\n")
             handle.flush()
         write_jsonl(query_plan_path, query_plans)
-        report = build_coverage_report(events[:event_index], per_event_posts, errors, default_sources=default_sources)
+        write_jsonl(query_plan_path.parent / "repair_queries.jsonl", repair_queries)
+        write_jsonl(query_plan_path.parent / "official_repair_queries.jsonl", official_repair_queries)
+        write_jsonl(query_plan_path.parent / "stance_repair_queries.jsonl", stance_repair_queries)
+        write_jsonl(query_plan_path.parent / "temporal_repair_queries.jsonl", temporal_repair_queries)
+        write_jsonl(query_plan_path.parent / "low_raw_repair_queries.jsonl", low_raw_repair_queries)
+        _write_json(query_plan_path.parent / "first_pass_coverage.json", _coverage_snapshot(first_pass_by_event))
+        _write_json(query_plan_path.parent / "second_pass_coverage.json", _coverage_snapshot(second_pass_by_event))
+        _write_json(query_plan_path.parent / "repair_collection_summary.json", repair_collection_summary)
+        _write_low_raw_repair_summary(query_plan_path.parent, low_raw_repair_queries, repair_collection_summary)
+        _write_provider_error_summary(query_plan_path.parent, errors, repair_collection_summary)
+        _write_provider_attempt_summary(query_plan_path.parent, repair_collection_summary)
+        _write_official_repair_artifacts(query_plan_path.parent, official_repair_queries, repair_collection_summary)
+        _write_json(
+            query_plan_path.parent / "repair_delta_summary.json",
+            _repair_delta_summary(first_pass_by_event, second_pass_by_event, per_event_posts),
+        )
+        _write_coverage_debug_artifacts(query_plan_path.parent, second_pass_by_event)
+        report = build_coverage_report(
+            events[:event_index],
+            per_event_posts,
+            errors,
+            default_sources=default_sources,
+            min_raw_per_event=min_raw_per_event,
+        )
         _write_json(coverage_path, report)
         print(f"[event {event_index}/{len(events)}] done event_id={event_id} raw_posts={len(event_posts)}", flush=True)
 
     write_jsonl(query_plan_path, query_plans)
-    report = build_coverage_report(events, per_event_posts, errors, default_sources=default_sources)
+    write_jsonl(query_plan_path.parent / "official_repair_queries.jsonl", official_repair_queries)
+    write_jsonl(query_plan_path.parent / "stance_repair_queries.jsonl", stance_repair_queries)
+    write_jsonl(query_plan_path.parent / "temporal_repair_queries.jsonl", temporal_repair_queries)
+    write_jsonl(query_plan_path.parent / "low_raw_repair_queries.jsonl", low_raw_repair_queries)
+    _write_official_repair_artifacts(query_plan_path.parent, official_repair_queries, repair_collection_summary)
+    _write_low_raw_repair_summary(query_plan_path.parent, low_raw_repair_queries, repair_collection_summary)
+    _write_provider_error_summary(query_plan_path.parent, errors, repair_collection_summary)
+    _write_provider_attempt_summary(query_plan_path.parent, repair_collection_summary)
+    report = build_coverage_report(
+        events,
+        per_event_posts,
+        errors,
+        default_sources=default_sources,
+        min_raw_per_event=min_raw_per_event,
+    )
     _write_json(coverage_path, report)
     print(f"Collected {len(all_posts)} raw posts into {output_path}")
     return 0
@@ -427,17 +556,50 @@ def build_coverage_report(
     per_event_posts: dict[str, list[dict[str, Any]]],
     errors: list[dict[str, Any]],
     default_sources: list[str] | None = None,
+    min_raw_per_event: int = 15,
 ) -> dict[str, Any]:
     event_reports = {}
+    missing_events: list[str] = []
+    low_coverage_events: list[dict[str, Any]] = []
     for event in events:
         event_id = str(event.get("event_id", ""))
-        event_reports[event_id] = evaluate_coverage(event, per_event_posts.get(event_id, []), default_sources=default_sources)
+        posts = per_event_posts.get(event_id, [])
+        coverage = evaluate_coverage(event, posts, default_sources=default_sources)
+        event_reports[event_id] = coverage
+        reasons = []
+        if not posts:
+            missing_events.append(event_id)
+            reasons.append("missing raw posts")
+        if len(posts) < min_raw_per_event:
+            reasons.append("raw count below minimum")
+        if coverage.get("need_query_repair"):
+            reasons.append("coverage needs query repair")
+        if reasons:
+            low_coverage_events.append(
+                {
+                    "event_id": event_id,
+                    "raw_count": len(posts),
+                    "reason": "; ".join(dict.fromkeys(reasons)),
+                }
+            )
+    provider_errors = list(errors)
+    events_need_recollection = list(low_coverage_events)
+    if missing_events or low_coverage_events or events_need_recollection:
+        status = "failed"
+    elif provider_errors:
+        status = "passed_with_provider_warnings"
+    else:
+        status = "passed"
     return {
-        "status": "completed_with_errors" if errors else "completed",
+        "status": status,
         "num_events": len(events),
         "num_raw_posts": sum(len(items) for items in per_event_posts.values()),
         "events": event_reports,
-        "errors": errors,
+        "errors": provider_errors,
+        "provider_errors": provider_errors,
+        "missing_events": missing_events,
+        "low_coverage_events": low_coverage_events,
+        "events_need_recollection": events_need_recollection,
     }
 
 
@@ -461,7 +623,7 @@ def collect_recollection_streaming(
         for event_index, (event, plan) in enumerate(zip(events, query_plans, strict=True), start=1):
             event_id = str(event.get("event_id", ""))
             event_posts: list[dict[str, Any]] = []
-            seen_urls: set[str] = set()
+            seen_event_urls: set[tuple[str, str]] = set()
             rounds = list(plan["query_rounds"])[:max_queries_per_event]
             debug["events_attempted"] += 1
             event_stats = {
@@ -494,7 +656,7 @@ def collect_recollection_streaming(
                         source_type=str(source_type),
                         time_window=event.get("time_window"),
                     )
-                    results = response["results"]
+                    results = _rank_results_for_source(list(response["results"]), source_type)
                     if response["ok"]:
                         debug["api_calls_succeeded"] += 1
                         event_stats["api_calls_succeeded"] += 1
@@ -519,10 +681,11 @@ def collect_recollection_streaming(
                         if not text:
                             continue
                         url = str(result.get("url") or "").strip()
-                        if url and url in seen_urls:
+                        event_url = _event_url_key(event_id, url)
+                        if event_url and event_url in seen_event_urls:
                             continue
                         if url:
-                            seen_urls.add(url)
+                            seen_event_urls.add(event_url)
                         post = _raw_post(event_id, item, source_type, result, text)
                         handle.write(json.dumps(post, ensure_ascii=False) + "\n")
                         handle.flush()
@@ -577,6 +740,7 @@ def _collect_for_plan(
     max_queries_per_event: int,
     sleep_seconds: float,
     errors: list[dict[str, Any]],
+    attempts: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     return _collect_rounds(
         client,
@@ -586,6 +750,7 @@ def _collect_for_plan(
         remaining=max_evidence_per_event,
         sleep_seconds=sleep_seconds,
         errors=errors,
+        attempts=attempts,
     )
 
 
@@ -598,60 +763,235 @@ def _collect_rounds(
     remaining: int,
     sleep_seconds: float,
     errors: list[dict[str, Any]],
+    attempts: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     event_id = str(event.get("event_id", ""))
     posts: list[dict[str, Any]] = []
-    seen_urls: set[str] = set()
+    seen_event_urls: set[tuple[str, str]] = set()
+    source_counts: Counter[str] = Counter()
+    planned_sources = sorted({source for item in rounds for source in _round_sources(item)})
+    per_source_limit = max(1, remaining // max(1, len(planned_sources)), remaining // 2)
     for item in rounds:
-        if len(posts) >= remaining:
-            break
-        source_scope = normalize_source_scope(item.get("source_scope"))
-        for source_type in source_scope:
-            if len(posts) >= remaining:
-                break
-            try:
-                results = client.search(
+        for source_type in _round_sources(item):
+            if len(posts) >= remaining or source_counts[source_type] >= per_source_limit:
+                continue
+            response: dict[str, Any]
+            if hasattr(client, "search_with_debug"):
+                started_at = time.perf_counter()
+                response = client.search_with_debug(
                     query=str(item["query"]),
                     max_results=max_results_per_query,
                     source_type=str(source_type),
                     time_window=event.get("time_window"),
                 )
-            except RuntimeError as exc:
-                errors.append({"event_id": event_id, "query": item["query"], "source_type": source_type, "error": str(exc)})
-                continue
+                duration_seconds = time.perf_counter() - started_at
+                results = _rank_results_for_source(list(response.get("results") or []), source_type)
+            else:
+                try:
+                    started_at = time.perf_counter()
+                    results = client.search(
+                        query=str(item["query"]),
+                        max_results=max_results_per_query,
+                        source_type=str(source_type),
+                        time_window=event.get("time_window"),
+                    )
+                    results = _rank_results_for_source(list(results), source_type)
+                    duration_seconds = time.perf_counter() - started_at
+                    response = {"ok": True, "results": results, "error_type": None, "error": None}
+                except RuntimeError as exc:
+                    duration_seconds = time.perf_counter() - started_at
+                    response = {"ok": False, "results": [], "error_type": type(exc).__name__, "error": str(exc)}
+                    results = []
+            if not response.get("ok"):
+                errors.append(
+                    {
+                        "event_id": event_id,
+                        "query": item["query"],
+                        "source_type": source_type,
+                        "provider": getattr(getattr(client, "config", None), "provider", "search_client"),
+                        "error_type": response.get("error_type"),
+                        "error": response.get("error"),
+                        "duration_seconds": round(duration_seconds, 4),
+                        "retry_count": int(response.get("retry_count") or 0),
+                        "final_status": response.get("final_status") or "failed",
+                        "provider_attempts": list(response.get("provider_attempts") or []),
+                    }
+                )
+            official_stats = _official_detection_stats(results, source_type)
+            written = 0
             for result in results:
+                if len(posts) >= remaining or source_counts[source_type] >= per_source_limit:
+                    break
                 text = str(result.get("text") or result.get("snippet") or result.get("title") or "").strip()
                 if not text:
                     continue
                 url = str(result.get("url") or "").strip()
-                if url and url in seen_urls:
+                event_url = _event_url_key(event_id, url)
+                if event_url and event_url in seen_event_urls:
                     continue
                 if url:
-                    seen_urls.add(url)
+                    seen_event_urls.add(event_url)
                 posts.append(_raw_post(event_id, item, source_type, result, text))
-                if len(posts) >= remaining:
-                    break
+                source_counts[source_type] += 1
+                written += 1
+            if attempts is not None:
+                attempts.append(
+                    {
+                        "event_id": event_id,
+                        "query": item["query"],
+                        "source_type": source_type,
+                        "result_count": len(results),
+                        "written": written,
+                        "ok": bool(response.get("ok")),
+                        "error_type": response.get("error_type"),
+                        "error": response.get("error"),
+                        "duration_seconds": round(duration_seconds, 4),
+                        "provider": getattr(getattr(client, "config", None), "provider", "search_client"),
+                        "retry_count": int(response.get("retry_count") or 0),
+                        "final_status": response.get("final_status") or ("success" if response.get("ok") else "failed"),
+                        "provider_attempts": list(response.get("provider_attempts") or []),
+                        "empty_source_attempt": len(results) == 0 or written == 0,
+                        **official_stats,
+                    }
+                )
             if sleep_seconds > 0:
                 time.sleep(sleep_seconds)
     return posts
 
 
+def _rank_results_for_source(results: list[dict[str, Any]], source_type: str) -> list[dict[str, Any]]:
+    if normalize_source_type(source_type) != "official":
+        return results
+    return sorted(results, key=_official_result_rank)
+
+
+def _official_result_rank(result: dict[str, Any]) -> tuple[int, str]:
+    detection = classify_source(
+        {
+            "requested_source_type": "official",
+            "url": result.get("url"),
+            "title": result.get("title"),
+            "snippet": result.get("snippet"),
+            "text": result.get("text") or result.get("snippet") or result.get("title"),
+        }
+    )
+    detected = detection.get("detected_source_type")
+    if detected == "official":
+        rank = 0
+    elif detected == "public_interaction" and detection.get("parent_official_domain"):
+        rank = 1
+    elif detected == "public_web":
+        rank = 2
+    elif detected in {"news", "forum", "public_social", "public_interaction"}:
+        rank = 3
+    else:
+        rank = 4
+    return (rank, str(result.get("url") or result.get("title") or ""))
+
+
+def _official_detection_stats(results: list[dict[str, Any]], source_type: str) -> dict[str, Any]:
+    if normalize_source_type(source_type) != "official":
+        return {}
+    detections = [
+        classify_source(
+            {
+                "requested_source_type": "official",
+                "url": result.get("url"),
+                "title": result.get("title"),
+                "snippet": result.get("snippet"),
+                "text": result.get("text") or result.get("snippet") or result.get("title"),
+            }
+        )
+        for result in results
+    ]
+    detected_counts = Counter(str(item.get("detected_source_type") or "unknown") for item in detections)
+    top_domains = Counter(extract_domain(str(result.get("url") or "")) or "unknown" for result in results).most_common(5)
+    detected_official_count = detected_counts.get("official", 0)
+    failure_reason = ""
+    if detected_official_count == 0:
+        failure_reason = "no_results" if not results else "no_detected_official"
+    return {
+        "detected_official_count": detected_official_count,
+        "detected_source_counts": dict(detected_counts),
+        "top_domains": [domain for domain, _ in top_domains],
+        "official_repair_failure_reason": failure_reason,
+    }
+
+
+def _round_sources(item: dict[str, Any]) -> list[str]:
+    source_type = item.get("source_type")
+    if source_type:
+        return [normalize_source_type(source_type)]
+    return normalize_source_scope(item.get("source_scope"))
+
+
+def _dedupe_posts(posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    output: list[dict[str, Any]] = []
+    for post in posts:
+        key = _post_dedupe_key(post)
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(post)
+    return output
+
+
+def _post_dedupe_key(post: dict[str, Any]) -> str:
+    event_id = str(post.get("event_id") or "")
+    url = str(post.get("url") or "").strip()
+    normalized_url = normalize_event_url(url)
+    if normalized_url:
+        return f"event_url:{event_id}:{normalized_url}"
+    text = "".join(str(post.get("text") or "").split())[:300]
+    if text:
+        return f"text:{event_id}:" + hashlib.sha1(text.encode("utf-8")).hexdigest()
+    return "raw_id:" + str(post.get("raw_id") or "")
+
+
+def _event_url_key(event_id: str, url: str) -> tuple[str, str] | None:
+    normalized_url = normalize_event_url(url)
+    return (event_id, normalized_url) if normalized_url else None
+
+
+def normalize_event_url(url: str) -> str:
+    text = str(url or "").strip()
+    if not text:
+        return ""
+    try:
+        parts = urlsplit(text)
+    except ValueError:
+        return text.split("#", 1)[0].strip()
+    filtered_query = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        lowered = key.lower()
+        if lowered.startswith("utm_") or lowered in {"spm", "from", "pvid", "share_from", "scene"}:
+            continue
+        filtered_query.append((key, value))
+    netloc = parts.netloc.lower()
+    path = parts.path or ""
+    return urlunsplit((parts.scheme.lower(), netloc, path, urlencode(filtered_query, doseq=True), ""))
+
+
 def _raw_post(event_id: str, query_round: dict[str, Any], source_type: str, result: dict[str, Any], text: str) -> dict[str, Any]:
-    source_type = normalize_source_type(source_type)
+    requested_source_type = normalize_source_type(source_type)
     raw_key = "|".join(
         [
             event_id,
+            requested_source_type,
             str(query_round.get("round", 0)),
             str(query_round.get("query", "")),
-            str(result.get("url") or result.get("title") or text[:80]),
+            normalize_event_url(str(result.get("url") or "")) or str(result.get("title") or text[:80]),
         ]
     )
     raw_id = "raw_" + hashlib.sha1(raw_key.encode("utf-8")).hexdigest()[:16]
-    return {
+    raw = {
         "raw_id": raw_id,
         "event_id": event_id,
         "query": query_round["query"],
         "query_round": int(query_round.get("round", 0)),
+        "requested_source_type": requested_source_type,
+        "source_type": source_type,
         "source": source_type,
         "platform": result.get("platform") or "unknown",
         "publish_time": result.get("publish_time"),
@@ -661,6 +1001,7 @@ def _raw_post(event_id: str, query_round: dict[str, Any], source_type: str, resu
         "snippet": result.get("snippet"),
         "collected_at": datetime.now(timezone.utc).isoformat(),
     }
+    return enrich_record_source(raw)
 
 
 def _as_list(value: Any) -> list[str]:
@@ -734,6 +1075,279 @@ def _repair_reason(
     return "; ".join(parts) if parts else "coverage sufficient"
 
 
+def _coverage_snapshot(events: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "num_events": len(events),
+        "events": events,
+    }
+
+
+def _coverage_missing_summary(coverage: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "missing_sources": list(coverage.get("missing_sources") or []),
+        "missing_stakeholders": list(coverage.get("missing_stakeholders") or []),
+        "missing_stances": list(coverage.get("missing_stances") or []),
+        "missing_temporal_stages": list(coverage.get("missing_temporal_stages") or []),
+        "missing_raw_count": int(coverage.get("missing_raw_count") or 0),
+        "need_query_repair": bool(coverage.get("need_query_repair")),
+    }
+
+
+def _repair_delta_summary(
+    first_pass: dict[str, dict[str, Any]],
+    second_pass: dict[str, dict[str, Any]],
+    per_event_posts: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    events = {}
+    for event_id, before in first_pass.items():
+        after = second_pass.get(event_id, before)
+        before_missing = _coverage_missing_summary(before)
+        after_missing = _coverage_missing_summary(after)
+        events[event_id] = {
+            "raw_posts": len(per_event_posts.get(event_id, [])),
+            "missing_sources_before": before_missing["missing_sources"],
+            "missing_sources_after": after_missing["missing_sources"],
+            "missing_stakeholders_before": before_missing["missing_stakeholders"],
+            "missing_stakeholders_after": after_missing["missing_stakeholders"],
+            "missing_stances_before": before_missing["missing_stances"],
+            "missing_stances_after": after_missing["missing_stances"],
+            "missing_temporal_stages_before": before_missing["missing_temporal_stages"],
+            "missing_temporal_stages_after": after_missing["missing_temporal_stages"],
+            "need_query_repair_before": before_missing["need_query_repair"],
+            "need_query_repair_after": after_missing["need_query_repair"],
+        }
+    return {"num_events": len(events), "events": events}
+
+
+def _source_seconds(attempts: list[dict[str, Any]]) -> dict[str, float]:
+    totals: Counter[str] = Counter()
+    for attempt in attempts:
+        totals[str(attempt.get("source_type") or "unknown")] += float(attempt.get("duration_seconds") or 0.0)
+    return {source: round(seconds, 4) for source, seconds in totals.items()}
+
+
+def _write_coverage_debug_artifacts(output_dir: Path, coverage_by_event: dict[str, dict[str, Any]]) -> None:
+    source_rows: list[dict[str, Any]] = []
+    stakeholder_rows: list[dict[str, Any]] = []
+    stance_rows: list[dict[str, Any]] = []
+    temporal_rows: list[dict[str, Any]] = []
+    coverage_rows: list[dict[str, Any]] = []
+    for event_id, coverage in coverage_by_event.items():
+        for row in coverage.get("source_detection", []):
+            source_rows.append({"event_id": event_id, **row})
+        for row in coverage.get("stakeholder_evidence", []):
+            stakeholder_rows.append({"event_id": event_id, **row})
+        for row in coverage.get("stance_evidence", []):
+            stance_rows.append({"event_id": event_id, **row})
+        for row in coverage.get("temporal_stage_evidence", []):
+            temporal_rows.append({"event_id": event_id, **row})
+        coverage_rows.extend(coverage_debug_rows(event_id, coverage))
+    write_jsonl(output_dir / "source_detection_debug.jsonl", source_rows)
+    write_jsonl(output_dir / "coverage_extraction_debug.jsonl", coverage_rows)
+    _write_csv(
+        output_dir / "stakeholder_evidence.csv",
+        ["event_id", "stakeholder_type", "raw_id", "matched_text", "matched_rule", "source_type", "confidence", "rule_strength"],
+        stakeholder_rows,
+    )
+    _write_csv(
+        output_dir / "stance_evidence.csv",
+        ["event_id", "stance_type", "raw_id", "matched_text", "matched_rule", "source_type", "confidence", "rule_strength"],
+        stance_rows,
+    )
+    _write_csv(
+        output_dir / "temporal_stage_evidence.csv",
+        ["event_id", "stage_type", "raw_id", "matched_text", "matched_rule", "source_type", "confidence", "rule_strength"],
+        temporal_rows,
+    )
+
+
+def _write_official_repair_artifacts(
+    output_dir: Path,
+    official_repair_queries: list[dict[str, Any]],
+    repair_collection_summary: dict[str, Any],
+) -> None:
+    official_attempts = [
+        attempt
+        for attempt in repair_collection_summary.get("attempts", [])
+        if attempt.get("source_type") == "official"
+    ]
+    candidate_rows = [
+        {
+            "event_id": attempt.get("event_id", ""),
+            "query": attempt.get("query", ""),
+            "query_template": _query_template_for_attempt(official_repair_queries, attempt),
+            "provider": "search_client",
+            "result_count": attempt.get("result_count", 0),
+            "detected_official_count": attempt.get("detected_official_count", 0),
+            "top_domains": "|".join(attempt.get("top_domains") or []),
+            "failure_reason": attempt.get("official_repair_failure_reason", ""),
+        }
+        for attempt in official_attempts
+    ]
+    failure_rows = [row for row in candidate_rows if int(row.get("detected_official_count") or 0) == 0]
+    summary = {
+        "official_repair_queries": len(official_repair_queries),
+        "official_repair_attempts": len(official_attempts),
+        "detected_official_count": sum(int(row.get("detected_official_count") or 0) for row in candidate_rows),
+        "failures": len(failure_rows),
+        "events": _official_repair_events(candidate_rows),
+    }
+    _write_json(output_dir / "official_repair_summary.json", summary)
+    _write_csv(
+        output_dir / "official_source_candidates.csv",
+        ["event_id", "query", "query_template", "provider", "result_count", "detected_official_count", "top_domains", "failure_reason"],
+        candidate_rows,
+    )
+    _write_csv(
+        output_dir / "official_repair_failure_report.csv",
+        ["event_id", "query", "query_template", "provider", "result_count", "detected_official_count", "top_domains", "failure_reason"],
+        failure_rows,
+    )
+
+
+def _query_template_for_attempt(queries: list[dict[str, Any]], attempt: dict[str, Any]) -> str:
+    event_id = str(attempt.get("event_id") or "")
+    query = str(attempt.get("query") or "")
+    for item in queries:
+        if str(item.get("event_id") or "") == event_id and str(item.get("query") or "") == query:
+            return str(item.get("query_template") or "")
+    return ""
+
+
+def _write_low_raw_repair_summary(
+    output_dir: Path,
+    low_raw_repair_queries: list[dict[str, Any]],
+    repair_collection_summary: dict[str, Any],
+) -> None:
+    low_queries = {(str(item.get("event_id") or ""), str(item.get("query") or ""), str(item.get("source_type") or "")) for item in low_raw_repair_queries}
+    attempts = [
+        attempt
+        for attempt in repair_collection_summary.get("attempts", [])
+        if (str(attempt.get("event_id") or ""), str(attempt.get("query") or ""), str(attempt.get("source_type") or "")) in low_queries
+    ]
+    events: dict[str, dict[str, Any]] = {}
+    for attempt in attempts:
+        event_id = str(attempt.get("event_id") or "")
+        row = events.setdefault(event_id, {"attempts": 0, "written": 0, "failed_attempts": 0})
+        row["attempts"] += 1
+        row["written"] += int(attempt.get("written") or 0)
+        if not attempt.get("ok"):
+            row["failed_attempts"] += 1
+    _write_json(
+        output_dir / "low_raw_repair_summary.json",
+        {
+            "low_raw_repair_queries": len(low_raw_repair_queries),
+            "low_raw_repair_attempts": len(attempts),
+            "raw_posts_written": sum(int(attempt.get("written") or 0) for attempt in attempts),
+            "events": events,
+        },
+    )
+
+
+def _write_provider_error_summary(
+    output_dir: Path,
+    errors: list[dict[str, Any]],
+    repair_collection_summary: dict[str, Any],
+) -> None:
+    rows = [
+        {
+            "event_id": error.get("event_id", ""),
+            "query": error.get("query", ""),
+            "source_type": error.get("source_type") or error.get("target_source") or "",
+            "provider": error.get("provider", "search_client"),
+            "error_type": error.get("error_type", ""),
+            "duration_seconds": error.get("duration_seconds", ""),
+            "retry_count": error.get("retry_count", ""),
+            "final_status": error.get("final_status", "failed"),
+        }
+        for error in errors
+    ]
+    for event in repair_collection_summary.get("events", {}).values():
+        for attempt in [*event.get("first_pass_attempts", []), *event.get("repair_attempts", [])]:
+            if attempt.get("ok") is False:
+                rows.append(
+                    {
+                        "event_id": attempt.get("event_id", ""),
+                        "query": attempt.get("query", ""),
+                        "source_type": attempt.get("source_type", ""),
+                        "provider": attempt.get("provider", "search_client"),
+                        "error_type": attempt.get("error_type", ""),
+                        "duration_seconds": attempt.get("duration_seconds", ""),
+                        "retry_count": attempt.get("retry_count", ""),
+                        "final_status": attempt.get("final_status", "failed"),
+                    }
+                )
+    _write_csv(
+        output_dir / "provider_error_summary.csv",
+        ["event_id", "query", "source_type", "provider", "error_type", "duration_seconds", "retry_count", "final_status"],
+        rows,
+    )
+
+
+def _write_provider_attempt_summary(output_dir: Path, repair_collection_summary: dict[str, Any]) -> None:
+    rows: list[dict[str, Any]] = []
+    for event in repair_collection_summary.get("events", {}).values():
+        for phase, attempts in (
+            ("first_pass", event.get("first_pass_attempts", [])),
+            ("repair", event.get("repair_attempts", [])),
+        ):
+            for attempt in attempts:
+                provider_attempts = list(attempt.get("provider_attempts") or [])
+                if not provider_attempts:
+                    provider_attempts = [
+                        {
+                            "attempt": 1,
+                            "ok": bool(attempt.get("ok")),
+                            "error_type": attempt.get("error_type"),
+                            "error": attempt.get("error"),
+                            "duration_seconds": attempt.get("duration_seconds"),
+                            "final_status": attempt.get("final_status") or ("success" if attempt.get("ok") else "failed"),
+                        }
+                    ]
+                for provider_attempt in provider_attempts:
+                    rows.append(
+                        {
+                            "event_id": attempt.get("event_id", ""),
+                            "query": attempt.get("query", ""),
+                            "source_type": attempt.get("source_type", ""),
+                            "provider": attempt.get("provider", "search_client"),
+                            "phase": phase,
+                            "attempt": provider_attempt.get("attempt", ""),
+                            "ok": provider_attempt.get("ok", ""),
+                            "error_type": provider_attempt.get("error_type", ""),
+                            "duration_seconds": provider_attempt.get("duration_seconds", ""),
+                            "final_status": provider_attempt.get("final_status", ""),
+                        }
+                    )
+    _write_csv(
+        output_dir / "provider_attempt_summary.csv",
+        ["event_id", "query", "source_type", "provider", "phase", "attempt", "ok", "error_type", "duration_seconds", "final_status"],
+        rows,
+    )
+
+
+def _official_repair_events(candidate_rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    events: dict[str, dict[str, Any]] = {}
+    for row in candidate_rows:
+        event_id = str(row.get("event_id") or "")
+        event = events.setdefault(event_id, {"attempts": 0, "detected_official_count": 0, "failure_reasons": []})
+        event["attempts"] += 1
+        event["detected_official_count"] += int(row.get("detected_official_count") or 0)
+        if row.get("failure_reason"):
+            event["failure_reasons"].append(row["failure_reason"])
+    return events
+
+
+def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> None:
+    import csv
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def _merge_existing_query_plans(path: Path, generated_plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not path.exists():
         return generated_plans
@@ -754,6 +1368,35 @@ def _read_existing_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     return read_jsonl(path)
+
+
+def _read_existing_repair_collection_summary(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"events": {}, "attempts": []}
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (json.JSONDecodeError, OSError):
+        return {"events": {}, "attempts": []}
+    if not isinstance(payload, dict):
+        return {"events": {}, "attempts": []}
+    payload.setdefault("events", {})
+    payload.setdefault("attempts", [])
+    return payload
+
+
+def _read_existing_coverage_errors(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(payload, dict):
+        return []
+    errors = payload.get("provider_errors", payload.get("errors", []))
+    return list(errors) if isinstance(errors, list) else []
 
 
 def _read_completed_event_ids(path: Path) -> set[str]:

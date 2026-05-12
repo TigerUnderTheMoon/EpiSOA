@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+import time
 from typing import Any
 
 import httpx
 
 
 PLACEHOLDER_PREFIX = "your-"
+RETRYABLE_ERROR_HINTS = ("ssl", "handshake", "timeout", "connection")
 
 
 @dataclass(frozen=True)
@@ -21,6 +23,7 @@ class SearchConfig:
     base_url_source: str
     timeout_seconds: float
     max_retries: int
+    retry_backoff_seconds: float = 0.0
 
     @property
     def configured(self) -> bool:
@@ -74,25 +77,67 @@ class SearchClient:
         }
         last_error: Exception | None = None
         timeout = self.config.timeout_seconds or 20
+        attempts = 0
+        attempt_rows: list[dict[str, Any]] = []
         try:
             with httpx.Client(timeout=httpx.Timeout(timeout)) as client:
-                for _ in range(self.config.max_retries + 1):
+                for attempt_index in range(self.config.max_retries + 1):
+                    attempts = attempt_index + 1
+                    started_at = time.perf_counter()
                     try:
                         response = client.post(str(self.config.base_url), json=payload, headers=headers, timeout=timeout)
                         if response.status_code in {404, 405}:
                             response = client.get(str(self.config.base_url), params=payload, headers=headers, timeout=timeout)
                         response.raise_for_status()
                         results = normalize_search_response(response.json())[:max_results]
-                        return _debug_result(query, source_type, results, None, None)
-                    except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, httpx.HTTPError, ValueError) as exc:
+                        attempt_rows.append(
+                            _attempt_row(attempts, True, None, None, time.perf_counter() - started_at)
+                        )
+                        return _debug_result(
+                            query,
+                            source_type,
+                            results,
+                            None,
+                            None,
+                            retry_count=attempts - 1,
+                            provider_attempts=attempt_rows,
+                        )
+                    except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, httpx.TransportError, ConnectionError) as exc:
                         last_error = exc
+                        attempt_rows.append(
+                            _attempt_row(attempts, False, type(exc).__name__, str(exc), time.perf_counter() - started_at)
+                        )
+                        if attempt_index < self.config.max_retries and self.config.retry_backoff_seconds > 0:
+                            time.sleep(self.config.retry_backoff_seconds * (2**attempt_index))
+                    except (httpx.HTTPError, ValueError) as exc:
+                        last_error = exc
+                        attempt_rows.append(
+                            _attempt_row(attempts, False, type(exc).__name__, str(exc), time.perf_counter() - started_at)
+                        )
+                        break
                     except Exception as exc:  # Defensive: one bad provider response must not stop a collection run.
                         last_error = exc
-                        break
+                        attempt_rows.append(
+                            _attempt_row(attempts, False, type(exc).__name__, str(exc), time.perf_counter() - started_at)
+                        )
+                        if not _looks_retryable(exc) or attempt_index >= self.config.max_retries:
+                            break
+                        if self.config.retry_backoff_seconds > 0:
+                            time.sleep(self.config.retry_backoff_seconds * (2**attempt_index))
         except Exception as exc:
             last_error = exc
+            if not attempt_rows:
+                attempt_rows.append(_attempt_row(1, False, type(exc).__name__, str(exc), 0.0))
         error_type = type(last_error).__name__ if last_error else "UnknownError"
-        return _debug_result(query, source_type, [], str(last_error), error_type)
+        return _debug_result(
+            query,
+            source_type,
+            [],
+            str(last_error),
+            error_type,
+            retry_count=max(0, attempts - 1),
+            provider_attempts=attempt_rows,
+        )
 
 
 def _debug_result(
@@ -101,6 +146,8 @@ def _debug_result(
     results: list[dict[str, Any]],
     error: str | None,
     error_type: str | None,
+    retry_count: int = 0,
+    provider_attempts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "query": query,
@@ -111,7 +158,32 @@ def _debug_result(
         "error": error,
         "error_type": error_type,
         "timeout": error_type == "TimeoutException",
+        "retry_count": retry_count,
+        "final_status": "success" if error is None else "failed",
+        "provider_attempts": list(provider_attempts or []),
     }
+
+
+def _attempt_row(
+    attempt: int,
+    ok: bool,
+    error_type: str | None,
+    error: str | None,
+    duration_seconds: float,
+) -> dict[str, Any]:
+    return {
+        "attempt": attempt,
+        "ok": ok,
+        "error_type": error_type,
+        "error": error,
+        "duration_seconds": round(duration_seconds, 4),
+        "final_status": "success" if ok else "failed",
+    }
+
+
+def _looks_retryable(exc: Exception) -> bool:
+    text = f"{type(exc).__name__} {exc}".lower()
+    return any(hint in text for hint in RETRYABLE_ERROR_HINTS)
 
 
 def load_search_config(raw: dict[str, Any]) -> SearchConfig:
@@ -125,6 +197,7 @@ def load_search_config(raw: dict[str, Any]) -> SearchConfig:
         base_url_source=base_url_source,
         timeout_seconds=float(raw.get("timeout_seconds", 20)),
         max_retries=int(raw.get("max_retries", 2)),
+        retry_backoff_seconds=float(raw.get("retry_backoff_seconds", 0)),
     )
 
 

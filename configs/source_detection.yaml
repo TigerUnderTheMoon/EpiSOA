@@ -1,0 +1,165 @@
+official_domains:
+  - gov.cn
+  - beijing.gov.cn
+  - shanghai.gov.cn
+  - zj.gov.cn
+  - sz.gov.cn
+  - gd.gov.cn
+local_gov_domains:
+  深圳市:
+    - sz.gov.cn
+  罗湖区:
+    - szlh.gov.cn
+  广州市:
+    - gz.gov.cn
+  白云区:
+    - by.gov.cn
+  上海市:
+    - shanghai.gov.cn
+  浦东新区:
+    - pudong.gov.cn
+official_title_keywords:
+  - 政府官网
+  - 政务公开
+  - 信息公开
+  - 人民政府
+  - 政务服务
+official_department_keywords:
+  - 自然资源局
+  - 规划和自然资源局
+  - 住房和城乡建设局
+  - 住建局
+  - 城管局
+  - 发改委
+  - 街道办
+  - 社区居委会
+  - 区政府
+  - 市政府
+  - 房管局
+  - 更新局
+  - 城市更新局
+official_intent_keywords:
+  - 公示
+  - 公告
+  - 通知
+  - 批复
+  - 审批
+  - 规划
+  - 实施方案
+  - 改造方案
+  - 征求意见
+  - 项目备案
+  - 招标公告
+  - 中标公告
+  - 施工许可
+  - 信息公开
+  - 政务公开
+  - 回应
+  - 通报
+  - 整改
+interaction_keywords:
+  - 领导留言板
+  - 12345
+  - 政民互动
+  - 互动交流
+  - 问政
+  - 投诉咨询
+  - 信访
+  - 留言
+  - 百姓呼声
+interaction_domains:
+  - liuyan.people.com.cn
+  - people.rednet.cn
+  - people.lyd.com.cn
+  - hdjlpt
+news_domains:
+  - thepaper.cn
+  - xinhuanet.com
+  - people.com.cn
+  - new.qq.com
+  - qq.com
+  - sohu.com
+  - eastmoney.com
+  - focus.cn
+  - fang.com
+  - bidcenter.com.cn
+  - gdtv.cn
+  - sina.com.cn
+  - china.com
+  - rednet.cn
+news_keywords:
+  - 人民网
+  - 新华网
+  - 央视
+  - 澎湃
+  - 财新
+  - 新京报
+  - 日报
+  - 晚报
+  - 电视台
+  - 报社
+  - 新闻
+  - 腾讯
+  - 搜狐
+  - 网易
+  - 新浪
+  - 东方财富
+  - 房天下
+  - 中华网
+  - 荔枝网
+  - 招标网
+forum_domains:
+  - tieba.baidu.com
+  - zhihu.com
+  - douban.com
+  - tianya.cn
+  - szbbsapp.sznews.com
+forum_keywords:
+  - 论坛
+  - 社区
+  - 贴吧
+  - 豆瓣小组
+  - 知乎
+  - 天涯
+  - 猫扑
+  - 业主论坛
+  - bbs
+social_domains:
+  - weibo.com
+  - m.weibo.cn
+  - douyin.com
+  - xiaohongshu.com
+  - bilibili.com
+  - toutiao.com
+  - m.toutiao.com
+social_keywords:
+  - 微博
+  - 微信公众号
+  - 抖音
+  - 快手
+  - 小红书
+  - B站
+  - 视频号
+  - 今日头条
+  - 网易订阅
+official_first_pass_budget: 4
+official_repair_budget: 8
+official_query_templates:
+  first_pass:
+    - "site:{local_gov_domain} {project}"
+    - "site:{local_gov_domain} {project} 政务公开 信息公开"
+    - "site:gov.cn {seed}"
+    - "site:gov.cn {seed} 公示 公告"
+    - "{department} {project} 公示 公告 批复"
+  repair:
+    - "site:{local_gov_domain} {project}"
+    - "site:{local_gov_domain} {project} 政务公开 信息公开"
+    - "site:{local_gov_domain} {project} 回应 通报 整改"
+    - "site:gov.cn {seed}"
+    - "site:gov.cn {project} 过渡安置费 回应 通报"
+    - "site:gov.cn {location} {project} 信息公开"
+    - "{department} {project} 公示 公告 批复"
+    - "{department} {project} 政务公开 信息公开"
+    - "{location} {project} 实施方案 改造方案"
+    - "{location} {project} 招标公告 中标公告"
+    - "{location} {project} 整改 回应 通报"

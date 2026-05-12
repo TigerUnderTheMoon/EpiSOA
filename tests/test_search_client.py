@@ -136,3 +136,84 @@ def test_search_client_returns_empty_debug_on_timeout(monkeypatch):
     assert result["results"] == []
     assert result["ok"] is False
     assert result["timeout"] is True
+
+
+def test_search_client_retries_timeout_and_reports_retry_count(monkeypatch):
+    class FakeClient:
+        calls = 0
+
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, json, headers, timeout):
+            del json, headers, timeout
+            type(self).calls += 1
+            if type(self).calls == 1:
+                raise httpx.TimeoutException("slow")
+            return httpx.Response(200, request=httpx.Request("POST", url), json={"results": [{"title": "ok"}]})
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    client = SearchClient(
+        SearchConfig(
+            provider="custom",
+            api_key="key",
+            api_key_source="yaml",
+            base_url="https://search.example/v1",
+            base_url_source="yaml",
+            timeout_seconds=1,
+            max_retries=1,
+            retry_backoff_seconds=0,
+        )
+    )
+
+    result = client.search_with_debug(query="q", max_results=1)
+
+    assert result["ok"] is True
+    assert result["retry_count"] == 1
+    assert result["final_status"] == "success"
+    assert [item["ok"] for item in result["provider_attempts"]] == [False, True]
+
+
+def test_search_client_reports_failed_retries(monkeypatch):
+    class FakeClient:
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, json, headers, timeout):
+            del url, json, headers, timeout
+            raise httpx.ConnectError("reset")
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    client = SearchClient(
+        SearchConfig(
+            provider="custom",
+            api_key="key",
+            api_key_source="yaml",
+            base_url="https://search.example/v1",
+            base_url_source="yaml",
+            timeout_seconds=1,
+            max_retries=2,
+            retry_backoff_seconds=0,
+        )
+    )
+
+    result = client.search_with_debug(query="q", max_results=1)
+
+    assert result["ok"] is False
+    assert result["error_type"] == "ConnectError"
+    assert result["retry_count"] == 2
+    assert result["final_status"] == "failed"
+    assert len(result["provider_attempts"]) == 3
+    assert all(item["error_type"] == "ConnectError" for item in result["provider_attempts"])
