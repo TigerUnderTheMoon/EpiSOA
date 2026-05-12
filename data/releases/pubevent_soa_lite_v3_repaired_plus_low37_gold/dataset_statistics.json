@@ -1,0 +1,360 @@
+{
+  "dataset": {
+    "event_count": 50,
+    "evidence_count": 1767,
+    "tuple_count": 188,
+    "chain_count": 138
+  },
+  "averages": {
+    "evidence_per_event": 35.34,
+    "tuples_per_event": 3.76,
+    "chains_per_event": 2.76
+  },
+  "per_event_count_stats": {
+    "evidence": {
+      "min": 21,
+      "max": 60,
+      "mean": 35.34
+    },
+    "tuples": {
+      "min": 3,
+      "max": 5,
+      "mean": 3.76
+    },
+    "chains": {
+      "min": 2,
+      "max": 3,
+      "mean": 2.76
+    }
+  },
+  "distributions": {
+    "source_type": {
+      "mainstream_news": 525,
+      "official": 403,
+      "public_web": 374,
+      "social_media": 334,
+      "forum": 74,
+      "public_interaction": 57
+    },
+    "sentiment": {
+      "negative": 88,
+      "neutral": 57,
+      "positive": 38,
+      "mixed": 5
+    },
+    "support_label": {
+      "supported": 170,
+      "partially_supported": 18
+    },
+    "chain_length": {
+      "4": 60,
+      "3": 31,
+      "2": 23,
+      "5": 14,
+      "6": 8,
+      "1": 2
+    }
+  },
+  "per_event_counts": [
+    {
+      "event_id": "E001",
+      "evidence_count": 35,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E002",
+      "evidence_count": 36,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E003",
+      "evidence_count": 33,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E004",
+      "evidence_count": 36,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E005",
+      "evidence_count": 36,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E006",
+      "evidence_count": 36,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E007",
+      "evidence_count": 34,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E008",
+      "evidence_count": 44,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E009",
+      "evidence_count": 36,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E010",
+      "evidence_count": 37,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E011",
+      "evidence_count": 35,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E012",
+      "evidence_count": 37,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E013",
+      "evidence_count": 28,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E014",
+      "evidence_count": 32,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E015",
+      "evidence_count": 30,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E016",
+      "evidence_count": 40,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E017",
+      "evidence_count": 31,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E018",
+      "evidence_count": 35,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E019",
+      "evidence_count": 29,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E020",
+      "evidence_count": 34,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E021",
+      "evidence_count": 34,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E022",
+      "evidence_count": 37,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E023",
+      "evidence_count": 36,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E024",
+      "evidence_count": 30,
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E025",
+      "evidence_count": 32,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E026",
+      "evidence_count": 29,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E027",
+      "evidence_count": 36,
+      "tuple_count": 4,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E028",
+      "evidence_count": 49,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E029",
+      "evidence_count": 23,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E030",
+      "evidence_count": 60,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E031",
+      "evidence_count": 26,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E032",
+      "evidence_count": 31,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E033",
+      "evidence_count": 36,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E034",
+      "evidence_count": 31,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E035",
+      "evidence_count": 28,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E036",
+      "evidence_count": 33,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E037",
+      "evidence_count": 40,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E038",
+      "evidence_count": 37,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E039",
+      "evidence_count": 44,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E040",
+      "evidence_count": 56,
+      "tuple_count": 4,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E041",
+      "evidence_count": 33,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E042",
+      "evidence_count": 37,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E043",
+      "evidence_count": 44,
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E044",
+      "evidence_count": 28,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E045",
+      "evidence_count": 30,
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E046",
+      "evidence_count": 31,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E047",
+      "evidence_count": 27,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E048",
+      "evidence_count": 21,
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    {
+      "event_id": "E049",
+      "evidence_count": 59,
+      "tuple_count": 5,
+      "chain_count": 2
+    },
+    {
+      "event_id": "E050",
+      "evidence_count": 35,
+      "tuple_count": 3,
+      "chain_count": 3
+    }
+  ]
+}

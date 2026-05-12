@@ -1,0 +1,67 @@
+{
+  "audit_timestamp": "2026-05-12T21:20:20Z",
+  "canonical_evidence_file": "data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.normalized.jsonl",
+  "gold_tuple_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_tuples.jsonl",
+  "gold_chain_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_event_chains.jsonl",
+  "events_in_scope": 10,
+  "tuple_rows": 31,
+  "chain_rows": 25,
+  "total_issues": 0,
+  "checks": {
+    "event_coverage": "PASS",
+    "tuple_count_min_ge_3": "PASS",
+    "chain_count_min_ge_2": "PASS",
+    "candidate_id_duplicates": "PASS",
+    "chain_id_duplicates": "PASS",
+    "missing_chain_ids": "PASS",
+    "invalid_sentiments": "PASS",
+    "invalid_support_labels": "PASS",
+    "missing_evidence_refs": "PASS",
+    "missing_source_type": "PASS"
+  },
+  "issues": [],
+  "event_counts": {
+    "E001": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E002": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E003": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E004": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E005": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E006": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E007": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E008": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E009": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E010": {
+      "tuple_count": 3,
+      "chain_count": 2
+    }
+  },
+  "ready_for_final_gold": true,
+  "note": "Audited against canonical evidence: data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.normalized.jsonl. Do NOT use evidence_filtered.jsonl for gold annotation audit."
+}

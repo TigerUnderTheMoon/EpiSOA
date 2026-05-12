@@ -1,0 +1,227 @@
+{
+  "audit_timestamp": "2026-05-12T21:20:28Z",
+  "canonical_evidence_file": "data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.normalized.jsonl",
+  "gold_tuple_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_tuples.jsonl",
+  "gold_chain_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_event_chains.jsonl",
+  "events_in_scope": 50,
+  "tuple_rows": 188,
+  "chain_rows": 138,
+  "total_issues": 0,
+  "checks": {
+    "event_coverage": "PASS",
+    "tuple_count_min_ge_3": "PASS",
+    "chain_count_min_ge_2": "PASS",
+    "candidate_id_duplicates": "PASS",
+    "chain_id_duplicates": "PASS",
+    "missing_chain_ids": "PASS",
+    "invalid_sentiments": "PASS",
+    "invalid_support_labels": "PASS",
+    "missing_evidence_refs": "PASS",
+    "missing_source_type": "PASS"
+  },
+  "issues": [],
+  "event_counts": {
+    "E001": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E002": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E003": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E004": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E005": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E006": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E007": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E008": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E009": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E010": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E011": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E012": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E013": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E014": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E015": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E016": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E017": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E018": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E019": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E020": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E021": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E022": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E023": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E024": {
+      "tuple_count": 3,
+      "chain_count": 2
+    },
+    "E025": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E026": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E027": {
+      "tuple_count": 4,
+      "chain_count": 2
+    },
+    "E028": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E029": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E030": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E031": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E032": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E033": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E034": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E035": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E036": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E037": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E038": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E039": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E040": {
+      "tuple_count": 4,
+      "chain_count": 2
+    },
+    "E041": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E042": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E043": {
+      "tuple_count": 4,
+      "chain_count": 3
+    },
+    "E044": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E045": {
+      "tuple_count": 5,
+      "chain_count": 3
+    },
+    "E046": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E047": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E048": {
+      "tuple_count": 3,
+      "chain_count": 3
+    },
+    "E049": {
+      "tuple_count": 5,
+      "chain_count": 2
+    },
+    "E050": {
+      "tuple_count": 3,
+      "chain_count": 3
+    }
+  },
+  "ready_for_final_gold": true,
+  "note": "Audited against canonical evidence: data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.normalized.jsonl. Do NOT use evidence_filtered.jsonl for gold annotation audit."
+}
