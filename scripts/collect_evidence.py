@@ -500,6 +500,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
             errors,
             default_sources=default_sources,
             min_raw_per_event=min_raw_per_event,
+            query_plans=query_plans,
         )
         _write_json(coverage_path, report)
         print(f"[event {event_index}/{len(events)}] done event_id={event_id} raw_posts={len(event_posts)}", flush=True)
@@ -519,6 +520,7 @@ def collect_from_cli(args: argparse.Namespace) -> int:
         errors,
         default_sources=default_sources,
         min_raw_per_event=min_raw_per_event,
+        query_plans=query_plans,
     )
     _write_json(coverage_path, report)
     print(f"Collected {len(all_posts)} raw posts into {output_path}")
@@ -557,6 +559,7 @@ def build_coverage_report(
     errors: list[dict[str, Any]],
     default_sources: list[str] | None = None,
     min_raw_per_event: int = 15,
+    query_plans: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     event_reports = {}
     missing_events: list[str] = []
@@ -584,12 +587,37 @@ def build_coverage_report(
             )
     provider_errors = list(errors)
     events_need_recollection = list(low_coverage_events)
-    if missing_events or low_coverage_events or events_need_recollection:
+
+    duplicate_raw_ids = _count_event_duplicate_raw_ids(per_event_posts)
+    duplicate_event_url_pairs = _count_event_url_pairs(per_event_posts)
+    official_missing_events = _find_official_missing_events(events, per_event_posts, event_reports)
+    interaction_missing_events = _find_interaction_missing_events(events, per_event_posts, event_reports)
+    duplicate_query_plan_event_ids = _count_duplicate_plan_event_ids(query_plans) if query_plans else {}
+
+    low_raw_events = {
+        event_id: count
+        for event_id, posts in per_event_posts.items()
+        if (count := len(posts)) < min_raw_per_event
+    }
+
+    data_gate_failed = bool(
+        missing_events
+        or low_raw_events
+        or events_need_recollection
+        or duplicate_raw_ids
+        or duplicate_event_url_pairs
+        or duplicate_query_plan_event_ids
+        or official_missing_events
+        or interaction_missing_events
+    )
+
+    if data_gate_failed:
         status = "failed"
     elif provider_errors:
         status = "passed_with_provider_warnings"
     else:
         status = "passed"
+
     return {
         "status": status,
         "num_events": len(events),
@@ -597,9 +625,19 @@ def build_coverage_report(
         "events": event_reports,
         "errors": provider_errors,
         "provider_errors": provider_errors,
+        "provider_warnings": provider_errors if not data_gate_failed else [],
         "missing_events": missing_events,
         "low_coverage_events": low_coverage_events,
         "events_need_recollection": events_need_recollection,
+        "duplicate_raw_id_count": len(duplicate_raw_ids),
+        "duplicate_raw_ids": duplicate_raw_ids,
+        "duplicate_event_url_pair_count": len(duplicate_event_url_pairs),
+        "duplicate_event_url_pairs": duplicate_event_url_pairs,
+        "duplicate_query_plan_event_id_count": len(duplicate_query_plan_event_ids),
+        "duplicate_query_plan_event_ids": duplicate_query_plan_event_ids,
+        "official_missing_events": official_missing_events,
+        "interaction_missing_events": interaction_missing_events,
+        "low_raw_events": low_raw_events,
     }
 
 
@@ -1430,6 +1468,102 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _count_event_duplicate_raw_ids(per_event_posts: dict[str, list[dict[str, Any]]]) -> dict[str, int]:
+    duplicates: dict[str, int] = {}
+    for event_id, posts in per_event_posts.items():
+        raw_ids = [str(row.get("raw_id", "")).strip() for row in posts if str(row.get("raw_id", "")).strip()]
+        seen: set[str] = set()
+        event_dupes = 0
+        for raw_id in raw_ids:
+            if raw_id in seen:
+                event_dupes += 1
+            else:
+                seen.add(raw_id)
+        if event_dupes:
+            duplicates[event_id] = event_dupes
+    return duplicates
+
+
+def _count_event_url_pairs(per_event_posts: dict[str, list[dict[str, Any]]]) -> dict[str, int]:
+    duplicates: dict[str, int] = {}
+    for event_id, posts in per_event_posts.items():
+        pairs = [
+            normalize_event_url(str(row.get("url") or ""))
+            for row in posts
+            if normalize_event_url(str(row.get("url") or ""))
+        ]
+        seen: set[str] = set()
+        event_dupes = 0
+        for pair in pairs:
+            if pair in seen:
+                event_dupes += 1
+            else:
+                seen.add(pair)
+        if event_dupes:
+            duplicates[event_id] = event_dupes
+    return duplicates
+
+
+def _find_official_missing_events(
+    events: list[dict[str, Any]],
+    per_event_posts: dict[str, list[dict[str, Any]]],
+    event_reports: dict[str, dict[str, Any]],
+) -> list[str]:
+    missing: list[str] = []
+    for event in events:
+        event_id = str(event.get("event_id", ""))
+        expected_sources = _planner_normalize_source_scope(event.get("source_scope"))
+        if "official" not in expected_sources:
+            continue
+        coverage = event_reports.get(event_id, {})
+        source_counts = coverage.get("source_counts", {})
+        if source_counts.get("official", 0) == 0:
+            missing.append(event_id)
+    return missing
+
+
+def _find_interaction_missing_events(
+    events: list[dict[str, Any]],
+    per_event_posts: dict[str, list[dict[str, Any]]],
+    event_reports: dict[str, dict[str, Any]],
+) -> list[str]:
+    interaction_sources = {"public_interaction", "forum", "public_social"}
+    missing: list[str] = []
+    for event in events:
+        event_id = str(event.get("event_id", ""))
+        expected_sources = set(_planner_normalize_source_scope(event.get("source_scope")))
+        relevant = expected_sources & interaction_sources
+        if not relevant:
+            continue
+        coverage = event_reports.get(event_id, {})
+        source_counts = coverage.get("source_counts", {})
+        if all(source_counts.get(source, 0) == 0 for source in relevant):
+            missing.append(event_id)
+    return missing
+
+
+def _count_duplicate_plan_event_ids(query_plans: list[dict[str, Any]]) -> dict[str, int]:
+    from collections import Counter
+
+    event_ids = [str(plan.get("event_id", "")).strip() for plan in query_plans if str(plan.get("event_id", "")).strip()]
+    return {event_id: count for event_id, count in Counter(event_ids).items() if count > 1}
+
+
+def _read_existing_coverage_provider_warnings(path: Path) -> list[dict[str, Any]]:
+    """Read provider_warnings from existing coverage.json for resume/merge."""
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(payload, dict):
+        return []
+    warnings_list = payload.get("provider_warnings", payload.get("provider_errors", payload.get("errors", [])))
+    return list(warnings_list) if isinstance(warnings_list, list) else []
 
 
 if __name__ == "__main__":

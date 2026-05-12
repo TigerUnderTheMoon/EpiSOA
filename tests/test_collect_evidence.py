@@ -333,15 +333,15 @@ def test_coverage_report_status_distinguishes_provider_warnings():
     event = _formal_event("E001", "first")
     posts = [
         {
-            "raw_id": "r1",
+            "raw_id": f"r{i}",
             "event_id": "E001",
             "source": "news",
             "source_type": "news",
-            "url": "https://people.com.cn/a",
-            "title": "居民投诉质疑，部门回应整改完成后续追踪",
-            "text": "居民投诉质疑，部门回应整改完成后续追踪，专家支持。",
+            "url": f"https://people.com.cn/a{i}",
+            "title": f"居民投诉质疑，部门回应整改完成后续追踪 {i}",
+            "text": f"居民投诉质疑，部门回应整改完成后续追踪，专家支持 {i}。",
         }
-        for _ in range(15)
+        for i in range(15)
     ]
 
     report = collect_evidence_script.build_coverage_report(
@@ -371,6 +371,253 @@ def test_coverage_report_fails_gate_even_without_provider_errors():
     assert report["status"] == "failed"
     assert report["missing_events"] == ["E001"]
     assert report["events_need_recollection"]
+
+
+def test_coverage_report_passed_without_provider_errors():
+    event = _formal_event("E001", "first")
+    posts = [
+        {
+            "raw_id": f"r{i}",
+            "event_id": "E001",
+            "source": "news",
+            "source_type": "news",
+            "url": f"https://people.com.cn/a{i}",
+            "title": f"居民投诉质疑，部门回应整改完成后续追踪 {i}",
+            "text": f"居民投诉质疑，部门回应整改完成后续追踪，专家支持 {i}。",
+        }
+        for i in range(15)
+    ]
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        [],
+        default_sources=["news"],
+        min_raw_per_event=15,
+    )
+
+    assert report["status"] == "passed"
+    assert report["provider_errors"] == []
+    assert report["events_need_recollection"] == []
+    assert report["duplicate_raw_id_count"] == 0
+    assert report["duplicate_event_url_pair_count"] == 0
+
+
+def test_coverage_report_failed_with_provider_errors_when_data_gate_fails():
+    event = _formal_event("E001", "first")
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": []},
+        [{"event_id": "E001", "query": "q", "source_type": "news", "error_type": "ConnectTimeout"}],
+        default_sources=["news"],
+        min_raw_per_event=15,
+    )
+
+    assert report["status"] == "failed"
+    assert report["provider_errors"]
+    assert report["missing_events"] == ["E001"]
+
+
+def test_coverage_report_failed_on_duplicate_event_url_pairs():
+    event = _formal_event("E001", "first")
+    posts = [
+        {
+            "raw_id": f"r{i}",
+            "event_id": "E001",
+            "source": "news",
+            "source_type": "news",
+            "url": "https://people.com.cn/same-article",
+            "title": f"居民投诉质疑 {i}",
+            "text": f"居民投诉质疑，部门回应整改完成后续追踪 {i}。",
+        }
+        for i in range(15)
+    ]
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        [],
+        default_sources=["news"],
+        min_raw_per_event=15,
+    )
+
+    assert report["status"] == "failed"
+    assert report["duplicate_event_url_pair_count"] > 0
+    assert report["duplicate_event_url_pairs"]
+
+
+def test_coverage_report_failed_on_duplicate_raw_ids():
+    event = _formal_event("E001", "first")
+    posts = []
+    for i in range(15):
+        posts.append({
+            "raw_id": "dup_id",
+            "event_id": "E001",
+            "source": "news",
+            "source_type": "news",
+            "url": f"https://people.com.cn/a{i}",
+            "title": f"title {i}",
+            "text": f"text {i}",
+        })
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        [],
+        default_sources=["news"],
+        min_raw_per_event=15,
+    )
+
+    assert report["status"] == "failed"
+    assert report["duplicate_raw_id_count"] > 0
+
+
+def test_coverage_report_failed_on_official_missing():
+    event = _formal_event("E001", "first")
+    event["source_scope"] = ["official", "news"]
+    posts = [
+        {
+            "raw_id": f"r{i}",
+            "event_id": "E001",
+            "source": "news",
+            "source_type": "news",
+            "url": f"https://people.com.cn/a{i}",
+            "title": f"title {i}",
+            "text": f"text {i}",
+        }
+        for i in range(15)
+    ]
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        [],
+        default_sources=["official", "news"],
+        min_raw_per_event=15,
+    )
+
+    assert report["status"] == "failed"
+    assert "E001" in report["official_missing_events"]
+
+
+def test_coverage_report_failed_on_interaction_missing():
+    event = _formal_event("E001", "first")
+    event["source_scope"] = ["official", "news", "forum"]
+    posts = [
+        {
+            "raw_id": f"r{i}",
+            "event_id": "E001",
+            "source": "official",
+            "source_type": "official",
+            "url": f"https://gov.cn/a{i}",
+            "title": f"title {i}",
+            "text": f"text {i}",
+        }
+        for i in range(15)
+    ]
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        [],
+        default_sources=["official", "news", "forum"],
+        min_raw_per_event=15,
+    )
+
+    assert report["status"] == "failed"
+    assert "E001" in report["interaction_missing_events"]
+
+
+def test_coverage_report_failed_on_duplicate_query_plan_event_ids():
+    event = _formal_event("E001", "first")
+    posts = [
+        {
+            "raw_id": f"r{i}",
+            "event_id": "E001",
+            "source": "news",
+            "source_type": "news",
+            "url": f"https://people.com.cn/a{i}",
+            "title": f"title {i}",
+            "text": f"text {i}",
+        }
+        for i in range(15)
+    ]
+    query_plans = [{"event_id": "E001"}, {"event_id": "E001"}]
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        [],
+        default_sources=["news"],
+        min_raw_per_event=15,
+        query_plans=query_plans,
+    )
+
+    assert report["status"] == "failed"
+    assert report["duplicate_query_plan_event_id_count"] > 0
+
+
+def test_coverage_report_includes_provider_warnings_field():
+    event = _formal_event("E001", "first")
+    posts = [
+        {
+            "raw_id": f"r{i}",
+            "event_id": "E001",
+            "source": "news",
+            "source_type": "news",
+            "url": f"https://people.com.cn/a{i}",
+            "title": f"居民投诉质疑，部门回应整改完成后续追踪 {i}",
+            "text": f"居民投诉质疑，部门回应整改完成后续追踪，专家支持 {i}。",
+        }
+        for i in range(15)
+    ]
+    provider_errors = [{"event_id": "E001", "query": "q", "source_type": "news", "error_type": "ConnectTimeout"}]
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        provider_errors,
+        default_sources=["news"],
+        min_raw_per_event=15,
+    )
+
+    assert report["status"] == "passed_with_provider_warnings"
+    assert report["provider_errors"] == provider_errors
+    assert report["provider_warnings"] == provider_errors
+    assert report["errors"] == provider_errors
+
+
+def test_coverage_report_new_fields_present():
+    event = _formal_event("E001", "first")
+    posts = [
+        {
+            "raw_id": f"r{i}",
+            "event_id": "E001",
+            "source": "news",
+            "source_type": "news",
+            "url": f"https://people.com.cn/a{i}",
+            "title": f"title {i}",
+            "text": f"text {i}",
+        }
+        for i in range(15)
+    ]
+
+    report = collect_evidence_script.build_coverage_report(
+        [event],
+        {"E001": posts},
+        [],
+        default_sources=["news"],
+        min_raw_per_event=15,
+        query_plans=[{"event_id": "E001"}],
+    )
+
+    assert report["duplicate_raw_id_count"] == 0
+    assert report["duplicate_event_url_pair_count"] == 0
+    assert report["duplicate_query_plan_event_id_count"] == 0
+    assert report["official_missing_events"] == []
+    assert report["interaction_missing_events"] == []
+    assert report["low_raw_events"] == {}
 
 
 def test_retry_success_does_not_enter_errors_and_attempts_are_recorded():

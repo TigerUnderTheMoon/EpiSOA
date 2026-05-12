@@ -115,8 +115,21 @@ def run_qc(args: argparse.Namespace) -> int:
     if events_need_recollection:
         failures.append(f"events need recollection: {len(events_need_recollection)}")
 
+    provider_errors = coverage.get("provider_errors", coverage.get("errors", []))
+    if not isinstance(provider_errors, list):
+        provider_errors = []
+
+    if failures:
+        status = "failed"
+    elif provider_errors:
+        status = "passed_with_provider_warnings"
+    elif warnings:
+        status = "passed_with_provider_warnings"
+    else:
+        status = "passed"
+
     report = {
-        "status": "failed" if failures else "passed",
+        "status": status,
         "num_events_expected": len(event_ids),
         "raw_rows": len(raw_rows),
         "events_with_raw": len(raw_by_event),
@@ -131,6 +144,8 @@ def run_qc(args: argparse.Namespace) -> int:
         "duplicate_event_url_pairs": duplicate_event_url_pairs,
         "duplicate_event_url_pair_count": len(duplicate_event_url_pairs),
         "duplicate_query_plan_event_ids": duplicate_plan_event_ids,
+        "provider_errors": provider_errors,
+        "provider_warnings": provider_errors if status != "failed" else [],
     }
 
     _write_json(output_dir / "post_collect_qc_report.json", report)
@@ -148,7 +163,7 @@ def run_qc(args: argparse.Namespace) -> int:
     print(f"raw_rows={len(raw_rows)} events_with_raw={len(raw_by_event)} query_plan_rows={len(query_plans)}")
     if events_need_recollection:
         print(f"events_need_recollection={len(events_need_recollection)}")
-    return 0 if report["status"] == "passed" else 1
+    return 1 if report["status"] == "failed" else 0
 
 
 def _read_jsonl_or_fail(path: Path, label: str, failures: list[str]) -> list[dict[str, Any]]:
