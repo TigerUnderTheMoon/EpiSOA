@@ -1,0 +1,37 @@
+{
+  "event_id": "E043",
+  "tuples": [
+    {
+      "stakeholder": "武汉市城管执法委",
+      "opinion": "联合市交通运输局、市公安局交通管理局召开共享单车专题调度会，要求哈啰、美团、青桔等企业回收违规超量投放车辆10万余辆，并加强运维管理",
+      "sentiment": "neutral",
+      "rationale": "官方报道显示城管执法委牵头整治行动，对共享单车企业提出具体回收要求",
+      "evidence_ids": ["ev-01091", "ev-01069", "ev-01072"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "市民",
+      "opinion": "对大量可正常使用的共享单车被集中堆放在露天场地表示不解和不满，质疑资源浪费",
+      "sentiment": "negative",
+      "rationale": "市民向媒体反映看到上千辆完好单车被堆放，认为不合理",
+      "evidence_ids": ["ev-01100"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "市民",
+      "opinion": "质疑武汉市共享单车需求测算和区域投放合理性，要求职能部门公开评估数据和分配依据",
+      "sentiment": "negative",
+      "rationale": "市民在城市留言板上提出关于需求调查、使用率、区域投放标准的具体问题",
+      "evidence_ids": ["ev-01088"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "武汉市交通运输局",
+      "opinion": "回应市民引进共享电动单车的请求，引用2017年十部委文件，表明当前政策不支持新增电动共享单车",
+      "sentiment": "neutral",
+      "rationale": "官方回复明确引用国家政策作为依据，未直接拒绝但指出政策限制",
+      "evidence_ids": ["ev-01104", "ev-01105", "ev-01106", "ev-01113"],
+      "support_label": "supported"
+    }
+  ]
+}

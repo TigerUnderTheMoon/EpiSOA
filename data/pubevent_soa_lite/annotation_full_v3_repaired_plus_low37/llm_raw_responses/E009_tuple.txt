@@ -1,0 +1,29 @@
+{
+  "event_id": "E009",
+  "tuples": [
+    {
+      "stakeholder": "公租房住户",
+      "opinion": "反映小区至少上百个车位被同小区的商品房业主圈占，导致公租房住户停车困难",
+      "sentiment": "negative",
+      "rationale": "根据媒体报道，公租房住户向央广网反映停车位被圈占问题",
+      "evidence_ids": ["ev-00205", "ev-01536"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "商品房业主",
+      "opinion": "圈占小区停车位，导致公租房住户停车困难",
+      "sentiment": "negative",
+      "rationale": "报道明确指出商品房业主圈占至少上百个车位",
+      "evidence_ids": ["ev-00205", "ev-01536"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "深圳市光明区住房和建设局",
+      "opinion": "正在依法依规对该起事件进行处置，并督促开发商、物业公司做好相关纠纷化解工作",
+      "sentiment": "neutral",
+      "rationale": "官方回应表示正在处置并督促化解纠纷",
+      "evidence_ids": ["ev-00206"],
+      "support_label": "supported"
+    }
+  ]
+}

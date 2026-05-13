@@ -1,0 +1,29 @@
+{
+  "event_id": "E007",
+  "tuples": [
+    {
+      "stakeholder": "蓝色康园小区业主",
+      "opinion": "质疑物业费从每平方米一块多涨到两块多，且未出示新合同，怀疑物业偷偷涨价",
+      "sentiment": "negative",
+      "rationale": "源自ev-00139报道中业主的反映",
+      "evidence_ids": ["ev-00139"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "蓝色康园小区业主",
+      "opinion": "反映物业疑似占用公共空间做宿舍，并在公共区域堆放杂物，且水电费未公示，怀疑被均算为公摊费用",
+      "sentiment": "negative",
+      "rationale": "源自ev-00137报道中业主的反映",
+      "evidence_ids": ["ev-00137"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广州市物业管理行业协会",
+      "opinion": "督促蓝色康园物业方尽快整改业主反映的问题",
+      "sentiment": "neutral",
+      "rationale": "源自ev-00139报道中协会的行动",
+      "evidence_ids": ["ev-00139"],
+      "support_label": "supported"
+    }
+  ]
+}

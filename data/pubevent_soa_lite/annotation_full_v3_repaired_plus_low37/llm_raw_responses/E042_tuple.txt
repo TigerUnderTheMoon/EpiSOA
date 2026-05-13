@@ -1,0 +1,45 @@
+{
+  "event_id": "E042",
+  "tuples": [
+    {
+      "stakeholder": "广州市市场监管局",
+      "opinion": "督促即时配送平台企业落实安全责任，深入开展电动自行车安全隐患全链条整治行动",
+      "sentiment": "positive",
+      "rationale": "官方发布消息，积极推动安全整治，体现支持新规的立场",
+      "evidence_ids": ["ev-01060", "ev-01034"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广州交警",
+      "opinion": "深入骑手驿站普及新规，引导骑手遵守交通规则，强调安全骑行",
+      "sentiment": "positive",
+      "rationale": "通过问答和宣传单形式宣传《广州市电动自行车管理规定》，促进新规落地",
+      "evidence_ids": ["ev-01043", "ev-01044", "ev-01032"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "外卖骑手",
+      "opinion": "学习并适应新规，表示正在熟悉内容，配合安全管理",
+      "sentiment": "neutral",
+      "rationale": "骑手在宣传活动中回应正在熟悉新规，显示对管理措施的接受",
+      "evidence_ids": ["ev-01043"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "杨旭代表",
+      "opinion": "提出《关于加强外卖配送电动自行车管理的建议》，推动政府重视和治理",
+      "sentiment": "positive",
+      "rationale": "人大代表正式提案，呼吁加强管理，与新政方向一致",
+      "evidence_ids": ["ev-01041"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "刘建国代表",
+      "opinion": "提出《关于加强外卖骑手骑行安全管理的建议》，支持强化安全管理",
+      "sentiment": "positive",
+      "rationale": "人大代表关注骑手安全，建议被政府部门认真研究办理",
+      "evidence_ids": ["ev-01045"],
+      "support_label": "supported"
+    }
+  ]
+}

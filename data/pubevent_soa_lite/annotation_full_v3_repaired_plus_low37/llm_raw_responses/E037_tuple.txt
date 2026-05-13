@@ -1,0 +1,37 @@
+{
+  "event_id": "E037",
+  "tuples": [
+    {
+      "stakeholder": "北京市政府",
+      "opinion": "召开事故情况通报会，通报火灾原因和救援情况，并启动调查",
+      "sentiment": "neutral",
+      "rationale": "多个新闻来源记录了北京市政府组织通报会、公开信息的行为",
+      "evidence_ids": ["ev-00895", "ev-01967", "ev-00897"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "应急管理部",
+      "opinion": "发布事故调查报告，认定事故直接原因为改造施工火花引燃涂料挥发物，并提出防范措施",
+      "sentiment": "neutral",
+      "rationale": "官方转载的调查报告明确事故原因和责任，体现监管部门的调查结论",
+      "evidence_ids": ["ev-00882", "ev-01956"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "北京长峰医院",
+      "opinion": "院长等12人因涉嫌重大责任事故罪被刑拘，表明院方被认定负有直接责任",
+      "sentiment": "negative",
+      "rationale": "新闻报道称医院管理层被刑拘，体现司法介入和负面评价",
+      "evidence_ids": ["ev-01964"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "医疗行业（医院消防安全培训）",
+      "opinion": "制作并传播消防安全培训PPT，开展警示教育，以防类似事故",
+      "sentiment": "neutral",
+      "rationale": "多份培训材料的存在说明行业吸取教训、进行整改",
+      "evidence_ids": ["ev-00878", "ev-01952"],
+      "support_label": "supported"
+    }
+  ]
+}

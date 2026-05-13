@@ -1,0 +1,37 @@
+{
+  "event_id": "E040",
+  "tuples": [
+    {
+      "stakeholder": "应急管理部",
+      "opinion": "立即派出工作组和医疗专家组赶赴现场指导救援处置工作",
+      "sentiment": "positive",
+      "rationale": "从官方通报中可见应急管理部在火灾发生后迅速调度资源，体现了高效应急响应。",
+      "evidence_ids": ["ev-01362", "ev-01364"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "山西省政府新闻办公室",
+      "opinion": "召开火灾事故情况通报会，向公众说明事故伤亡和救援进展",
+      "sentiment": "neutral",
+      "rationale": "evidence包含召开通报会的明确记载，是政府信息公开的常规操作。",
+      "evidence_ids": ["ev-01363"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "国务院事故调查组",
+      "opinion": "发布事故调查报告，确认火灾为重大责任事故，并建议对18名企业人员采取刑事强制措施",
+      "sentiment": "negative",
+      "rationale": "调查报告指出永聚煤业存在违法问题，责任人被采取强制措施，定性为责任事故。",
+      "evidence_ids": ["ev-01327", "ev-00992"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "永聚煤业有限公司",
+      "opinion": "实际负责人等18名企业人员因涉嫌违法犯罪被公安机关采取刑事强制措施",
+      "sentiment": "negative",
+      "rationale": "调查报告明确列出刑事措施，表明企业因安全漏洞面临法律责任。",
+      "evidence_ids": ["ev-01327"],
+      "support_label": "supported"
+    }
+  ]
+}

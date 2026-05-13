@@ -1,0 +1,45 @@
+{
+  "event_id": "E039",
+  "tuples": [
+    {
+      "stakeholder": "燕郊镇居民",
+      "opinion": "对爆燃事故造成的伤亡和财产损失表达震惊和担忧，要求查明原因并追究责任",
+      "sentiment": "negative",
+      "rationale": "居民在社交媒体和新闻报道中表达了对事故的恐惧和对安全责任的质疑",
+      "evidence_ids": ["ev-00966", "ev-00983"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "三河市应急管理局",
+      "opinion": "迅速开展救援和调查，初步认定事故原因为燃气管道泄漏",
+      "sentiment": "neutral",
+      "rationale": "官方通报和新闻发布会确认了应急响应和初步原因判断",
+      "evidence_ids": ["ev-01997", "ev-02010", "ev-00954"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "河北省应急管理厅",
+      "opinion": "发布最终调查报告，确认爆燃由地铁施工导致天然气管道破损引起",
+      "sentiment": "neutral",
+      "rationale": "调查报告明确指出地铁施工是事故直接原因",
+      "evidence_ids": ["ev-00948", "ev-00949"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "地铁施工方",
+      "opinion": "在盾构施工过程中造成地埋天然气管道破损泄漏，应承担相应责任",
+      "sentiment": "negative",
+      "rationale": "调查报告认定施工方损坏管道是事故根源",
+      "evidence_ids": ["ev-01992"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众与网民",
+      "opinion": "质疑燃气安全和施工管理，呼吁加强监管和问责",
+      "sentiment": "negative",
+      "rationale": "网络讨论中普遍要求追究责任并加强安全措施",
+      "evidence_ids": ["ev-00976", "ev-00983"],
+      "support_label": "supported"
+    }
+  ]
+}

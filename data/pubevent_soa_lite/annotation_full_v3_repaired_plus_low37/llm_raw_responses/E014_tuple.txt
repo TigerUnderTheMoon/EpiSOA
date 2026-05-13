@@ -1,0 +1,21 @@
+{
+  "event_id": "E014",
+  "tuples": [
+    {
+      "stakeholder": "南宁市公安局良庆分局",
+      "opinion": "依法对涉案的8人作出行政拘留等处罚，并发布情况通报回应社会关切",
+      "sentiment": "neutral",
+      "rationale": "警方在情况通报中明确陈述了对涉案人员的行政处罚决定，表明警方依法采取行动并公开信息",
+      "evidence_ids": ["ev-01640", "ev-01642", "ev-01644", "ev-00309"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "网络舆论/网民",
+      "opinion": "对校园欺凌事件表示愤怒和担忧，呼吁加强惩处和预防措施",
+      "sentiment": "negative",
+      "rationale": "多个网络文章使用‘黑色风暴’、‘恶性霸凌’等词汇，反映公众对事件的强烈负面情绪和关注",
+      "evidence_ids": ["ev-00300", "ev-00301"],
+      "support_label": "supported"
+    }
+  ]
+}

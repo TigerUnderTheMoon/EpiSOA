@@ -1,0 +1,45 @@
+{
+  "event_id": "E011",
+  "tuples": [
+    {
+      "stakeholder": "江西工业职业技术学院",
+      "opinion": "学校官方声称饭菜中的异物是鸭脖，否认是鼠头。",
+      "sentiment": "negative",
+      "rationale": "学校发布情况通报坚称异物为鸭脖，试图隐瞒真相。",
+      "evidence_ids": ["ev-01584"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "江西省联合调查组",
+      "opinion": "联合调查组认定饭菜中异物为鼠头，并通报调查结果。",
+      "sentiment": "neutral",
+      "rationale": "官方调查组经勘查监控、专家鉴定，确认异物是鼠头。",
+      "evidence_ids": ["ev-01572", "ev-01576"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "学生",
+      "opinion": "学生质疑学校的鸭脖说法，要求彻查食品安全问题。",
+      "sentiment": "negative",
+      "rationale": "学生拍摄视频并上传网络，引发舆论关注和质疑。",
+      "evidence_ids": ["ev-01584", "ev-01585"],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "公众及网络舆论",
+      "opinion": "公众普遍不信鸭脖说法，批评学校和监管部门掩盖事实。",
+      "sentiment": "negative",
+      "rationale": "网友嘲讽学校解释，专家鉴定后公众更加愤怒。",
+      "evidence_ids": ["ev-00242", "ev-01589"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "律师",
+      "opinion": "律师指出学生可依据食品安全法要求十倍赔偿。",
+      "sentiment": "neutral",
+      "rationale": "事件定性后，律师提出学生有索赔权利。",
+      "evidence_ids": ["ev-00246"],
+      "support_label": "supported"
+    }
+  ]
+}

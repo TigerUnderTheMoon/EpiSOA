@@ -1,0 +1,37 @@
+{
+  "event_id": "E001",
+  "tuples": [
+    {
+      "stakeholder": "三元里村村民",
+      "opinion": "对城中村改造支持率超过80%，但对拆迁补偿方案支持率仅33.62%",
+      "sentiment": "mixed",
+      "rationale": "根据调查数据，村民对改造整体支持，但对补偿方案不满",
+      "evidence_ids": ["ev-00023"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广州市白云区政府",
+      "opinion": "发布补偿安置方案，明确安置房回迁至改造范围内，集体土地住宅按‘拆一补一’且不超过280平方米核定安置面积",
+      "sentiment": "neutral",
+      "rationale": "政府正式印发的方案内容",
+      "evidence_ids": ["ev-00001", "ev-00002"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "三元里村村民",
+      "opinion": "主动前往工作组咨询征收事宜",
+      "sentiment": "positive",
+      "rationale": "新闻报道显示村民积极咨询",
+      "evidence_ids": ["ev-00010"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广州市白云区政府",
+      "opinion": "成立13个征收工作组进驻三元里村，启动征拆工作",
+      "sentiment": "neutral",
+      "rationale": "政府采取实际行动推进项目",
+      "evidence_ids": ["ev-00010"],
+      "support_label": "supported"
+    }
+  ]
+}

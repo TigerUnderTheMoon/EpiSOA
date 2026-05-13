@@ -1,0 +1,13 @@
+{
+  "event_id": "E017",
+  "tuples": [
+    {
+      "stakeholder": "绍兴市第一中学",
+      "opinion": "确认教师徐某在课堂上发表不当言论，违反《新时代中小学教师职业行为十项准则》，决定停止其教学工作、调离教学岗位并给予警告处分",
+      "sentiment": "negative",
+      "rationale": "学校官方通报明确调查结果和处理决定，体现了对教师不当行为的负面评价和严肃处理",
+      "evidence_ids": ["ev-00407", "ev-00425", "ev-00403"],
+      "support_label": "supported"
+    }
+  ]
+}

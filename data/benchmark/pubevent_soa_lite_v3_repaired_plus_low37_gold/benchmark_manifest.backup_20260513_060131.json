@@ -1,0 +1,20 @@
+{
+  "benchmark_version": "pubevent_soa_lite_v3_repaired_plus_low37_gold",
+  "created_by": "scripts/build_benchmark_tasks.py",
+  "outputs": {
+    "tuple_identification": "data\\benchmark\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\tuple_identification.jsonl",
+    "evidence_support_classification": "data\\benchmark\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\evidence_support_classification.jsonl",
+    "chain_construction": "data\\benchmark\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\chain_construction.jsonl",
+    "benchmark_statistics": "data\\benchmark\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\benchmark_statistics.json"
+  },
+  "task_definitions": {
+    "tuple_identification": "Given an event and candidate evidence records, identify all gold SOA tuples.",
+    "evidence_support_classification": "Given an event, a tuple claim, and one evidence record, classify evidence support.",
+    "chain_construction": "Given an event and candidate evidence records, construct gold event chains."
+  },
+  "notes": [
+    "Tuple identification and chain construction are event-level tasks.",
+    "Evidence support classification contains gold positive tuple-evidence pairs and optional same-event negative samples.",
+    "Source files are not modified by this script."
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "event_id": "E016",
+  "tuples": [
+    {
+      "stakeholder": "遇难学生家属",
+      "opinion": "要求查明真相，严惩责任人",
+      "sentiment": "negative",
+      "rationale": "证据显示家属公开表达想要真相、要求处分责任人",
+      "evidence_ids": ["ev-00400"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "河南省政府调查组",
+      "opinion": "发布调查报告，认定火灾原因并处理了25名责任人员",
+      "sentiment": "neutral",
+      "rationale": "官方报告指出调查组完成调查并追责",
+      "evidence_ids": ["ev-00366", "ev-00380"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "英才学校",
+      "opinion": "学校已注销，不再运营",
+      "sentiment": "negative",
+      "rationale": "媒体报道学校被注销",
+      "evidence_ids": ["ev-00385", "ev-00390"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "遇难学生代理律师",
+      "opinion": "案件一审在方城县人民法院开庭审理",
+      "sentiment": "neutral",
+      "rationale": "律师消息证实开庭",
+      "evidence_ids": ["ev-00362"],
+      "support_label": "supported"
+    }
+  ]
+}

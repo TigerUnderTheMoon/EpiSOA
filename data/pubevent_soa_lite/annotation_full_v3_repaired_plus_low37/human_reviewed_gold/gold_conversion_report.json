@@ -1,0 +1,18 @@
+{
+  "accepted": 188,
+  "edited": 0,
+  "added": 0,
+  "rejected": 0,
+  "merged": 0,
+  "exported_gold_tuples": 188,
+  "exported_gold_event_chains": 138,
+  "exclusion_reasons": {
+    "accepted": 188
+  },
+  "output_files": {
+    "gold_tuples": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\human_reviewed_gold\\gold_tuples.jsonl",
+    "gold_event_chains": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\human_reviewed_gold\\gold_event_chains.jsonl",
+    "conversion_report": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\human_reviewed_gold\\gold_conversion_report.json"
+  },
+  "created_at": "2026-05-12T22:16:40.968327+00:00"
+}

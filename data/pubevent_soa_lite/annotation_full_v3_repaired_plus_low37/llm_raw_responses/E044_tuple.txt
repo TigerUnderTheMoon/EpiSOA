@@ -1,0 +1,45 @@
+{
+  "event_id": "E044",
+  "tuples": [
+    {
+      "stakeholder": "牡丹江市城市管理综合执法局",
+      "opinion": "制定并下发《牡丹江市共享单车停放秩序专项整治工作实施方案》，组织专项整治",
+      "sentiment": "neutral",
+      "rationale": "市城管局针对问题制定下发整治方案，开展专项治理",
+      "evidence_ids": ["ev-02036", "ev-02037"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "牡丹江市城市管理综合执法局",
+      "opinion": "约谈哈啰单车牡丹江负责人，要求规范共享单车停放秩序",
+      "sentiment": "negative",
+      "rationale": "市民反映乱停放问题，城管局约谈企业负责人",
+      "evidence_ids": ["ev-01118"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "黑龙江省住建厅",
+      "opinion": "施行新办法，对多次违规停放、信用评级低的不良信用信息实施个人信用联合惩戒",
+      "sentiment": "negative",
+      "rationale": "省级部门出台信用惩戒办法以规范停车秩序",
+      "evidence_ids": ["ev-02050", "ev-02048"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "市民",
+      "opinion": "反映哈啰单车乱停放，严重影响交通安全和市容市貌",
+      "sentiment": "negative",
+      "rationale": "市民向政府投诉共享单车乱停放问题",
+      "evidence_ids": ["ev-01118"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "共享单车运营企业（哈啰、美团、青桔）",
+      "opinion": "经政府招商进驻牡丹江市，需遵守政府管理规定，加强车辆调度和停放管理",
+      "sentiment": "neutral",
+      "rationale": "运营企业通过招商进入市场，并被要求落实主体责任",
+      "evidence_ids": ["ev-01124", "ev-01117"],
+      "support_label": "supported"
+    }
+  ]
+}

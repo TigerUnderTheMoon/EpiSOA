@@ -1,0 +1,21 @@
+{
+  "event_id": "E006",
+  "tuples": [
+    {
+      "stakeholder": "美心翡翠明庭小区业主",
+      "opinion": "反对物业费涨价，质疑投票结果造假，要求核查",
+      "sentiment": "negative",
+      "rationale": "业主在追问公示的投票结果与实际调查相差大，并质问谁在作假（ev-00116）；同时民法典规定重大事项需双2/3参与表决（ev-01505），暗示程序可能违法。",
+      "evidence_ids": ["ev-00116", "ev-01505"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "大龙街道办",
+      "opinion": "要求核查结束前不得提价",
+      "sentiment": "neutral",
+      "rationale": "街道办在业主质疑后介入，要求核查完成前暂停涨价（ev-00116）。",
+      "evidence_ids": ["ev-00116"],
+      "support_label": "supported"
+    }
+  ]
+}

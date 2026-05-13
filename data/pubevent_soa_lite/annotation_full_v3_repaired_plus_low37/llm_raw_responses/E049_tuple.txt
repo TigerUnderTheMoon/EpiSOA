@@ -1,0 +1,45 @@
+{
+  "event_id": "E049",
+  "tuples": [
+    {
+      "stakeholder": "网约车司机",
+      "opinion": "要求平台公开透明抽成比例，降低高抽成",
+      "sentiment": "negative",
+      "rationale": "司机收入因高抽成和阴阳账单受损，媒体调查和投诉平台均有大量证据",
+      "evidence_ids": ["ev-01370", "ev-01382", "ev-01385"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "交通运输部（监管机构）",
+      "opinion": "约谈聚合平台，要求规范经营、合理制定运营规则、加强与司机沟通协商",
+      "sentiment": "positive",
+      "rationale": "官方公告显示监管机构已采取行动促进行业规范",
+      "evidence_ids": ["ev-01386"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "网约车司机",
+      "opinion": "投诉平台存在‘阴阳账单’，实际抽成远高于显示比例",
+      "sentiment": "negative",
+      "rationale": "司机具体投诉案例显示乘客支付金额与司机端显示不一致",
+      "evidence_ids": ["ev-01369", "ev-01217"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "全国人大代表",
+      "opinion": "建议加强平台监管，明确抽成比例，提高司机收入",
+      "sentiment": "neutral",
+      "rationale": "人大代表在公开场合提出监管建议",
+      "evidence_ids": ["ev-01400"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "专家",
+      "opinion": "应进一步明确聚合平台与网约车公司的权责，压实平台责任",
+      "sentiment": "neutral",
+      "rationale": "专家观点呼吁厘清责任，保障各方权益",
+      "evidence_ids": ["ev-01390"],
+      "support_label": "supported"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "event_id": "E025",
+  "tuples": [
+    {
+      "stakeholder": "上海市东方医院",
+      "opinion": "立即暂停孙某新医生医疗工作，配合调查，并将依法依规处理",
+      "sentiment": "positive",
+      "rationale": "医院官方声明针对举报采取暂停职务和配合调查的整改措施",
+      "evidence_ids": ["ev-00602"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "举报人余女士",
+      "opinion": "实名举报孙某新医生私下传播病人麻醉裸照及手术信息，要求院方处理",
+      "sentiment": "negative",
+      "rationale": "举报人提供证据并接受媒体采访，明确表达对医生行为的反对",
+      "evidence_ids": ["ev-01777"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众",
+      "opinion": "对医生泄露患者隐私行为表示愤怒和谴责，认为严重侵犯患者权益",
+      "sentiment": "negative",
+      "rationale": "媒体报道引发广泛关注，舆论普遍批评医生行为",
+      "evidence_ids": ["ev-00608", "ev-00610"],
+      "support_label": "supported"
+    }
+  ]
+}

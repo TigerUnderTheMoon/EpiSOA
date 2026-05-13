@@ -1,0 +1,45 @@
+{
+  "event_id": "E034",
+  "tuples": [
+    {
+      "stakeholder": "成都市居民",
+      "opinion": "通过12345热线投诉燃气问题，包括气表计量和收费异常",
+      "sentiment": "negative",
+      "rationale": "官方通报显示4月以来收到1996件燃气投诉",
+      "evidence_ids": ["ev-00821", "ev-00815"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "成都市市场监督管理局",
+      "opinion": "通报燃气企业存在以估代抄、计费系统漏洞、服务差等问题",
+      "sentiment": "negative",
+      "rationale": "调查核实情况通报列出了具体问题",
+      "evidence_ids": ["ev-00822", "ev-01903"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "燃气企业",
+      "opinion": "被调查出存在违规估抄和计费周期随意变化等行为",
+      "sentiment": "negative",
+      "rationale": "官方通报明确指出了燃气企业的这些问题",
+      "evidence_ids": ["ev-00822", "ev-01903"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "市民",
+      "opinion": "质疑燃气企业服务质量和气表准确性",
+      "sentiment": "negative",
+      "rationale": "网友发帖质疑，官方通报也提及",
+      "evidence_ids": ["ev-00821", "ev-01902"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "成都市市场监督管理局",
+      "opinion": "将开展燃气问题专项整治行动",
+      "sentiment": "positive",
+      "rationale": "通报中表示将开展专项整治",
+      "evidence_ids": ["ev-00822"],
+      "support_label": "supported"
+    }
+  ]
+}

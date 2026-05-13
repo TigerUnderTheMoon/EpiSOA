@@ -1,0 +1,29 @@
+{
+  "event_id": "E024",
+  "tuples": [
+    {
+      "stakeholder": "李女士",
+      "opinion": "父亲在养老院被捆绑殴打，身心受到严重伤害，要求严惩护工并追究养老院责任",
+      "sentiment": "negative",
+      "rationale": "李女士在视频中愤怒指责养老院虐待其父，并展示父亲被绑伤痕和脑出血住院情况",
+      "evidence_ids": ["ev-01761", "ev-01762"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "曲沃县公安局",
+      "opinion": "对涉事护工处以行政拘留15日并处500元罚款，依法作出处罚并回应社会关切",
+      "sentiment": "neutral",
+      "rationale": "警情通报确认护工多次捆绑殴打老人，已依法处罚结案",
+      "evidence_ids": ["ev-00586", "ev-01760"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "乐昌镇政府",
+      "opinion": "此事已由民政局牵头、辖区派出所调查处理，正在依法办理中",
+      "sentiment": "neutral",
+      "rationale": "乐昌镇政府回应记者称正由多部门联合处理",
+      "evidence_ids": ["ev-01762", "ev-00584"],
+      "support_label": "supported"
+    }
+  ]
+}

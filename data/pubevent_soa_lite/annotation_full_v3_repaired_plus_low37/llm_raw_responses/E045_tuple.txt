@@ -1,0 +1,45 @@
+{
+  "event_id": "E045",
+  "tuples": [
+    {
+      "stakeholder": "武汉东湖风景区城管执法局",
+      "opinion": "对忽视潮汐点位预警、未及时清理车辆造成通行受阻的共享单车运营企业依法处以2000元罚款",
+      "sentiment": "negative",
+      "rationale": "ev-02051明确记载东湖风景区城管执法局因企业多次忽视潮汐点位预警、未及时清理车辆而开出罚单，系首起典型案例",
+      "evidence_ids": ["ev-02051"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "共享单车运营企业",
+      "opinion": "因多次忽视潮汐点位预警、未及时清理车辆被东湖风景区城管执法局处以2000元罚款",
+      "sentiment": "negative",
+      "rationale": "ev-02051指出企业忽视预警导致处罚，企业行为负面且被动接受处罚",
+      "evidence_ids": ["ev-02051"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "市民田女士",
+      "opinion": "共享单车总量减少但出行更加有序方便",
+      "sentiment": "positive",
+      "rationale": "ev-02066中田女士直接表示车变好骑了、出行有序方便，反映公众对治理成效的正面感受",
+      "evidence_ids": ["ev-02066"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "武汉东湖风景区城管执法局",
+      "opinion": "在东湖风景区试点启用共享单车‘电子围栏’技术，规范停车效果显著",
+      "sentiment": "positive",
+      "rationale": "ev-01138报道电子围栏已收到效果，体现政府积极采用技术手段治理乱象",
+      "evidence_ids": ["ev-01138"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "共享单车运营企业",
+      "opinion": "参与东湖高新区城管局组织的共治推进会，配合政府强化车辆停放秩序",
+      "sentiment": "neutral",
+      "rationale": "ev-02065提到东湖高新区城管局组织共享单车运营企业开展工作推进会，企业参与共治",
+      "evidence_ids": ["ev-02065"],
+      "support_label": "supported"
+    }
+  ]
+}

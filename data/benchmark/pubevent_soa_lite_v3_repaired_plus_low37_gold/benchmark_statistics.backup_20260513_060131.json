@@ -1,0 +1,111 @@
+{
+  "source_files": {
+    "events": "data\\releases\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\events.jsonl",
+    "evidence": "data\\releases\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\evidence.jsonl",
+    "tuples": "data\\releases\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\gold_tuples.jsonl",
+    "chains": "data\\releases\\pubevent_soa_lite_v3_repaired_plus_low37_gold\\gold_event_chains.jsonl"
+  },
+  "input_counts": {
+    "events": 50,
+    "event_ids": 50,
+    "evidence": 1767,
+    "tuples": 188,
+    "chains": 138
+  },
+  "task_counts": {
+    "tuple_identification": 50,
+    "evidence_support_classification": 736,
+    "chain_construction": 50
+  },
+  "evidence_support_label_distribution": {
+    "supported": 334,
+    "not_enough_info": 376,
+    "partially_supported": 26
+  },
+  "negative_sampling": {
+    "negative_per_tuple": 2,
+    "seed": 42,
+    "strategy": "same-event evidence not listed in tuple.evidence_ids"
+  },
+  "validation": {
+    "missing_tuple_evidence_refs_count": 0,
+    "missing_chain_evidence_refs_count": 0,
+    "missing_tuple_evidence_refs": [],
+    "missing_chain_evidence_refs": []
+  },
+  "splits": {
+    "train": [
+      "E001",
+      "E003",
+      "E004",
+      "E005",
+      "E010",
+      "E011",
+      "E012",
+      "E013",
+      "E014",
+      "E017",
+      "E019",
+      "E020",
+      "E021",
+      "E022",
+      "E023",
+      "E024",
+      "E025",
+      "E026",
+      "E027",
+      "E028",
+      "E029",
+      "E030",
+      "E031",
+      "E032",
+      "E033",
+      "E034",
+      "E036",
+      "E037",
+      "E038",
+      "E039",
+      "E040",
+      "E042",
+      "E043",
+      "E044",
+      "E045",
+      "E046",
+      "E047",
+      "E048",
+      "E049",
+      "E050"
+    ],
+    "dev": [
+      "E006",
+      "E007",
+      "E009",
+      "E015",
+      "E035"
+    ],
+    "test": [
+      "E002",
+      "E008",
+      "E016",
+      "E018",
+      "E041"
+    ]
+  },
+  "split_row_counts": {
+    "tuple_identification": {
+      "train": 40,
+      "dev": 5,
+      "test": 5
+    },
+    "evidence_support_classification": {
+      "train": 599,
+      "dev": 63,
+      "test": 74
+    },
+    "chain_construction": {
+      "train": 40,
+      "dev": 5,
+      "test": 5
+    }
+  }
+}

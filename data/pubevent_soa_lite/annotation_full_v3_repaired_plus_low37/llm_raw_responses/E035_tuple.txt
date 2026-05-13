@@ -1,0 +1,37 @@
+{
+  "event_id": "E035",
+  "tuples": [
+    {
+      "stakeholder": "余杭区居民",
+      "opinion": "怀疑自来水异味是由污水进入管网所致，对供水安全表示担忧",
+      "sentiment": "negative",
+      "rationale": "市民直接反映自来水气味发臭并怀疑污水进入管网",
+      "evidence_ids": ["ev-00835", "ev-01930"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "余杭区人民政府",
+      "opinion": "发布情况通报，说明异味是由藻类厌氧降解产生的硫醚类物质所致，已启动应急预案并切换水源",
+      "sentiment": "neutral",
+      "rationale": "政府正式通报初步调查结果和应急措施",
+      "evidence_ids": ["ev-01911", "ev-00839"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "仁和水厂",
+      "opinion": "发现水质嗅味指标异常后立即启动应急预案并切换水源",
+      "sentiment": "neutral",
+      "rationale": "水厂主动发现异常并采取应急响应措施",
+      "evidence_ids": ["ev-00839", "ev-01924"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "杭州余杭水务控股集团有限公司",
+      "opinion": "声明自来水异味系水源异常所致，非污水进入管网，除异味外水质指标正常",
+      "sentiment": "neutral",
+      "rationale": "水务公司对外澄清异味原因并说明水质安全",
+      "evidence_ids": ["ev-00835"],
+      "support_label": "supported"
+    }
+  ]
+}

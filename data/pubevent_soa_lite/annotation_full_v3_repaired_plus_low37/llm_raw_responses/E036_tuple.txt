@@ -1,0 +1,37 @@
+{
+  "event_id": "E036",
+  "tuples": [
+    {
+      "stakeholder": "滁州市生态环境局",
+      "opinion": "发布关于滁河水质异常情况的通报，承认污染并组织调查",
+      "sentiment": "negative",
+      "rationale": "官方通报确认水质污染和鱼虾死亡，启动调查，回应公众关切",
+      "evidence_ids": ["ev-00859", "ev-00857", "ev-00858"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "当地居民",
+      "opinion": "怀疑污染与上游来水有关",
+      "sentiment": "negative",
+      "rationale": "媒体报道居民认为污染可能来自上游，表达担忧",
+      "evidence_ids": ["ev-00862"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "滁州市人民政府",
+      "opinion": "发布处置进展通报，说明污染源于火灾并采取筑坝截污等措施",
+      "sentiment": "neutral",
+      "rationale": "官方通报详细说明污染源和应对措施，体现政府行动",
+      "evidence_ids": ["ev-01933", "ev-01942"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "中央生态环境保护督察",
+      "opinion": "指出全椒县在处置滁河水污染事故时胡乱作为、性质恶劣",
+      "sentiment": "negative",
+      "rationale": "中央督察报告批评地方处置方式，认为造成严重后果和负面舆情",
+      "evidence_ids": ["ev-01931"],
+      "support_label": "supported"
+    }
+  ]
+}

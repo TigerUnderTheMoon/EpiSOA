@@ -1,0 +1,21 @@
+{
+  "event_id": "E005",
+  "tuples": [
+    {
+      "stakeholder": "虹凉馨苑小区居民",
+      "opinion": "强烈反对物业费三年连续涨价方案",
+      "sentiment": "negative",
+      "rationale": "居民在协调会上激烈争吵，拍桌子表示反对，情绪愤怒。",
+      "evidence_ids": ["ev-00096", "ev-00097"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "小区物业公司",
+      "opinion": "提出自2026年起连续三年上调物业费",
+      "sentiment": "neutral",
+      "rationale": "物业公司是涨价方案的提出方，引发居民争议。",
+      "evidence_ids": ["ev-00096"],
+      "support_label": "supported"
+    }
+  ]
+}

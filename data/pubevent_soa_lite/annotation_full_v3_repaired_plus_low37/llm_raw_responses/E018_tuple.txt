@@ -1,0 +1,37 @@
+{
+  "event_id": "E018",
+  "tuples": [
+    {
+      "stakeholder": "暨南大学学生",
+      "opinion": "反映宿舍霉菌遍布、甲醛超标，导致皮肤过敏、头晕等健康问题，要求学校解决宿舍环境问题",
+      "sentiment": "negative",
+      "rationale": "多位学生在社交媒体上揭露宿舍环境恶劣，并出现健康问题，表达了对学校处理不力的不满",
+      "evidence_ids": ["ev-01658", "ev-01654", "ev-00439"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "暨南大学党委宣传部",
+      "opinion": "表示学校已进行走访调查并收集意见，正在处理宿舍问题",
+      "sentiment": "neutral",
+      "rationale": "校方回应称已了解情况并着手处理，但未给出具体解决方案",
+      "evidence_ids": ["ev-00437", "ev-01653"],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "暨南大学校方",
+      "opinion": "建议学生暂时克服困难或回家等待，无法全面满足更换设施的请求",
+      "sentiment": "negative",
+      "rationale": "校方反馈表示当前无法提供解决方案，学生感到失望",
+      "evidence_ids": ["ev-01651"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "媒体",
+      "opinion": "指出暨南大学宿舍问题暴露管理困境，质疑校方应对不力",
+      "sentiment": "negative",
+      "rationale": "媒体报道强调学生的诉求没有得到及时响应，存在管理漏洞",
+      "evidence_ids": ["ev-00445"],
+      "support_label": "supported"
+    }
+  ]
+}

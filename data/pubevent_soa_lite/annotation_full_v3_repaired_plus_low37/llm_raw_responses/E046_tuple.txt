@@ -1,0 +1,13 @@
+{
+  "event_id": "E046",
+  "tuples": [
+    {
+      "stakeholder": "工业和信息化部",
+      "opinion": "通报62款App及SDK存在侵害用户权益行为，要求相关企业按有关规定进行整改",
+      "sentiment": "negative",
+      "rationale": "工信部依据相关法规对违规App及SDK进行通报并责令整改，体现对侵害用户权益行为的负面态度",
+      "evidence_ids": ["ev-01159"],
+      "support_label": "supported"
+    }
+  ]
+}

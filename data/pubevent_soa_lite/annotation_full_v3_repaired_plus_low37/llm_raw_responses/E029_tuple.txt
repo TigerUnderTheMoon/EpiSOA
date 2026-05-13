@@ -1,0 +1,29 @@
+{
+  "event_id": "E029",
+  "tuples": [
+    {
+      "stakeholder": "广西医科大学第一附属医院",
+      "opinion": "医院发布后续情况通报，说明坠楼经过、抢救及配合公安机关调查",
+      "sentiment": "neutral",
+      "rationale": "多篇新闻和医院官网转载了医院发布的正式通报",
+      "evidence_ids": ["ev-00691", "ev-00692", "ev-00693", "ev-00694", "ev-00695", "ev-00696", "ev-00697", "ev-00699", "ev-00700", "ev-01832", "ev-01833", "ev-01837"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "社会公众",
+      "opinion": "对坠楼事件持续关注，对事件原因存在质疑",
+      "sentiment": "negative",
+      "rationale": "媒体报道指出事件引发社会广泛关注，且存在疑问",
+      "evidence_ids": ["ev-00695", "ev-01846"],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "广西医科大学第一附属医院",
+      "opinion": "医院职工在事件发生时冲出科室试图拉住坠楼男子",
+      "sentiment": "positive",
+      "rationale": "医院通报中明确描述了职工尝试救援的行为",
+      "evidence_ids": ["ev-00699", "ev-01837"],
+      "support_label": "supported"
+    }
+  ]
+}

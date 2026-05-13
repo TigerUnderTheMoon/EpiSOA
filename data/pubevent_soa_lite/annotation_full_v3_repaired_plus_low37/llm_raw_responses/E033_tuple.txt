@@ -1,0 +1,45 @@
+{
+  "event_id": "E033",
+  "tuples": [
+    {
+      "stakeholder": "国务院事故调查组",
+      "opinion": "发布江西新余佳乐苑临街店铺‘1·24’特别重大火灾事故调查报告，认定事故责任，提出整改措施",
+      "sentiment": "negative",
+      "rationale": "官方调查报告明确事故责任和整改要求",
+      "evidence_ids": ["ev-00795", "ev-00797"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "江西省政府",
+      "opinion": "部署落实新余‘1·24’特别重大火灾事故问题整改，要求加强安全生产和消防安全工作",
+      "sentiment": "neutral",
+      "rationale": "省政府会议纪要提及落实整改部署",
+      "evidence_ids": ["ev-00800"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "新余市消防救援支队",
+      "opinion": "分批曝光存在风险隐患的单位，推动全社会共同参与火灾防治",
+      "sentiment": "positive",
+      "rationale": "新闻文章报道消防支队曝光隐患行动",
+      "evidence_ids": ["ev-00805"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众（业主）",
+      "opinion": "担忧消防安全，通过投诉举报渠道反映物业领域问题",
+      "sentiment": "negative",
+      "rationale": "官方公告公开征集物业领域问题线索，显示公众关注",
+      "evidence_ids": ["ev-00807", "ev-00810", "ev-00811"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "国务院评估组",
+      "opinion": "对江西新余‘1·24’特大火灾事故整改和防范措施落实情况进行评估",
+      "sentiment": "neutral",
+      "rationale": "评估报告由应急部等七部门专家组成，评估整改落实情况",
+      "evidence_ids": ["ev-00796", "ev-00801"],
+      "support_label": "supported"
+    }
+  ]
+}

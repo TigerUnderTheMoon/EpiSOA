@@ -1,0 +1,29 @@
+{
+  "event_id": "E021",
+  "tuples": [
+    {
+      "stakeholder": "无锡市医保局",
+      "opinion": "对骗保问题全面彻查并取消医院医保定点资格",
+      "sentiment": "positive",
+      "rationale": "官方通报已立案、彻查，并于9月22日取消医保定点资格，公安机关刑事立案。",
+      "evidence_ids": ["ev-00502", "ev-01714"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "国家医保局",
+      "opinion": "通报骗保案细节，强调零容忍并派出飞行检查组",
+      "sentiment": "positive",
+      "rationale": "国家医保局通报涉案金额2228.4万元（其中欺诈骗保1179.2万元），派出飞行检查组，表达严厉打击态度。",
+      "evidence_ids": ["ev-01712", "ev-00501"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "举报医生（朱医生）",
+      "opinion": "实名举报无锡虹桥医院伪造病历骗保",
+      "sentiment": "negative",
+      "rationale": "举报者朱医生向媒体反映医院系统中存在疑似伪造影像病历，引发调查。",
+      "evidence_ids": ["ev-01722"],
+      "support_label": "supported"
+    }
+  ]
+}

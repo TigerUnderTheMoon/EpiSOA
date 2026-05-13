@@ -1,0 +1,21 @@
+{
+  "event_id": "E030",
+  "tuples": [
+    {
+      "stakeholder": "深圳市人民检察院",
+      "opinion": "部分医院线上及自助挂号机未实现无障碍功能，导致残障人士、老年人无法便捷就诊，因此启动公益诉讼",
+      "sentiment": "negative",
+      "rationale": "检察院收到线索并调查，发现医院无障碍服务缺失，从而发起公益诉讼",
+      "evidence_ids": ["ev-00714", "ev-00711"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "残障人士和老年人群体",
+      "opinion": "因不会使用智能手机或存在视力障碍，无法通过线上或自助挂号机预约挂号，面临就医困难",
+      "sentiment": "negative",
+      "rationale": "证据中直接描述了该群体在就医挂号中遇到的障碍",
+      "evidence_ids": ["ev-00714", "ev-00711"],
+      "support_label": "supported"
+    }
+  ]
+}

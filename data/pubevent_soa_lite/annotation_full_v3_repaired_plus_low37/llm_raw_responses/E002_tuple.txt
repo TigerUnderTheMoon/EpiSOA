@@ -1,0 +1,29 @@
+{
+  "event_id": "E002",
+  "tuples": [
+    {
+      "stakeholder": "小湾村、暮二村居民",
+      "opinion": "居民积极配合城中村改造，实现100%签约，入住新房的愿望得以实现。",
+      "sentiment": "positive",
+      "rationale": "报道称最后一户签约完成，所有居民签约，愿望全部实现。",
+      "evidence_ids": ["ev-00041"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "浦东新区唐镇人民政府",
+      "opinion": "政府高效推进改造项目，提前3天实现100%居民征收签约，启动安置房建设并提供2500余套房源，同时制定被征地人员就业和社会保障方案。",
+      "sentiment": "positive",
+      "rationale": "官方报道显示签约完成、安置房启动；官方公告显示就业保障方案。",
+      "evidence_ids": ["ev-00042", "ev-00046", "ev-00047", "ev-00048"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "浦东新区人民政府",
+      "opinion": "区政府批复唐镇小湾村暮二村等地块'城中村'改造项目实施方案，并公告被征地人员就业和社会保障方案，支持项目推进。",
+      "sentiment": "positive",
+      "rationale": "政府批复文件和就业保障公告证实区政府支持态度。",
+      "evidence_ids": ["ev-00049", "ev-00046"],
+      "support_label": "supported"
+    }
+  ]
+}

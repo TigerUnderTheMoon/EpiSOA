@@ -1,0 +1,37 @@
+{
+  "event_id": "E038",
+  "tuples": [
+    {
+      "stakeholder": "国务院事故调查组",
+      "opinion": "认定事故是因相关企业违规经营配送不合格气瓶及烧烤店违规操作导致，要求依法严肃追责",
+      "sentiment": "negative",
+      "rationale": "调查组官方报告明确事故原因与责任划分，指向企业和烧烤店违规",
+      "evidence_ids": ["ev-00935", "ev-00933"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "富洋烧烤店",
+      "opinion": "在操作间液化石油气泄漏后违规处置，引发爆炸，应承担主要直接责任",
+      "sentiment": "negative",
+      "rationale": "调查认定烧烤店使用中违规操作发生泄漏爆炸，证据充分",
+      "evidence_ids": ["ev-01976", "ev-00935"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "银川市政府",
+      "opinion": "事故后迅速开展救援和善后，但暴露出监管不足，需加强燃气安全监管",
+      "sentiment": "mixed",
+      "rationale": "官方通报提到救援行动，但调查报告指出监管漏洞，要求整改",
+      "evidence_ids": ["ev-01982", "ev-00935"],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "公众",
+      "opinion": "对重大人员伤亡表示震惊和悲痛，呼吁严惩责任方并彻底排查燃气安全隐患",
+      "sentiment": "negative",
+      "rationale": "媒体报道及社交评论表达了对事故的震惊和对安全改进的呼声",
+      "evidence_ids": ["ev-01979"],
+      "support_label": "supported"
+    }
+  ]
+}

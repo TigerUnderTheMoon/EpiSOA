@@ -1,0 +1,21 @@
+{
+  "event_id": "E015",
+  "tuples": [
+    {
+      "stakeholder": "肥乡区委宣传部（官方微信公众号“微观肥乡”）",
+      "opinion": "通报案件情况，称肥乡区高度重视，公安机关立即侦破，涉案犯罪嫌疑人全部抓获并依法采取刑事强制措施",
+      "sentiment": "neutral",
+      "rationale": "官方通报直接来自肥乡区委宣传部，表达了对案件的高度重视和迅速行动",
+      "evidence_ids": ["ev-00331", "ev-00326", "ev-00329", "ev-00330", "ev-00333", "ev-00347"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "肥乡区公安机关",
+      "opinion": "立即开展侦破工作，于3月11日全部抓获涉案犯罪嫌疑人并依法采取刑事强制措施",
+      "sentiment": "neutral",
+      "rationale": "官方通报明确指出公安机关立即侦破并抓获全部犯罪嫌疑人，体现了执法行动",
+      "evidence_ids": ["ev-00331", "ev-00326", "ev-00329", "ev-00330", "ev-00333"],
+      "support_label": "supported"
+    }
+  ]
+}

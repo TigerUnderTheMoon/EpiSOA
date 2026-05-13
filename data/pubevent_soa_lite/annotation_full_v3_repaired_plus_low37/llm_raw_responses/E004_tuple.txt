@@ -1,0 +1,21 @@
+{
+  "event_id": "E004",
+  "tuples": [
+    {
+      "stakeholder": "横沙社区",
+      "opinion": "社区通过投票决议向黄埔区政府申请行政处理留守户房屋拆迁补偿安置争议，以推动旧改进程",
+      "sentiment": "positive",
+      "rationale": "多篇新闻报道确认横沙社区投票通过了申请行政处理的决议，展现社区推动改造的积极态度",
+      "evidence_ids": ["ev-01460", "ev-00081"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "黄埔区政府",
+      "opinion": "黄埔区政府发布了横沙旧村改造通告，确认改造范围内房屋权属人同意补偿方案，为行政处理提供合法依据",
+      "sentiment": "positive",
+      "rationale": "黄埔区政府官方通告显示其已批准改造方案并公告，支持旧改项目的推进",
+      "evidence_ids": ["ev-00080"],
+      "support_label": "supported"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "event_id": "E003",
+  "tuples": [
+    {
+      "stakeholder": "原业主",
+      "opinion": "要求开发商支付拖欠的过渡安置费，表达对长期未收到费用的不满和担忧",
+      "sentiment": "negative",
+      "rationale": "多份证据显示原业主反映22年的过渡安置费未支付，项目停工（ev-00056, ev-00060, ev-01435）",
+      "evidence_ids": ["ev-00056", "ev-00060", "ev-01435"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "深圳新华城房地产有限公司",
+      "opinion": "作为开发商未按约支付过渡安置费，导致项目停工，面临资金压力",
+      "sentiment": "negative",
+      "rationale": "业主方证据指出开发商未支付过渡费（ev-00056, ev-00060），且项目因资金问题停滞（ev-01435）",
+      "evidence_ids": ["ev-00056", "ev-00060", "ev-01435"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "罗湖区翠竹街道办事处",
+      "opinion": "回应业主诉求，通过协调引入新合作方盘活项目，推进过渡费支付和项目复工",
+      "sentiment": "neutral",
+      "rationale": "官方证据显示街道协调签署盘活合作协议（ev-01440），并发布用地批复（ev-01436），逐步解决欠费问题",
+      "evidence_ids": ["ev-01440", "ev-01436"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "中信城开、中信金融资产联合体",
+      "opinion": "作为新的合作主体介入金钻豪园项目，签署合作协议以盘活项目",
+      "sentiment": "positive",
+      "rationale": "ev-01440明确提及成功引入该联合体作为合作主体，标志着项目取得突破性进展",
+      "evidence_ids": ["ev-01440"],
+      "support_label": "supported"
+    }
+  ]
+}

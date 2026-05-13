@@ -90,3 +90,16 @@ def test_source_classification_rules():
     assert filter_script.classify_source_type("example.gov.cn", "", "", "news")[0] == "official"
     assert filter_script.classify_source_type("m.thepaper.cn", "", "", "news")[0] == "news"
     assert filter_script.classify_source_type("city-bbs.example.com", "", "", "news")[0] == "forum"
+
+
+def test_source_type_mapping():
+    assert filter_script.map_source_type("official", "example.gov.cn", "", "") == "official"
+    assert filter_script.map_source_type("news", "thepaper.cn", "", "") == "mainstream_news"
+    assert filter_script.map_source_type("public_social", "weibo.com", "", "") == "social_media"
+    assert filter_script.map_source_type("forum", "bbs.example.com", "", "") == "forum"
+    assert filter_script.map_source_type("public_interaction", "liuyan.people.com.cn", "", "") == "public_interaction"
+    assert filter_script.map_source_type("public_web", "gov.cn", "", "") == "official"
+    assert filter_script.map_source_type("public_web", "thepaper.cn", "", "") == "mainstream_news"
+    assert filter_script.map_source_type("public_web", "example.com", "头条", "") == "social_media"
+    assert filter_script.map_source_type("public_web", "example.com", "新浪投诉", "") == "social_media"
+    assert filter_script.map_source_type("public_web", "unknown.com", "", "") == "public_web"

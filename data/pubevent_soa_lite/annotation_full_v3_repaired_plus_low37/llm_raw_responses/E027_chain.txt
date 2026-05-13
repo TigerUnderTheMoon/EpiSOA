@@ -1,0 +1,23 @@
+{
+  "event_id": "E027",
+  "event_chains": [
+    {
+      "event_chain": [
+        "Police discover医托 fraud ring operating around Shanghai hospitals",
+        "Victims report being scammed by gang members posing as hospital insiders",
+        "Police arrest 40 suspects, close down the operation",
+        "Prosecutor's office handles the case, victims seek compensation"
+      ],
+      "evidence_ids": ["ev-01814", "ev-00643", "ev-00642", "ev-01812"]
+    },
+    {
+      "event_chain": [
+        "Gang targets patients at hospital outpatient areas",
+        "Media exposes the scam methods and victim stories",
+        "Police launch investigation and raid the gang's hideout",
+        "Legal proceedings initiated; public awareness raised on prevention"
+      ],
+      "evidence_ids": ["ev-01822", "ev-00645", "ev-01821", "ev-01814"]
+    }
+  ]
+}

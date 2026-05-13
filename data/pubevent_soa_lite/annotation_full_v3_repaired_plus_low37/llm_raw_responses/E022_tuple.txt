@@ -1,0 +1,29 @@
+{
+  "event_id": "E022",
+  "tuples": [
+    {
+      "stakeholder": "武当山特区卫健局、市场监管局、公安局",
+      "opinion": "依法立案并开展全面调查，感谢公众关注，承诺公布结果",
+      "sentiment": "neutral",
+      "rationale": "官方通报直接表明已立案调查并感谢公众",
+      "evidence_ids": ["ev-00521", "ev-00517", "ev-00520"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "武当山旅游经济特区公安局局长蓝侠",
+      "opinion": "药王谷中医馆被立案侦查，初步符合虚假广告罪，案件复杂取证量大",
+      "sentiment": "neutral",
+      "rationale": "警方负责人透露案件性质和调查难点",
+      "evidence_ids": ["ev-01738"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广大网友",
+      "opinion": "关注'药王谷抗癌中心调查'事件",
+      "sentiment": "neutral",
+      "rationale": "官方通报中致谢网友关注，表明公众关注是事件推进因素",
+      "evidence_ids": ["ev-00521"],
+      "support_label": "supported"
+    }
+  ]
+}

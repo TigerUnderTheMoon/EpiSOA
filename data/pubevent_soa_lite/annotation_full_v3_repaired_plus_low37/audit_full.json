@@ -1,5 +1,5 @@
 {
-  "audit_timestamp": "2026-05-12T21:53:35Z",
+  "audit_timestamp": "2026-05-12T22:01:24Z",
   "canonical_evidence_file": "data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.normalized.jsonl",
   "gold_tuple_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_tuples.jsonl",
   "gold_chain_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_event_chains.jsonl",

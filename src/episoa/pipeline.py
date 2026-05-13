@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml
 
-from episoa.attribution.tuple_generator import generate_tuples
+from episoa.attribution.schema_attributor import run_schema_attribution
 from episoa.collector.cfsm_collector import collect_evidence
 from episoa.config import api_config_status, load_config, print_api_config_status
 from episoa.data.loader import read_jsonl, read_typed_jsonl, write_jsonl
@@ -20,6 +20,7 @@ from episoa.evaluation.evaluate_main import evaluate_main
 from episoa.evaluation.evaluate_retrieval import evaluate_retrieval
 from episoa.evaluation.evaluate_verifier import evaluate_verifier
 from episoa.graph.graph_builder import build_graph
+from episoa.llm.client import OpenAICompatibleClient
 from episoa.retrieval.event_chain_retriever import retrieve_event_chains
 from episoa.verifier.faithfulness_verifier import verify_tuples
 
@@ -43,10 +44,38 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
     evidence = read_typed_jsonl(config.data["evidence_path"], EvidenceRecord)
     gold = read_typed_jsonl(config.data["gold_tuples_path"], GoldTuple)
     gold_chains = read_typed_jsonl(config.data["gold_event_chains_path"], GoldEventChain)
+
     collected = collect_evidence(events, evidence)
     graph = build_graph(events, collected)
     paths = retrieve_event_chains(events, collected, int(config.retrieval.get("top_k", 5)))
-    candidates = generate_tuples(paths, collected)
+
+    # Use LLM-based schema attribution instead of simple tuple generator
+    llm_client = OpenAICompatibleClient(
+        api_key=config.model["api_key"],
+        base_url=config.model["base_url"],
+        model_name=config.model.get("llm_model", "deepseek-v4-flash"),
+        temperature=config.model.get("temperature", 0.1),
+        max_tokens=config.model.get("max_tokens", 3000),
+        timeout_seconds=config.model.get("timeout_seconds", 60),
+        max_retries=config.model.get("max_retries", 2),
+    )
+
+    attribution_summary = run_schema_attribution(
+        events=[e.model_dump() for e in events],
+        evidence_rows=[e.model_dump() for e in collected],
+        chains=paths,
+        graph_nodes=[],
+        llm_client=llm_client,
+        model_name=config.model.get("llm_model", "deepseek-v4-flash"),
+        output_dir=run_dir,
+        max_evidence_per_event=12,
+    )
+
+    # Convert attribution output to PredictionTuple format
+    candidates = _attribution_to_predictions(
+        read_jsonl(run_dir / "candidate_soa_tuples.jsonl")
+    )
+
     verified = verify_tuples(candidates, collected, float(config.verifier.get("threshold", 0.75)))
     metrics = evaluate_main(gold, verified)
     retrieval_metrics = evaluate_retrieval([item.model_dump() for item in gold_chains], paths)
@@ -60,15 +89,37 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
     _write_csv(run_dir / "retrieval_results.csv", "Method", "EpiSOA", retrieval_metrics)
     _write_csv(run_dir / "verifier_results.csv", "Method", "EpiSOA", verifier_metrics)
     write_jsonl(run_dir / "case_studies.jsonl", [item.model_dump() for item in verified[:3]])
+
     summary = {
         "status": "completed",
         "num_events": len(events),
         "num_evidence": len(evidence),
         "num_predictions": len(verified),
+        "attribution_summary": attribution_summary,
         "metrics": metrics,
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
+
+
+def _attribution_to_predictions(attribution_results: list[dict]) -> list[PredictionTuple]:
+    """Convert schema attribution output to PredictionTuple format."""
+    predictions: list[PredictionTuple] = []
+    for row in attribution_results:
+        predictions.append(
+            PredictionTuple(
+                event_id=row.get("event_id", ""),
+                stakeholder=row.get("stakeholder", ""),
+                opinion=row.get("opinion", ""),
+                sentiment=row.get("sentiment", "unknown"),
+                rationale=row.get("rationale", ""),
+                evidence_ids=row.get("evidence_ids", []),
+                support_label=row.get("support_status", "candidate_unclear").replace("candidate_", ""),
+                support_score=row.get("confidence", 0.5),
+                verified=False,
+            )
+        )
+    return predictions
 
 
 def run_ablation_pipeline(config_path: str | Path) -> dict:

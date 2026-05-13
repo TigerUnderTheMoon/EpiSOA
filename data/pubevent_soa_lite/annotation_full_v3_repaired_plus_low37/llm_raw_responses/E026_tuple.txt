@@ -1,0 +1,29 @@
+{
+  "event_id": "E026",
+  "tuples": [
+    {
+      "stakeholder": "邓州市卫生健康委员会",
+      "opinion": "初步认定这是一起患者未能真实说明病情和医疗人员漏诊误诊造成的医疗事故，将依法处理相关责任人。",
+      "sentiment": "negative",
+      "rationale": "官方通报确认医疗事故并承诺追责，表达了对事件的负面定性。",
+      "evidence_ids": ["ev-01799", "ev-01805", "ev-01792"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "邓州市卫生健康委员会",
+      "opinion": "成立工作专案组，调查事故原因并追究相关责任。",
+      "sentiment": "neutral",
+      "rationale": "官方采取调查行动，回应社会关切，态度中立。",
+      "evidence_ids": ["ev-00627"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众和媒体",
+      "opinion": "质疑邓州市人民医院误诊行为，要求医院承担责任并公开事件真相。",
+      "sentiment": "negative",
+      "rationale": "媒体报道和公众讨论强烈谴责医院误诊，要求问责。",
+      "evidence_ids": ["ev-00623", "ev-00626"],
+      "support_label": "supported"
+    }
+  ]
+}

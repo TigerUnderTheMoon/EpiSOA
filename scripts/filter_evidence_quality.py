@@ -46,8 +46,39 @@ NEWS_DOMAINS = (
     "163.com",
     "sohu.com",
 )
+MAINSTREAM_NEWS_DOMAINS = (
+    "thepaper.cn",
+    "news.qq.com",
+    "chinanews.com",
+    "chinanews.com.cn",
+    "gmw.cn",
+    "xinhuanet.com",
+    "people.com.cn",
+    "163.com",
+    "sohu.com",
+    "sina.com.cn",
+    "ifeng.com",
+    "cctv.com",
+    "xinhuanet.com.cn",
+    "workercn.cn",
+    "youth.cn",
+    "eastday.com",
+    "stcn.com",
+)
 PUBLIC_INTERACTION_DOMAINS = ("liuyan.people.com.cn",)
 PUBLIC_SOCIAL_DOMAINS = ("weibo.com", "m.weibo.cn", "douyin.com", "xiaohongshu.com", "xhslink.com")
+SOCIAL_MEDIA_PLATFORMS = (
+    "头条",
+    "新浪投诉",
+    "黑猫投诉",
+    "微博",
+    "抖音",
+    "小红书",
+    "快手",
+    "知乎",
+    "B站",
+    "bilibili",
+)
 TRUSTED_TEXT_HINTS = ["人民政府", "政府办公室", "住建局", "教育局", "卫健委", "生态环境局", "融媒体", "日报", "晚报", "新闻网"]
 OFFICIAL_TEXT_HINTS = ["住建局", "自然资源局", "发改委", "区政府", "街道办", "人民政府", "政府办公室", "教育局", "卫健委"]
 INTERACTION_TEXT_HINTS = ["问政", "留言板", "领导留言", "投诉建议", "人民网领导留言板", "办理回复", "处理结果"]
@@ -66,7 +97,7 @@ TARGET_RECOLLECTION_TERMS = [
     "最新进展",
 ]
 DEFAULT_SITE_SCOPE = ["gov.cn", "liuyan.people.com.cn", "people.com.cn", "地方政府官网", "地方住建局官网", "地方问政平台"]
-INTERACTION_SOURCES = {"public_interaction", "forum", "public_social"}
+INTERACTION_SOURCES = {"public_interaction", "forum", "social_media"}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -127,17 +158,18 @@ def score_evidence(item: dict[str, Any], event_terms: list[str], duplicate_keys:
     platform = str(item.get("platform") or "")
     domain = extract_domain(url, platform)
     classified_source, classification_reason = classify_source_type(domain, platform, text, original_source)
+    source_type = map_source_type(classified_source, domain, platform, text)
     flags: list[str] = []
     score = 0.0
 
     score = _add(score, flags, bool(url), 0.12, "has_url")
     score = _add(score, flags, bool(text.strip()) and len(text.strip()) > 80, 0.16, "text_len_gt_80")
-    score = _add(score, flags, is_trusted_platform(platform, domain, text, classified_source), 0.14, "trusted_or_local_media")
+    score = _add(score, flags, is_trusted_platform(platform, domain, text, source_type), 0.14, "trusted_or_local_media")
     score = _add(score, flags, contains_any(text, event_terms), 0.12, "contains_event_terms")
     score = _add(score, flags, contains_any(text, SUBJECT_TERMS), 0.12, "contains_subject_terms")
     score = _add(score, flags, contains_any(text, ACTION_TERMS), 0.12, "contains_action_terms")
     score = _add(score, flags, has_time_info(item, text), 0.10, "has_time_info")
-    score = _add(score, flags, classified_source in {"official", "forum", "public_social", "public_interaction"}, 0.08, f"source_weight_{classified_source}")
+    score = _add(score, flags, source_type in {"official", "forum", "social_media", "public_interaction"}, 0.08, f"source_weight_{source_type}")
 
     if is_low_quality_domain(domain):
         score -= 0.25
@@ -158,6 +190,7 @@ def score_evidence(item: dict[str, Any], event_terms: list[str], duplicate_keys:
     output = dict(item)
     output["original_source"] = original_source
     output["source"] = classified_source
+    output["source_type"] = source_type
     output["source_classification_reason"] = classification_reason
     output["quality_score"] = round(max(0.0, min(1.0, score)), 4)
     output["quality_flags"] = flags
@@ -182,6 +215,33 @@ def classify_source_type(domain: str, platform: str, text: str, original_source:
     if any(domain == item or domain.endswith("." + item) for item in NEWS_DOMAINS):
         return "news", "news domain"
     return "public_web", "default public web"
+
+
+def map_source_type(classified_source: str, domain: str, platform: str, text: str) -> str:
+    domain = domain.lower()
+    joined = f"{platform} {domain} {text}".lower()
+
+    source_mapping = {
+        "official": "official",
+        "news": "mainstream_news",
+        "public_social": "social_media",
+        "forum": "forum",
+        "public_interaction": "public_interaction",
+    }
+
+    if classified_source in source_mapping:
+        return source_mapping[classified_source]
+
+    if classified_source == "public_web":
+        if domain.endswith("gov.cn"):
+            return "official"
+        if any(domain == item or domain.endswith("." + item) for item in MAINSTREAM_NEWS_DOMAINS):
+            return "mainstream_news"
+        if contains_any(joined, SOCIAL_MEDIA_PLATFORMS):
+            return "social_media"
+        return "public_web"
+
+    return "public_web"
 
 
 def select_evidence(
@@ -240,7 +300,7 @@ def select_evidence(
 
 
 def source_priority(source: str) -> int:
-    return {"official": 5, "public_interaction": 4, "forum": 3, "public_social": 2, "news": 1}.get(source, 0)
+    return {"official": 5, "public_interaction": 4, "forum": 3, "social_media": 2, "mainstream_news": 1}.get(source, 0)
 
 
 def build_report(
@@ -281,6 +341,8 @@ def build_report(
         "dropped_by_domain_limit": sum(1 for reason in drop_reasons.values() if reason == "domain_limit"),
         "event_coverage_before": before_counts,
         "event_coverage_after": after_counts,
+        "source_type_distribution_before": dict(Counter(str(item.get("source_type") or "unknown") for item in scored)),
+        "source_type_distribution_after": dict(Counter(str(item.get("source_type") or "unknown") for item in selected)),
         "source_distribution_before": dict(Counter(str(item.get("source") or "unknown") for item in scored)),
         "source_distribution_after": dict(Counter(str(item.get("source") or "unknown") for item in selected)),
         "top_domains_before": top_domains(scored),
@@ -290,21 +352,21 @@ def build_report(
 
 
 def recollection_reasons(rows: list[dict[str, Any]], min_per_event: int, max_domain_share: float) -> list[str]:
-    counts = Counter(str(item.get("source") or "unknown") for item in rows)
+    counts = Counter(str(item.get("source_type") or "unknown") for item in rows)
     reasons: list[str] = []
     if len(rows) < min_per_event:
         reasons.append("filtered evidence fewer than minimum")
     if counts.get("official", 0) == 0:
         reasons.append("official evidence missing")
     if sum(counts.get(source, 0) for source in INTERACTION_SOURCES) < 3:
-        reasons.append("public_interaction/forum/public_social evidence fewer than 3")
+        reasons.append("social_media/forum/public_interaction evidence fewer than 3")
     if top_domain_share(rows) > max_domain_share:
         reasons.append("top domain share too high")
     return reasons
 
 
 def missing_sources(rows: list[dict[str, Any]]) -> list[str]:
-    counts = Counter(str(item.get("source") or "unknown") for item in rows)
+    counts = Counter(str(item.get("source_type") or "unknown") for item in rows)
     missing = []
     if counts.get("official", 0) == 0:
         missing.append("official")
@@ -312,8 +374,8 @@ def missing_sources(rows: list[dict[str, Any]]) -> list[str]:
         missing.append("public_interaction")
     if counts.get("forum", 0) == 0:
         missing.append("forum")
-    if counts.get("public_social", 0) == 0:
-        missing.append("public_social")
+    if counts.get("social_media", 0) == 0:
+        missing.append("social_media")
     return missing
 
 
@@ -337,7 +399,7 @@ def build_recollection_plan(
         event_id = str(row["event_id"])
         event = events_by_id.get(event_id, {"event_id": event_id})
         missing = list(row.get("missing_sources") or [])
-        target_sources = [source for source in ["official", "public_interaction", "forum", "public_social"] if source in missing]
+        target_sources = [source for source in ["official", "public_interaction", "forum", "social_media"] if source in missing]
         if not target_sources:
             target_sources = ["official", "public_interaction"]
         plan.append(
@@ -413,8 +475,8 @@ def extract_domain(url: str, platform: str | None = None) -> str:
     return host or "unknown"
 
 
-def is_trusted_platform(platform: str, domain: str, text: str, source: str) -> bool:
-    if source in {"official", "public_interaction", "news"}:
+def is_trusted_platform(platform: str, domain: str, text: str, source_type: str) -> bool:
+    if source_type in {"official", "public_interaction", "mainstream_news"}:
         return True
     joined = f"{platform} {domain} {text}"
     return contains_any(joined, TRUSTED_TEXT_HINTS)

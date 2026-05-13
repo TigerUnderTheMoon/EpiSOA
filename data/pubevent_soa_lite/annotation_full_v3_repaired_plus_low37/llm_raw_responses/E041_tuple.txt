@@ -1,0 +1,45 @@
+{
+  "event_id": "E041",
+  "tuples": [
+    {
+      "stakeholder": "武汉出租车/网约车司机",
+      "opinion": "担忧无人出租车影响就业，表示反对和投诉",
+      "sentiment": "negative",
+      "rationale": "证据显示出租车司机不满和投诉，以及司机炸锅担心失业",
+      "evidence_ids": ["ev-02013", "ev-02019"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "萝卜快跑",
+      "opinion": "回应恶意投诉和停运谣言，声称运营正常",
+      "sentiment": "neutral",
+      "rationale": "萝卜快跑官方回应称未停运，并指出恶意投诉为虚假内容",
+      "evidence_ids": ["ev-01014", "ev-01011"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "武汉市民/消费者",
+      "opinion": "对低价表示欢迎，支持无人出租车",
+      "sentiment": "positive",
+      "rationale": "网友欢呼10公里3.9元低价，武汉本地网友普遍支持",
+      "evidence_ids": ["ev-02021", "ev-01010"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "武汉市交通运输部门",
+      "opinion": "支持无人驾驶发展，公布积极数据",
+      "sentiment": "positive",
+      "rationale": "官方公布萝卜快跑车队超百辆及单车日订单量媲美出租车",
+      "evidence_ids": ["ev-02026", "ev-01016"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众",
+      "opinion": "担忧无人出租车安全问题和事故",
+      "sentiment": "negative",
+      "rationale": "报道提及萝卜快跑与行人相撞等事故，引发安全担忧",
+      "evidence_ids": ["ev-02024", "ev-01012"],
+      "support_label": "supported"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "event_id": "E027",
+  "tuples": [
+    {
+      "stakeholder": "上海市公安局浦东分局",
+      "opinion": "成功捣毁医托诈骗团伙，维护患者权益",
+      "sentiment": "positive",
+      "rationale": "警方采取行动抓获40余名嫌疑人，涉案金额450余万元",
+      "evidence_ids": ["ev-01814", "ev-00643"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "浦东新区人民检察院",
+      "opinion": "对医托诈骗案提起公诉，追究法律责任",
+      "sentiment": "positive",
+      "rationale": "检察院办理案件，涉及1800余名被害人",
+      "evidence_ids": ["ev-01812"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "被害患者",
+      "opinion": "遭受诈骗，经济损失严重，希望严惩犯罪",
+      "sentiment": "negative",
+      "rationale": "被害人近千名，涉案金额巨大",
+      "evidence_ids": ["ev-01814", "ev-00643"],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "公众",
+      "opinion": "对医托诈骗行为表示担忧，呼吁加强监管",
+      "sentiment": "mixed",
+      "rationale": "多篇媒体报道揭露医托手法，公众舆论关注",
+      "evidence_ids": ["ev-01822", "ev-00651"],
+      "support_label": "partially_supported"
+    }
+  ]
+}

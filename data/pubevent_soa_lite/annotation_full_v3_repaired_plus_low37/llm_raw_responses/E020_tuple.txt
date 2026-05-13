@@ -1,0 +1,45 @@
+{
+  "event_id": "E020",
+  "tuples": [
+    {
+      "stakeholder": "学生家长",
+      "opinion": "反映学校食堂食品发霉变质，质疑食堂管理，担忧孩子健康",
+      "sentiment": "negative",
+      "rationale": "家长通过微博等渠道曝光食堂食材发霉变质照片，并聚集反映问题，表达对食堂管理和孩子健康的担忧。",
+      "evidence_ids": ["ev-01698", "ev-01697", "ev-01702", "ev-01703"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "成都市联合调查组",
+      "opinion": "召开新闻发布会，公布调查结果与处理措施，回应公众关切",
+      "sentiment": "neutral",
+      "rationale": "联合调查组于3月17日举行新闻发布会，由多个部门负责人介绍事件经过及已采取的措施，旨在公开透明回应社会关注。",
+      "evidence_ids": ["ev-00485", "ev-01709", "ev-01706", "ev-01704", "ev-01705", "ev-00482"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "四川省教育厅",
+      "opinion": "高度重视事件，立即派出工作组会同成都市教育局进行核查处置",
+      "sentiment": "positive",
+      "rationale": "教育厅在事件发生后第一时间派出工作组前往学校，会同当地教育部门开展核查，并承诺及时通报进展。",
+      "evidence_ids": ["ev-01691", "ev-01693"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "市场监管总局",
+      "opinion": "高度关注事件，要求四川省市场监管部门按地方政府部署依法处置",
+      "sentiment": "neutral",
+      "rationale": "市场监管总局关注到事件后，要求省级市场监管部门配合地方党委政府依法妥善处理，确保食品安全。",
+      "evidence_ids": ["ev-01695"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "温江区政府",
+      "opinion": "通报事件处理进展，封存食品原料并送检",
+      "sentiment": "positive",
+      "rationale": "温江区政府新闻办公室在官方微博通报称，相关部门已赶赴学校处理，区市场监管局对食品原料封存送检。",
+      "evidence_ids": ["ev-01698"],
+      "support_label": "supported"
+    }
+  ]
+}

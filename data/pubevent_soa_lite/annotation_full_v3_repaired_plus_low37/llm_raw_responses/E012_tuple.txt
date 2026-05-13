@@ -1,0 +1,45 @@
+{
+  "event_id": "E012",
+  "tuples": [
+    {
+      "stakeholder": "家长",
+      "opinion": "家长对学校食堂提供变质肉表示担忧和不满",
+      "sentiment": "negative",
+      "rationale": "家长发现并举报食堂猪肉有臭味，质疑食材新鲜度，引发广泛关注。",
+      "evidence_ids": ["ev-00264", "ev-01603", "ev-01591"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "学校",
+      "opinion": "校长回应称“如果他犯罪了，有法律来管他”，态度消极回避",
+      "sentiment": "negative",
+      "rationale": "校长对该事件的回应被认为推卸责任，缺乏直接担责态度。",
+      "evidence_ids": ["ev-01593"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "官渡区市场监管局、教育体育局",
+      "opinion": "官方调查组认定猪肉不合格，对学校和承包商进行处理",
+      "sentiment": "positive",
+      "rationale": "官方发布通报，确认猪肉变质原因并采取处罚措施，回应公众关切。",
+      "evidence_ids": ["ev-00268", "ev-01599"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "食堂承包经营企业",
+      "opinion": "承包商被认定无餐饮服务资质，应承担主要责任",
+      "sentiment": "negative",
+      "rationale": "调查发现承包商不具备资质，导致食品安全问题。",
+      "evidence_ids": ["ev-00263"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众",
+      "opinion": "网友呼吁严查学校食品安全问题，表达愤怒",
+      "sentiment": "negative",
+      "rationale": "网络舆论强烈谴责，要求严惩涉事方，保护学生健康。",
+      "evidence_ids": ["ev-00260"],
+      "support_label": "supported"
+    }
+  ]
+}

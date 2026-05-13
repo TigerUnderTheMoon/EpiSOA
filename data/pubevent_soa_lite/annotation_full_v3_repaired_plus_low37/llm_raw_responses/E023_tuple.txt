@@ -1,0 +1,45 @@
+{
+  "event_id": "E023",
+  "tuples": [
+    {
+      "stakeholder": "患者",
+      "opinion": "投诉第三方工程师在心脏彩超检查时违规进入检查室，侵犯隐私，导致不良就医感受",
+      "sentiment": "negative",
+      "rationale": "患者因工程师未经允许闯入检查室而投诉，多篇通报和报道均提及患者投诉并产生不良感受",
+      "evidence_ids": ["ev-00563", "ev-00564", "ev-00565", "ev-00568", "ev-00570"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "东莞市中医院",
+      "opinion": "发布情况通报，承认工程师违规进入检查室，已对相关人员进行处理，并承诺加强管理",
+      "sentiment": "neutral",
+      "rationale": "医院官方通报承认事实并采取整改措施，态度积极",
+      "evidence_ids": ["ev-00563", "ev-00564", "ev-00565", "ev-00568", "ev-00570"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "第三方设备维保公司工程师",
+      "opinion": "违规进入彩超检查室与医务人员沟通调试设备，被院方通报处理",
+      "sentiment": "negative",
+      "rationale": "医院通报明确指出工程师违规进入检查室，该行为导致患者投诉",
+      "evidence_ids": ["ev-00563", "ev-00564", "ev-00565", "ev-00568", "ev-00570"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "媒体",
+      "opinion": "报道事件，强调患者隐私保护是医疗红线，呼吁加强监管",
+      "sentiment": "negative",
+      "rationale": "多家媒体报道该事件，评论指出隐私保护重要性，对事件持批评态度",
+      "evidence_ids": ["ev-00552", "ev-00581"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众",
+      "opinion": "关注事件，表达对患者隐私的担忧，支持医院整改",
+      "sentiment": "mixed",
+      "rationale": "事件引发广泛关注，公众舆论既有批评也有对医院整改的期待",
+      "evidence_ids": ["ev-00579"],
+      "support_label": "partially_supported"
+    }
+  ]
+}

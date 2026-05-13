@@ -1,0 +1,13 @@
+{
+  "valid": true,
+  "schema_valid": true,
+  "nonempty_gold": true,
+  "ready_for_paper": true,
+  "hard_error_count": 0,
+  "warning_count": 0,
+  "hard_errors": [],
+  "warnings": [],
+  "num_gold_tuples": 188,
+  "num_gold_event_chains": 138,
+  "validated_at": "2026-05-12T22:18:28.816539+00:00"
+}

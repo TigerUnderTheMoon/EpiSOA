@@ -1,0 +1,21 @@
+{
+  "event_id": "E013",
+  "tuples": [
+    {
+      "stakeholder": "学生家长",
+      "opinion": "担忧孩子在校饮食安全，反映食堂存在鼠迹和卫生未达标问题",
+      "sentiment": "negative",
+      "rationale": "家长向监管部门反映食堂卫生问题，表达忧心忡忡",
+      "evidence_ids": ["ev-01625", "ev-01630", "ev-01622"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "海口市市场监督管理局",
+      "opinion": "接到反映后立即赶赴现场检查、立案调查，并通报对学校作出警告和5万元罚款的处理结果",
+      "sentiment": "neutral",
+      "rationale": "官方通报显示迅速响应，依法处罚涉事学校",
+      "evidence_ids": ["ev-00284", "ev-01612", "ev-01621"],
+      "support_label": "supported"
+    }
+  ]
+}

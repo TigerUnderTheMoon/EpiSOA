@@ -1,0 +1,32 @@
+{
+  "event_id": "E012",
+  "event_chains": [
+    {
+      "event_chain": [
+        "parents discover pork with foul odor at school cafeteria",
+        "parents complain and post online, sparking public outrage",
+        "official joint investigation team formed and releases findings",
+        "contractor penalized, school held accountable"
+      ],
+      "evidence_ids": ["ev-01591", "ev-00264", "ev-00268", "ev-01597"]
+    },
+    {
+      "event_chain": [
+        "school cafeteria supplies spoiled meat",
+        "students/parents express alarm, media coverage",
+        "government authorities intervene, launch probe",
+        "official report confirms contamination, legal actions"
+      ],
+      "evidence_ids": ["ev-01603", "ev-01592", "ev-01599", "ev-00263"]
+    },
+    {
+      "event_chain": [
+        "food safety incident at changfeng school",
+        "public exposure and social media backlash",
+        "joint investigation by multiple agencies",
+        "disqualification of contractor, regulatory improvements"
+      ],
+      "evidence_ids": ["ev-00260", "ev-01600", "ev-01596", "ev-01593"]
+    }
+  ]
+}

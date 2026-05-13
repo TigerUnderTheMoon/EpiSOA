@@ -1,0 +1,14 @@
+{
+  "num_events": 50,
+  "num_evidence": 1767,
+  "num_candidate_tuples": 188,
+  "num_candidate_chains": 138,
+  "num_tuple_review_rows": 188,
+  "num_chain_review_rows": 138,
+  "output_files": {
+    "tuple_review_sheet": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\review_sheets\\gold_tuple_review_sheet.csv",
+    "chain_review_sheet": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\review_sheets\\gold_chain_review_sheet.csv",
+    "summary": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\review_sheets\\gold_review_summary.json"
+  },
+  "created_at": "2026-05-12T22:13:57.829184+00:00"
+}

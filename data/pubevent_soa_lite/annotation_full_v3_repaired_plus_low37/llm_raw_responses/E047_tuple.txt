@@ -1,0 +1,21 @@
+{
+  "event_id": "E047",
+  "tuples": [
+    {
+      "stakeholder": "中央网信办、工业和信息化部、公安部、市场监管总局",
+      "opinion": "开展2025年个人信息保护系列专项行动，深入治理常用服务产品和常见生活场景中存在的违法违规收集使用个人信息问题",
+      "sentiment": "positive",
+      "rationale": "四部门联合发布公告，明确2025年将开展专项治理行动，体现了对个人信息保护的积极态度和执法决心。",
+      "evidence_ids": ["ev-02101", "ev-02102", "ev-02103", "ev-02104", "ev-02105"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "中央网信办",
+      "opinion": "对15款App和16款SDK个人信息收集使用问题进行通报，要求相关运营者在规定时间内完成整改并上报整改情况，否则将依法依规进行处置处罚",
+      "sentiment": "negative",
+      "rationale": "通报明确指出存在问题的应用和SDK，并提出整改要求和处罚威胁，对被通报对象持负面态度。",
+      "evidence_ids": ["ev-01183", "ev-01177"],
+      "support_label": "supported"
+    }
+  ]
+}

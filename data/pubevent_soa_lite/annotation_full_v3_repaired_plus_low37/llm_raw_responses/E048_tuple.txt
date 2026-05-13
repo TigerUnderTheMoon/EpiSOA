@@ -1,0 +1,21 @@
+{
+  "event_id": "E048",
+  "tuples": [
+    {
+      "stakeholder": "江苏省通信管理局",
+      "opinion": "高度重视用户权益保护工作，依法通报并责令整改",
+      "sentiment": "positive",
+      "rationale": "官方通报明确表示‘高度重视用户权益保护工作’，并依据法规要求App整改，体现积极监管态度。",
+      "evidence_ids": ["ev-01199", "ev-01198"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "被通报App运营企业",
+      "opinion": "须按照通报要求完成整改，否则面临进一步处罚",
+      "sentiment": "negative",
+      "rationale": "通报中明确提出‘要求相关公司整改’，历史案例显示未整改App将被下架或受处罚。",
+      "evidence_ids": ["ev-01199", "ev-02117"],
+      "support_label": "partially_supported"
+    }
+  ]
+}

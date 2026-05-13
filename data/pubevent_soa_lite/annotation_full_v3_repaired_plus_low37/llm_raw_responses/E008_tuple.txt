@@ -1,0 +1,29 @@
+{
+  "event_id": "E008",
+  "tuples": [
+    {
+      "stakeholder": "白马庙街2号小区2单元四五六楼四户业主",
+      "opinion": "针对一楼业主阻挠加装电梯的行为，向温江区人民法院提起诉讼，要求停止阻挠并继续施工",
+      "sentiment": "positive",
+      "rationale": "直接证据显示高层业主作为原告提起诉讼",
+      "evidence_ids": ["ev-00179", "ev-00180"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "白马庙街2号小区2单元一楼业主",
+      "opinion": "在最初同意加装电梯后反悔，并采取行动阻挠电梯施工",
+      "sentiment": "negative",
+      "rationale": "证据描述一楼业主'变卦阻挠'",
+      "evidence_ids": ["ev-00179", "ev-00180"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "温江区人民法院",
+      "opinion": "作为受理法院，依法审理了该起加装电梯纠纷案件",
+      "sentiment": "neutral",
+      "rationale": "证据提及法院受理该诉讼，但未详细说明判决结果，需结合典型判例推断",
+      "evidence_ids": ["ev-00179"],
+      "support_label": "partially_supported"
+    }
+  ]
+}

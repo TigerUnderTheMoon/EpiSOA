@@ -1,0 +1,37 @@
+{
+  "event_id": "E031",
+  "tuples": [
+    {
+      "stakeholder": "明尚西苑小区居民",
+      "opinion": "对电动车停放安全隐患多次投诉，但物业未处理，导致火灾发生",
+      "sentiment": "negative",
+      "rationale": "居民在火灾前曾7次投诉电动车违规停放充电问题，但被物业忽视",
+      "evidence_ids": ["ev-00741", "ev-00750"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "南京市政府",
+      "opinion": "通报火灾事故并致歉，承诺严肃整改安全隐患",
+      "sentiment": "mixed",
+      "rationale": "南京市政府召开新闻发布会通报详情，市长陈之常表达痛心并强调整改",
+      "evidence_ids": ["ev-00742", "ev-01863"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "江苏省消防救援总队",
+      "opinion": "迅速出动救援并发布火情快报，事故由电动车起火引发",
+      "sentiment": "neutral",
+      "rationale": "消防支队及时调派力量扑灭明火，并通过官方公众号发布火情信息",
+      "evidence_ids": ["ev-01851", "ev-01854"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "明尚西苑物业公司",
+      "opinion": "对居民投诉的电动车安全隐患忽视不理，管理失职",
+      "sentiment": "negative",
+      "rationale": "居民多次投诉物业未采取有效措施，导致隐患持续存在",
+      "evidence_ids": ["ev-00741"],
+      "support_label": "supported"
+    }
+  ]
+}

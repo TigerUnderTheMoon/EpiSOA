@@ -1,0 +1,29 @@
+{
+  "event_id": "E028",
+  "tuples": [
+    {
+      "stakeholder": "福州市疾控中心",
+      "opinion": "上线紧缺疫苗排队预约系统以回应群众预约公平需求",
+      "sentiment": "positive",
+      "rationale": "官方报道显示福州疾控上线系统，旨在优化疫苗资源配置，回应预约公平和透明需求。",
+      "evidence_ids": ["ev-00669", "ev-00664"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "福州市民",
+      "opinion": "反映HPV疫苗预约难、排队时间长，一针难求",
+      "sentiment": "negative",
+      "rationale": "新闻报道指出市民反映HPV疫苗预约困难，排队需等一年。",
+      "evidence_ids": ["ev-01257"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "福州市卫健委",
+      "opinion": "公布全市200家HPV疫苗接种单位名单及信息，提升信息透明度",
+      "sentiment": "positive",
+      "rationale": "福州市卫健委在公众号公布接种单位名单，回应群众信息需求。",
+      "evidence_ids": ["ev-00688", "ev-01274"],
+      "support_label": "supported"
+    }
+  ]
+}

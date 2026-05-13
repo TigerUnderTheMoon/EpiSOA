@@ -1,0 +1,37 @@
+{
+  "event_id": "E032",
+  "tuples": [
+    {
+      "stakeholder": "广东省政府",
+      "opinion": "高度重视并全力开展救援工作，要求加快搜救、科学安全救援、全力救治伤员",
+      "sentiment": "positive",
+      "rationale": "ev-00756描述省委省政府高度重视并投入500多人救援；ev-00758和ev-01881引用应急管理部部署加快搜救、科学安全救援的要求",
+      "evidence_ids": ["ev-00756", "ev-00758", "ev-01881"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "应急管理部",
+      "opinion": "要求指导帮助地方加快搜救，科学安全救援，全力救治伤员，查清原因，汲取教训",
+      "sentiment": "positive",
+      "rationale": "ev-00758和ev-01881直接引用应急管理部的部署指令",
+      "evidence_ids": ["ev-00758", "ev-01881"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广东省政府调查评估组",
+      "opinion": "认定灾害是一起长时间持续性降水与多种因素叠加耦合作用导致的特别重大人员伤亡的塌方灾害",
+      "sentiment": "neutral",
+      "rationale": "ev-01888公布调查结论；ev-01876为完整调查评估报告",
+      "evidence_ids": ["ev-01888", "ev-01876"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "梅州市政府",
+      "opinion": "发布灾情信息，参与救援协调",
+      "sentiment": "neutral",
+      "rationale": "ev-00760是梅州市政府办公室关于塌方的信息公开文件",
+      "evidence_ids": ["ev-00760"],
+      "support_label": "supported"
+    }
+  ]
+}

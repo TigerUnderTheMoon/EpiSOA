@@ -1,0 +1,45 @@
+{
+  "event_id": "E019",
+  "tuples": [
+    {
+      "stakeholder": "家长",
+      "opinion": "要求退还预付课时费，表达无法上课的愤怒和维权诉求",
+      "sentiment": "negative",
+      "rationale": "多位家长在社交平台和投诉平台反映美吉姆门店突然关闭，剩余课时费无法退还，并组织维权",
+      "evidence_ids": ["ev-00460", "ev-01680", "ev-01682", "ev-00461", "ev-01685", "ev-01677", "ev-01678"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "美吉姆（中国）总部",
+      "opinion": "表示正在寻求各种措施支持加盟中心继续经营，并督促闭店、并店事宜",
+      "sentiment": "neutral",
+      "rationale": "总部发布官方声明，表达积极寻求解决方案的态度",
+      "evidence_ids": ["ev-00458"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "美吉姆常营华联中心",
+      "opinion": "声称曾向上市公司美吉姆申请借款周转但被拒绝，导致无法支付房租和员工工资，被迫停业",
+      "sentiment": "negative",
+      "rationale": "门店在公开声明中指责总部未提供支持，导致经营困难",
+      "evidence_ids": ["ev-01676"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "消费者",
+      "opinion": "投诉美吉姆存在退款问题、霸王条款等，要求退款和解除合约",
+      "sentiment": "negative",
+      "rationale": "在投诉平台提交具体投诉，涉及金额数千至数万元，要求全额退款",
+      "evidence_ids": ["ev-01677", "ev-01678"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "媒体报道",
+      "opinion": "报道美吉姆北京多家门店突然关闭，家长课时费未退，引发社会关注",
+      "sentiment": "neutral",
+      "rationale": "多家新闻媒体对事件进行客观报道，披露门店停业和家长维权情况",
+      "evidence_ids": ["ev-01673", "ev-01683", "ev-01689"],
+      "support_label": "supported"
+    }
+  ]
+}
