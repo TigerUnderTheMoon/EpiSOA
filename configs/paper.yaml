@@ -19,19 +19,19 @@ model:
   model_name: "deepseek-v4-flash"
   embedding_model: mock-embedding
   reranker_model: mock-reranker
-  api_key: "sk-42be82b24d5245dba970a380ccbaf816"
-  api_key_env: "DEEPSEEK_API_KEY"
-  base_url: "https://api.deepseek.com"
-  base_url_env: "DEEPSEEK_BASE_URL"
+  api_key: "sk-Oc3xe8Pd21t6zk6lcp0kWbgaXUUHxgFOWInUS4Ig0VAnkzDCFYSB4HaxJBUTD5rt"
+  api_key_env: "OPENCODE_API_KEY"
+  base_url: "https://opencode.ai/zen/go/v1"
+  base_url_env: "OPENCODE_BASE_URL"
   temperature: 0.1
   max_tokens: 3000
-  timeout_seconds: 60
-  max_retries: 2
+  timeout_seconds: 180
+  max_retries: 1
 search:
   provider: custom
-  api_key: "your-search-api-key"
+  api_key: ""
   api_key_env: SEARCH_API_KEY
-  base_url: "https://your-search-api-base-url/v1"
+  base_url: ""
   base_url_env: SEARCH_BASE_URL
   timeout_seconds: 30
   max_retries: 2
