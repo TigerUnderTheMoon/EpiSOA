@@ -102,11 +102,36 @@ Task types: `expand_tuples_and_chains`, `expand_tuples_only`, `expand_chains_onl
 
 ### 5. Run Targeted Expansion
 
-Execute targeted annotation expansion for events in the plan:
+Execute targeted annotation expansion for events in the plan.
+
+Two modes are available:
+
+**Rule-based (default)**: Fast, no API calls needed. Uses keyword matching and source-type templates.
 
 ```bash
 python scripts/run_annotation_expansion.py
+python scripts/run_annotation_expansion.py --max-events 20
 ```
+
+**LLM-based (--use-llm)**: Higher quality, evidence-grounded candidates. Requires API access.
+
+```bash
+# Preview what would happen (dry-run)
+python scripts/run_annotation_expansion.py --use-llm --dry-run
+
+# LLM expansion with custom prompts and temperature
+python scripts/run_annotation_expansion.py --use-llm \
+  --config configs/paper.yaml \
+  --tuple-prompt prompts/gold_tuple_expansion.md \
+  --chain-prompt prompts/gold_chain_expansion.md \
+  --temperature 0.2
+
+# LLM expansion with rehearsal limit
+python scripts/run_annotation_expansion.py --use-llm --max-events 10 \
+  --timeout-seconds 60
+```
+
+When `--use-llm` is set but the LLM call fails, the script automatically falls back to rule-based expansion for that event.
 
 Outputs delta files (does NOT overwrite original gold):
 - `llm_gold_tuples_expansion_delta.jsonl`

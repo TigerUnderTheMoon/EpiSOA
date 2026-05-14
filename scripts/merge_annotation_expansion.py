@@ -132,9 +132,6 @@ def merge(args: argparse.Namespace) -> int:
         if scid and scid in existing_short_cids:
             skipped_chains += 1
             continue
-        if scid and scid in existing_short_cids:
-            skipped += 1
-            continue
         existing_chain_cids.add(ccid)
         if scid:
             existing_short_cids.add(scid)

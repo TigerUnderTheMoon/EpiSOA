@@ -15,7 +15,7 @@ from episoa.data.loader import read_jsonl, write_jsonl
 from episoa.llm.client import build_llm_client
 
 
-SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "insufficient_evidence"}
+SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "unclear"}
 SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
 
 
