@@ -11,7 +11,7 @@ import yaml
 
 from episoa.attribution.schema_attributor import run_schema_attribution
 from episoa.collector.cfsm_collector import collect_evidence
-from episoa.config import api_config_status, load_config, print_api_config_status
+from episoa.config import api_config_status, load_config, print_api_config_status, resolve_api_config
 from episoa.data.loader import read_jsonl, read_typed_jsonl, write_jsonl
 from episoa.data.schema import EventRecord, EvidenceRecord, GoldEventChain, GoldTuple, PredictionTuple
 from episoa.data.validator import validate_formal_event_record, validate_paper_data
@@ -27,10 +27,11 @@ from episoa.verifier.faithfulness_verifier import verify_tuples
 
 
 def _create_llm_client(config) -> OpenAICompatibleClient:
-    """Build an LLM client from config.model dict."""
+    """Build an LLM client from config.model dict, resolving api_key/base_url via env vars."""
+    resolved = resolve_api_config(config.model, label="model")
     return OpenAICompatibleClient(
-        api_key=config.model["api_key"],
-        base_url=config.model["base_url"],
+        api_key=resolved["api_key"],
+        base_url=resolved["base_url"],
         model_name=config.model.get("llm_model", "deepseek-v4-flash"),
         temperature=config.model.get("temperature", 0.1),
         max_tokens=config.model.get("max_tokens", 3000),
