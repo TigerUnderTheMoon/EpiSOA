@@ -21,7 +21,10 @@ data/pubevent_soa_lite/interim/*
 !data/pubevent_soa_lite/interim/.gitkeep
 data/pubevent_soa_lite/annotation/*
 !data/pubevent_soa_lite/annotation/.gitkeep
+data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/*
+!data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/.gitkeep
 data/pubevent_soa_lite/evidence.jsonl
+data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
 data/pubevent_soa_lite/gold_tuples.jsonl
 data/pubevent_soa_lite/gold_event_chains.jsonl
 data/pubevent_soa_lite/gold_*_report.json

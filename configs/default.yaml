@@ -5,10 +5,10 @@ data:
   events_path: data/pubevent_soa_lite/events.jsonl
   raw_posts_path: data/pubevent_soa_lite/raw/raw_posts.jsonl
   evidence_candidates_path: data/pubevent_soa_lite/interim/evidence_candidates.jsonl
-  evidence_path: data/pubevent_soa_lite/evidence.jsonl
-  annotation_sheet_path: data/pubevent_soa_lite/annotation/annotation_sheet.csv
-  gold_tuples_path: data/pubevent_soa_lite/gold_tuples.jsonl
-  gold_event_chains_path: data/pubevent_soa_lite/gold_event_chains.jsonl
+  evidence_path: data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
+  annotation_sheet_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/annotation_sheet.csv
+  gold_tuples_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl
+  gold_event_chains_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl
 output:
   runs_dir: outputs/runs
 model:

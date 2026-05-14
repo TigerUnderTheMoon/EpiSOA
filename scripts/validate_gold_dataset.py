@@ -25,9 +25,9 @@ def main(argv: list[str] | None = None) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate EpiSOA gold dataset files.")
-    parser.add_argument("--gold-tuples", default="data/pubevent_soa_lite/gold_tuples.jsonl")
-    parser.add_argument("--gold-event-chains", default="data/pubevent_soa_lite/gold_event_chains.jsonl")
-    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence.jsonl")
+    parser.add_argument("--gold-tuples", default="data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl")
+    parser.add_argument("--gold-event-chains", default="data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl")
+    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
     parser.add_argument("--events", default="data/pubevent_soa_lite/events.jsonl")
     return parser
 

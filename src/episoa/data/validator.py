@@ -29,9 +29,9 @@ def validate_paper_data(data_dir: str | Path = DATA_DIR, outputs_dir: str | Path
     paths = {
         "events": data_dir / "events.jsonl",
         "raw_posts": data_dir / "raw" / "raw_posts.jsonl",
-        "evidence": data_dir / "evidence.jsonl",
-        "gold_tuples": data_dir / "gold_tuples.jsonl",
-        "gold_event_chains": data_dir / "gold_event_chains.jsonl",
+        "evidence": data_dir / "evidence_v3_repaired_plus_low37.jsonl",
+        "gold_tuples": data_dir / "annotation_full_v3_repaired_plus_low37" / "llm_gold_tuples.jsonl",
+        "gold_event_chains": data_dir / "annotation_full_v3_repaired_plus_low37" / "llm_gold_event_chains.jsonl",
     }
     errors: list[str] = []
     warnings: list[str] = []

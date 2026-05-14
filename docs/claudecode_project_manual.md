@@ -872,7 +872,6 @@ validation.missing_chain_evidence_refs_count = 0
 ```text
 scripts/run_benchmark_eval.py
 scripts/run_benchmark_baselines.py
-scripts/audit_benchmark_tasks.py
 scripts/export_paper_tables.py
 ```
 

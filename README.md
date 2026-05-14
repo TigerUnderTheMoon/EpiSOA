@@ -31,10 +31,10 @@ data/pubevent_soa_lite/
 |-- events.jsonl
 |-- raw/
 |-- interim/
-|-- annotation/
-|-- evidence.jsonl
-|-- gold_tuples.jsonl
-|-- gold_event_chains.jsonl
+|-- annotation_full_v3_repaired_plus_low37/
+|   |-- llm_gold_tuples.jsonl
+|   `-- llm_gold_event_chains.jsonl
+|-- evidence_v3_repaired_plus_low37.jsonl
 `-- README.md
 ```
 
