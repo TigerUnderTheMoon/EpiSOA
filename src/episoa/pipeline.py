@@ -25,6 +25,57 @@ from episoa.retrieval.event_chain_retriever import retrieve_event_chains
 from episoa.verifier.faithfulness_verifier import verify_tuples
 
 
+def _create_llm_client(config) -> OpenAICompatibleClient:
+    """Build an LLM client from config.model dict."""
+    return OpenAICompatibleClient(
+        api_key=config.model["api_key"],
+        base_url=config.model["base_url"],
+        model_name=config.model.get("llm_model", "deepseek-v4-flash"),
+        temperature=config.model.get("temperature", 0.1),
+        max_tokens=config.model.get("max_tokens", 3000),
+        timeout_seconds=config.model.get("timeout_seconds", 60),
+        max_retries=config.model.get("max_retries", 2),
+    )
+
+
+def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm_client, skip_graph, skip_chains, skip_verifier):
+    """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
+    collected = collect_evidence(events, evidence)
+
+    graph = [] if skip_graph else build_graph(events, collected)
+    chains = [] if skip_chains else retrieve_event_chains(events, collected, int(config.retrieval.get("top_k", 5)))
+
+    model_name = config.model.get("llm_model", "deepseek-v4-flash")
+    run_schema_attribution(
+        events=[e.model_dump() for e in events],
+        evidence_rows=[e.model_dump() for e in collected],
+        chains=chains,
+        graph_nodes=graph,
+        llm_client=llm_client,
+        model_name=model_name,
+        output_dir=run_dir,
+        max_evidence_per_event=12,
+    )
+
+    candidates = _attribution_to_predictions(
+        read_jsonl(run_dir / "candidate_soa_tuples.jsonl")
+    )
+    write_jsonl(run_dir / "candidate_soa_tuples.jsonl", candidates)
+
+    if skip_verifier:
+        verified = candidates
+        verifier_metrics = {"verifier_skipped": 1.0}
+    else:
+        verified = verify_tuples(candidates, collected, float(config.verifier.get("threshold", 0.75)), llm_client=llm_client)
+        verifier_metrics = evaluate_verifier(verified)
+
+    write_jsonl(run_dir / "verified_soa_tuples.jsonl", verified)
+    write_jsonl(run_dir / "predictions.jsonl", verified)
+
+    retrieval_metrics = evaluate_retrieval([item.model_dump() for item in gold_chains], chains)
+    return verified, retrieval_metrics, verifier_metrics
+
+
 def run_paper_pipeline(config_path: str | Path) -> dict:
     config = load_config(config_path)
     print_api_config_status(config)
@@ -45,45 +96,15 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
     gold = read_typed_jsonl(config.data["gold_tuples_path"], GoldTuple)
     gold_chains = read_typed_jsonl(config.data["gold_event_chains_path"], GoldEventChain)
 
-    collected = collect_evidence(events, evidence)
-    graph = build_graph(events, collected)
-    paths = retrieve_event_chains(events, collected, int(config.retrieval.get("top_k", 5)))
+    llm_client = _create_llm_client(config)
 
-    # Use LLM-based schema attribution instead of simple tuple generator
-    llm_client = OpenAICompatibleClient(
-        api_key=config.model["api_key"],
-        base_url=config.model["base_url"],
-        model_name=config.model.get("llm_model", "deepseek-v4-flash"),
-        temperature=config.model.get("temperature", 0.1),
-        max_tokens=config.model.get("max_tokens", 3000),
-        timeout_seconds=config.model.get("timeout_seconds", 60),
-        max_retries=config.model.get("max_retries", 2),
+    verified, retrieval_metrics, verifier_metrics = _run_core_pipeline(
+        events, evidence, gold, gold_chains, config, run_dir, llm_client,
+        skip_graph=False, skip_chains=False, skip_verifier=False,
     )
 
-    attribution_summary = run_schema_attribution(
-        events=[e.model_dump() for e in events],
-        evidence_rows=[e.model_dump() for e in collected],
-        chains=paths,
-        graph_nodes=[],
-        llm_client=llm_client,
-        model_name=config.model.get("llm_model", "deepseek-v4-flash"),
-        output_dir=run_dir,
-        max_evidence_per_event=12,
-    )
-
-    # Convert attribution output to PredictionTuple format
-    candidates = _attribution_to_predictions(
-        read_jsonl(run_dir / "candidate_soa_tuples.jsonl")
-    )
-
-    verified = verify_tuples(candidates, collected, float(config.verifier.get("threshold", 0.75)), llm_client=llm_client)
     metrics = evaluate_main(gold, verified)
-    retrieval_metrics = evaluate_retrieval([item.model_dump() for item in gold_chains], paths)
-    verifier_metrics = evaluate_verifier(verified)
 
-    write_jsonl(run_dir / "candidate_soa_tuples.jsonl", candidates)
-    write_jsonl(run_dir / "verified_soa_tuples.jsonl", verified)
-    write_jsonl(run_dir / "predictions.jsonl", verified)
     (run_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     _write_csv(run_dir / "main_results.csv", "Method", "EpiSOA", metrics)
     _write_csv(run_dir / "retrieval_results.csv", "Method", "EpiSOA", retrieval_metrics)
@@ -95,7 +116,6 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
         "num_events": len(events),
         "num_evidence": len(evidence),
         "num_predictions": len(verified),
-        "attribution_summary": attribution_summary,
         "metrics": metrics,
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -130,6 +150,14 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
     return predictions
 
 
+ABLATION_SETTINGS = {
+    "full":                  {"skip_graph": False, "skip_chains": False, "skip_verifier": False},
+    "without_graph":         {"skip_graph": True,  "skip_chains": False, "skip_verifier": False},
+    "without_event_chain":   {"skip_graph": False, "skip_chains": True,  "skip_verifier": False},
+    "without_verifier":      {"skip_graph": False, "skip_chains": False, "skip_verifier": True},
+}
+
+
 def run_ablation_pipeline(config_path: str | Path) -> dict:
     config = load_config(config_path)
     print_api_config_status(config)
@@ -139,11 +167,39 @@ def run_ablation_pipeline(config_path: str | Path) -> dict:
         return {"status": "blocked", "reason": "paper data is not ready", "validation": validation}
     run_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(config_path, run_dir / "config.yaml")
+
+    events = read_typed_jsonl(config.data["events_path"], EventRecord)
+    evidence = read_typed_jsonl(config.data["evidence_path"], EvidenceRecord)
     gold = read_typed_jsonl(config.data["gold_tuples_path"], GoldTuple)
-    predictions = read_typed_jsonl(run_dir.parent / "pubevent-soa-lite-paper" / "verified_soa_tuples.jsonl", PredictionTuple)
-    metrics = evaluate_ablation(gold, predictions)
-    _write_csv(run_dir / "ablation_results.csv", "Setting", "full", metrics)
-    summary = {"status": "completed", "metrics": metrics}
+    gold_chains = read_typed_jsonl(config.data["gold_event_chains_path"], GoldEventChain)
+
+    llm_client = _create_llm_client(config)
+
+    all_metrics: dict[str, dict[str, float]] = {}
+    settings = config.ablation.get("settings", list(ABLATION_SETTINGS))
+
+    for setting in settings:
+        flags = ABLATION_SETTINGS.get(setting)
+        if flags is None:
+            print(f"  [SKIP] unknown ablation setting: {setting}")
+            continue
+
+        setting_dir = run_dir / setting
+        setting_dir.mkdir(parents=True, exist_ok=True)
+
+        verified, retrieval_metrics, verifier_metrics = _run_core_pipeline(
+            events, evidence, gold, gold_chains, config, setting_dir, llm_client,
+            **flags,
+        )
+
+        metrics = evaluate_ablation(gold, verified)
+        all_metrics[setting] = metrics
+
+        (setting_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"  [{setting}] Tuple-F1={metrics.get('Tuple-F1', 'N/A')}")
+
+    _write_ablation_csv(run_dir / "ablation_results.csv", all_metrics)
+    summary = {"status": "completed", "settings": list(all_metrics.keys()), "metrics": all_metrics}
     (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
 
@@ -220,3 +276,18 @@ def _write_csv(path: Path, label_name: str, label: str, metrics: dict[str, float
         writer = csv.writer(handle)
         writer.writerow([label_name, *metrics.keys()])
         writer.writerow([label, *[f"{value:.4f}" for value in metrics.values()]])
+
+
+def _write_ablation_csv(path: Path, all_metrics: dict[str, dict[str, float]]) -> None:
+    """Write ablation comparison CSV: rows = settings, columns = metrics."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    metric_names = sorted({k for m in all_metrics.values() for k in m})
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["Setting", *metric_names])
+        for setting in sorted(all_metrics):
+            row = [setting]
+            for name in metric_names:
+                value = all_metrics[setting].get(name, "")
+                row.append(f"{value:.4f}" if isinstance(value, (int, float)) else str(value))
+            writer.writerow(row)

@@ -18,6 +18,7 @@ class PaperConfig:
     output: dict[str, str]
     model: dict[str, Any]
     search: dict[str, Any]
+    collector: dict[str, Any]
     retrieval: dict[str, Any]
     verifier: dict[str, Any]
     ablation: dict[str, Any]
@@ -36,6 +37,7 @@ def load_config(path: str | Path) -> PaperConfig:
         output=dict(raw.get("output", {"runs_dir": "outputs/runs"})),
         model=dict(raw.get("model", {})),
         search=dict(raw.get("search", {})),
+        collector=dict(raw.get("collector", {})),
         retrieval=dict(raw.get("retrieval", {"top_k": 5})),
         verifier=dict(raw.get("verifier", {"threshold": 0.75})),
         ablation=dict(raw.get("ablation", {})),
