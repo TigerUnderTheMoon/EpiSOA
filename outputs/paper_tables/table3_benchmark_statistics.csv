@@ -1,0 +1,14 @@
+Benchmark Task,Rows,Train,Dev,Test
+tuple_identification,50,40,5,5
+evidence_support_classification,736,599,63,74
+chain_construction,50,40,5,5
+
+Label,Count
+  supported,334
+  not_enough_info,376
+  partially_supported,26
+
+Split,Events
+train,40
+dev,5
+test,5

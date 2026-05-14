@@ -9,12 +9,13 @@ from episoa.data.loader import read_jsonl
 from episoa.data.schema import EventRecord
 
 DATA_DIR = Path("data/pubevent_soa_lite")
+CANONICAL_ANNOTATION_DIR = DATA_DIR / "annotation_full_v3_repaired_plus_low37"
 REQUIRED_FILES = {
     "events": DATA_DIR / "events.jsonl",
     "raw_posts": DATA_DIR / "raw" / "raw_posts.jsonl",
-    "evidence": DATA_DIR / "evidence.jsonl",
-    "gold_tuples": DATA_DIR / "gold_tuples.jsonl",
-    "gold_event_chains": DATA_DIR / "gold_event_chains.jsonl",
+    "evidence": DATA_DIR / "evidence_v3_repaired_plus_low37.jsonl",
+    "gold_tuples": CANONICAL_ANNOTATION_DIR / "llm_gold_tuples.jsonl",
+    "gold_event_chains": CANONICAL_ANNOTATION_DIR / "llm_gold_event_chains.jsonl",
 }
 MOCK_MARKERS = ("mock", "sample", "demo", "fictional", "example.org")
 SOURCE_ALIASES = {"social_media": "public_social"}

@@ -1,0 +1,10 @@
+Metric,Value
+Events with chain match,45/50
+Gold chains total,138
+Predicted chains total,106
+Gold evidence IDs,385
+Predicted evidence IDs,425
+Overlap evidence IDs,195
+Evidence precision,0.4588
+Evidence recall,0.5065
+Evidence F1,0.4815

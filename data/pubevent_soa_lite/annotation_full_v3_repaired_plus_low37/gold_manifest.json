@@ -1,25 +1,27 @@
 {
   "version": "v3_repaired_plus_low37",
   "created_at": "2026-05-12T21:20:41Z",
-  "canonical_evidence_file": "data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.normalized.jsonl",
+  "updated_at": "2026-05-13T09:29:59Z",
+  "canonical_evidence_file": "data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.jsonl",
   "gold_tuple_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_tuples.jsonl",
   "gold_chain_file": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_event_chains.jsonl",
   "tuple_rows": 188,
   "chain_rows": 138,
   "quality_status": {
-    "event_coverage": "UNKNOWN",
-    "tuple_count_min_ge_3": "UNKNOWN",
-    "chain_count_min_ge_2": "UNKNOWN",
-    "candidate_id_duplicates": "UNKNOWN",
-    "chain_id_duplicates": "UNKNOWN",
-    "missing_chain_ids": "UNKNOWN",
-    "invalid_sentiments": "UNKNOWN",
-    "invalid_support_labels": "UNKNOWN",
-    "missing_evidence_refs": "UNKNOWN",
-    "missing_source_type": "UNKNOWN"
+    "event_coverage": "PASS",
+    "tuple_count_min_ge_3": "PASS",
+    "chain_count_min_ge_2": "PASS",
+    "candidate_id_duplicates": "PASS",
+    "chain_id_duplicates": "PASS",
+    "missing_chain_ids": "PASS",
+    "invalid_sentiments": "PASS",
+    "invalid_support_labels": "PASS",
+    "missing_evidence_refs": "PASS",
+    "missing_source_type": "PASS"
   },
   "notes": [
     "Use evidence_v3_repaired_plus_low37.jsonl as canonical evidence namespace.",
-    "Do not audit this gold version against evidence_filtered.jsonl."
+    "Do not audit this gold version against evidence_filtered.jsonl.",
+    "Final audit 2026-05-13: 0 issues, ready_for_final_gold=true."
   ]
 }

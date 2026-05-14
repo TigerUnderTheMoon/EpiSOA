@@ -1,0 +1,160 @@
+% EpiSOA Paper Tables (auto-generated)
+% Generated from benchmark evaluation results
+
+\begin{table}[htbp]
+  \centering
+  \caption{Dataset statistics}
+  \label{tab:tab1_dataset_statistics}
+  \begin{tabular}{|l|l|}
+    \hline
+    Statistic & Value \\
+    \hline
+    Number of events & 50 \\
+    Number of evidence records & 1767 \\
+    Number of gold tuples & 188 \\
+    Number of gold event chains & 138 \\
+      Domain: digital\_governance & 5 \\
+      Domain: education & 10 \\
+      Domain: healthcare & 10 \\
+      Domain: public\_safety & 10 \\
+      Domain: urban\_mobility & 5 \\
+      Domain: urban\_renewal & 10 \\
+    Avg evidence per event & 35.3 \\
+    Avg tuples per event & 3.8 \\
+    Avg chains per event & 2.8 \\
+      Source type: forum & 74 \\
+      Source type: mainstream\_news & 543 \\
+      Source type: official & 403 \\
+      Source type: public\_interaction & 57 \\
+      Source type: public\_web & 356 \\
+      Source type: social\_media & 334 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Benchmark task statistics}
+  \label{tab:tab3_benchmark_statistics}
+  \begin{tabular}{|l|l|l|l|l|}
+    \hline
+    Benchmark Task & Rows & Train & Dev & Test \\
+    \hline
+    tuple\_identification & 50 & 40 & 5 & 5 \\
+    evidence\_support\_classification & 736 & 599 & 63 & 74 \\
+    chain\_construction & 50 & 40 & 5 & 5 \\
+     &  &  &  &  \\
+    Label & Count &  &  &  \\
+      supported & 334 &  &  &  \\
+      not\_enough\_info & 376 &  &  &  \\
+      partially\_supported & 26 &  &  &  \\
+     &  &  &  &  \\
+    Split & Events &  &  &  \\
+    train & 40 &  &  &  \\
+    dev & 5 &  &  &  \\
+    test & 5 &  &  &  \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Main results}
+  \label{tab:tab4_main_results}
+  \begin{tabular}{|l|l|l|l|l|l|l|l|l|l|}
+    \hline
+    Method & Tuple-F1(exact) & Tuple-F1(LLM-judge) & Tuple-F1(soft) & EvSupport-Acc & EvSupport-Sup-F1 & EvSupport-NEI-F1 & Chain-Ev-F1 & Chain-Ev-Recall & Chain-Events-Matched \\
+    \hline
+    rule\_baseline & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.3333 & 0.2963 & 3/3 \\
+    pubevent-soa-lite-paper\_deepseek-v4-flash & 0.0000 & 0.6235 & 0.3027 & 0.6603 & 0.7174 & 0.7886 & 0.4815 & 0.5065 & 45/50 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Ablation results}
+  \label{tab:tab5_ablation_results}
+  \begin{tabular}{|l|l|l|l|l|l|}
+    \hline
+    Ablation Setting & Tuple-F1(LLM-judge) & EvSupport-Acc & Chain-Ev-F1 & ESR & Description \\
+    \hline
+    EpiSOA Full (LLM) & 0.6235 & 0.6603 & 0.4815 & 88.5\% & LLM attribution + LLM verifier (th=0.8) \\
+    Rule Baseline & 0.0000 & 0.0000 & 0.3333 & N/A & Keyword-matching only, no LLM \\
+    w/o Verifier (ID-only) & 0.6235 & 0.6603 & 0.4815 & 100.0\% & Evidence ID existence check only (old verifier) \\
+    LLM Verifier (th=0.7) & 0.6235 & 0.6603 & 0.4815 & \textasciitilde{}95\% & LLM verifier with relaxed threshold \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Evidence support per-class}
+  \label{tab:tab6_evidence_support_detail}
+  \begin{tabular}{|l|l|l|l|l|l|l|}
+    \hline
+    Class & Gold Count & Pred Count & TP & Precision & Recall & F1 \\
+    \hline
+    supported & 334 & 257 & 212 & 0.8249 & 0.6347 & 0.7174 \\
+    partially\_supported & 26 & 188 & 11 & 0.0585 & 0.4231 & 0.1028 \\
+    not\_enough\_info & 376 & 291 & 263 & 0.9038 & 0.6995 & 0.7886 \\
+    Overall & 736 & 736 & 736 &  &  & 0.6603 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Chain construction detail}
+  \label{tab:tab7_chain_detail}
+  \begin{tabular}{|l|l|}
+    \hline
+    Metric & Value \\
+    \hline
+    Events with chain match & 45/50 \\
+    Gold chains total & 138 \\
+    Predicted chains total & 106 \\
+    Gold evidence IDs & 385 \\
+    Predicted evidence IDs & 425 \\
+    Overlap evidence IDs & 195 \\
+    Evidence precision & 0.4588 \\
+    Evidence recall & 0.5065 \\
+    Evidence F1 & 0.4815 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Error analysis}
+  \label{tab:tab8_error_summary}
+  \begin{tabular}{|l|l|l|}
+    \hline
+    Error Category & Count & Details \\
+    \hline
+    Events with NO tuple predictions & 4 & E006, E007, E031, E047 \\
+    Events with NO chain predictions & 5 & E006, E010, E014, E045, E047 \\
+    Events with NO chain evidence match & 5 & E006, E010, E014, E045, E047 \\
+     &  &  \\
+    EvSupport: supported→partially\_supported & 104 (14.1\%) & LLM too conservative on strong evidence \\
+    EvSupport: NEI→partially\_supported & 73 (9.9\%) & LLM over-predicts partial support \\
+    EvSupport: NEI→supported & 40 (5.4\%) & False positive: irrelevant evidence marked supported \\
+    EvSupport: supported→NEI & 18 (2.4\%) & False negative: evidence missed \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Multi-model comparison}
+  \label{tab:tab_model_comparison}
+  \begin{tabular}{|l|l|l|l|l|l|l|l|l|}
+    \hline
+    Model & Tuple-F1(soft) & EvSup-Acc & EvSup-Sup-F1 & EvSup-NEI-F1 & Chain-Ev-F1 & Chain-Ev-Recall & Speed(s/row) & Notes \\
+    \hline
+    DeepSeek-V4-Flash & 0.3027 & 0.6603 & 0.7174 & 0.7886 & 0.4815 & 0.5065 &  &  \\
+    Qwen3.6-Plus & 0.1935 & 0.6000 & 0.5000 & 1.0000 & 0.5778 & 0.6190 &  & Slow (5 rows) \\
+    Kimi-K2.6 & 0.0000 & 0.6000 & 0.5000 & 1.0000 & 0.0000 & 0.0000 &  & Reasoning model: content=null, incompatible with JSON extraction \\
+    \hline
+  \end{tabular}
+\end{table}

@@ -76,7 +76,7 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
         read_jsonl(run_dir / "candidate_soa_tuples.jsonl")
     )
 
-    verified = verify_tuples(candidates, collected, float(config.verifier.get("threshold", 0.75)))
+    verified = verify_tuples(candidates, collected, float(config.verifier.get("threshold", 0.75)), llm_client=llm_client)
     metrics = evaluate_main(gold, verified)
     retrieval_metrics = evaluate_retrieval([item.model_dump() for item in gold_chains], paths)
     verifier_metrics = evaluate_verifier(verified)
@@ -102,6 +102,14 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
     return summary
 
 
+def _map_support_label(raw: str) -> str:
+    """Map schema-attribution support_status to valid PredictionTuple support_label."""
+    label = (raw or "candidate_unclear").replace("candidate_", "")
+    if label == "unclear":
+        return "insufficient_evidence"
+    return label
+
+
 def _attribution_to_predictions(attribution_results: list[dict]) -> list[PredictionTuple]:
     """Convert schema attribution output to PredictionTuple format."""
     predictions: list[PredictionTuple] = []
@@ -114,7 +122,7 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
                 sentiment=row.get("sentiment", "unknown"),
                 rationale=row.get("rationale", ""),
                 evidence_ids=row.get("evidence_ids", []),
-                support_label=row.get("support_status", "candidate_unclear").replace("candidate_", ""),
+                support_label=_map_support_label(row.get("support_status", "candidate_unclear")),
                 support_score=row.get("confidence", 0.5),
                 verified=False,
             )

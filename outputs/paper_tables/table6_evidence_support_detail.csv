@@ -1,0 +1,5 @@
+Class,Gold Count,Pred Count,TP,Precision,Recall,F1
+supported,334,257,212,0.8249,0.6347,0.7174
+partially_supported,26,188,11,0.0585,0.4231,0.1028
+not_enough_info,376,291,263,0.9038,0.6995,0.7886
+Overall,736,736,736,,,0.6603

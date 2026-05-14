@@ -1,0 +1,5 @@
+Ablation Setting,Tuple-F1(LLM-judge),EvSupport-Acc,Chain-Ev-F1,ESR,Description
+EpiSOA Full (LLM),0.6235,0.6603,0.4815,88.5%,LLM attribution + LLM verifier (th=0.8)
+Rule Baseline,0.0000,0.0000,0.3333,N/A,"Keyword-matching only, no LLM"
+w/o Verifier (ID-only),0.6235,0.6603,0.4815,100.0%,Evidence ID existence check only (old verifier)
+LLM Verifier (th=0.7),0.6235,0.6603,0.4815,~95%,LLM verifier with relaxed threshold

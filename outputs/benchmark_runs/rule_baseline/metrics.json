@@ -1,0 +1,74 @@
+{
+  "tuple_identification": {
+    "task": "tuple_identification",
+    "gold_tuples": 10,
+    "pred_tuples": 15,
+    "true_positives": 0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "stakeholder_opinion_f1": 0,
+    "sentiment_accuracy": 0.0,
+    "baseline": "rule",
+    "elapsed_seconds": 0.0,
+    "rows_processed": 3
+  },
+  "evidence_support_classification": {
+    "task": "evidence_support_classification",
+    "total": 3,
+    "accuracy": 0.0,
+    "positive_accuracy": 0.0,
+    "per_class": {
+      "supported": {
+        "precision": 0,
+        "recall": 0.0,
+        "f1": 0
+      },
+      "partially_supported": {
+        "precision": 0.0,
+        "recall": 0,
+        "f1": 0
+      },
+      "not_enough_info": {
+        "precision": 0,
+        "recall": 0.0,
+        "f1": 0
+      }
+    },
+    "confusion": {
+      "supported": {
+        "supported": 0,
+        "partially_supported": 2,
+        "not_enough_info": 0
+      },
+      "partially_supported": {
+        "supported": 0,
+        "partially_supported": 0,
+        "not_enough_info": 0
+      },
+      "not_enough_info": {
+        "supported": 0,
+        "partially_supported": 1,
+        "not_enough_info": 0
+      }
+    },
+    "baseline": "rule",
+    "elapsed_seconds": 0.0,
+    "rows_processed": 3
+  },
+  "chain_construction": {
+    "task": "chain_construction",
+    "events": 3,
+    "events_with_chain_match": 3,
+    "gold_chains": 9,
+    "pred_chains": 3,
+    "gold_evidence_ids": 27,
+    "pred_evidence_ids": 21,
+    "overlap_evidence_ids": 8,
+    "evidence_precision": 0.381,
+    "evidence_recall": 0.2963,
+    "evidence_f1": 0.3333,
+    "baseline": "rule",
+    "elapsed_seconds": 0.0,
+    "rows_processed": 3
+  }
+}

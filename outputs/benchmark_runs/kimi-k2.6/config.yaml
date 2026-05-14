@@ -1,0 +1,7 @@
+benchmark_dir: data\benchmark\pubevent_soa_lite_v3_repaired_plus_low37_gold
+config_file: configs/opencode_kimi.yaml
+model_name: kimi-k2.6
+tasks:
+- tuple_identification
+- evidence_support_classification
+- chain_construction

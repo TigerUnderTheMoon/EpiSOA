@@ -1,0 +1,9 @@
+Error Category,Count,Details
+Events with NO tuple predictions,4,"E006, E007, E031, E047"
+Events with NO chain predictions,5,"E006, E010, E014, E045, E047"
+Events with NO chain evidence match,5,"E006, E010, E014, E045, E047"
+,,
+EvSupport: supported→partially_supported,104 (14.1%),LLM too conservative on strong evidence
+EvSupport: NEI→partially_supported,73 (9.9%),LLM over-predicts partial support
+EvSupport: NEI→supported,40 (5.4%),False positive: irrelevant evidence marked supported
+EvSupport: supported→NEI,18 (2.4%),False negative: evidence missed

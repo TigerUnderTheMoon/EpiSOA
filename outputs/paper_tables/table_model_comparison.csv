@@ -1,0 +1,4 @@
+Model,Tuple-F1(soft),EvSup-Acc,EvSup-Sup-F1,EvSup-NEI-F1,Chain-Ev-F1,Chain-Ev-Recall,Speed(s/row),Notes
+DeepSeek-V4-Flash,0.3027,0.6603,0.7174,0.7886,0.4815,0.5065,,
+Qwen3.6-Plus,0.1935,0.6000,0.5000,1.0000,0.5778,0.6190,,Slow (5 rows)
+Kimi-K2.6,0.0000,0.6000,0.5000,1.0000,0.0000,0.0000,,"Reasoning model: content=null, incompatible with JSON extraction"

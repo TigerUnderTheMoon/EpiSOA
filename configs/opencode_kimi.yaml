@@ -1,23 +1,27 @@
-run_id: pubevent-soa-lite-ablation
-mode: ablation
+run_id: opencode-benchmark
+mode: paper
 seed: 42
 data:
   events_path: data/pubevent_soa_lite/events.jsonl
-  raw_posts_path: data/pubevent_soa_lite/raw/raw_posts.jsonl
-  evidence_candidates_path: data/pubevent_soa_lite/interim/evidence_candidates.jsonl
   evidence_path: data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
-  annotation_sheet_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/annotation_sheet.csv
   gold_tuples_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl
   gold_event_chains_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl
 output:
   runs_dir: outputs/runs
-ablation:
-  settings:
-    - full
-    - without_graph
-    - without_event_chain
-    - without_verifier
+model:
+  mode: real
+  llm_mode: real
+  provider: openai_compatible
+  model_name: kimi-k2.6
+  api_key: "sk-Oc3xe8Pd21t6zk6lcp0kWbgaXUUHxgFOWInUS4Ig0VAnkzDCFYSB4HaxJBUTD5rt"
+  base_url: "https://opencode.ai/zen/go/v1"
+  temperature: 0.1
+  max_tokens: 3000
+  timeout_seconds: 180
+  max_retries: 1
+search:
+  provider: custom
 retrieval:
   top_k: 5
 verifier:
-  threshold: 0.75
+  threshold: 0.8

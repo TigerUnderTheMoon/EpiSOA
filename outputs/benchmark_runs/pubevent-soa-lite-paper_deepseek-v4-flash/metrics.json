@@ -1,0 +1,80 @@
+{
+  "tuple_identification": {
+    "task": "tuple_identification",
+    "gold_tuples": 175,
+    "pred_tuples": 149,
+    "true_positives": 0,
+    "true_positives_soft": 51,
+    "precision": 0.0,
+    "recall": 0.0,
+    "stakeholder_opinion_f1": 0,
+    "stakeholder_opinion_f1_soft": 0.3027,
+    "sentiment_accuracy": 0.0,
+    "model_name": "deepseek-v4-flash",
+    "rows_processed": 50,
+    "true_positives_llm_judge": 101,
+    "precision_llm_judge": 0.6779,
+    "recall_llm_judge": 0.5771,
+    "stakeholder_opinion_f1_llm_judge": 0.6235,
+    "sentiment_accuracy_llm_judge": 0.3771,
+    "events_processed": 46,
+    "judge_model": "deepseek-v4-flash"
+  },
+  "evidence_support_classification": {
+    "task": "evidence_support_classification",
+    "total": 736,
+    "accuracy": 0.6603,
+    "positive_accuracy": 0.6194,
+    "per_class": {
+      "supported": {
+        "precision": 0.8249,
+        "recall": 0.6347,
+        "f1": 0.7174
+      },
+      "partially_supported": {
+        "precision": 0.0585,
+        "recall": 0.4231,
+        "f1": 0.1028
+      },
+      "not_enough_info": {
+        "precision": 0.9038,
+        "recall": 0.6995,
+        "f1": 0.7886
+      }
+    },
+    "confusion": {
+      "supported": {
+        "supported": 212,
+        "partially_supported": 104,
+        "not_enough_info": 18
+      },
+      "partially_supported": {
+        "supported": 5,
+        "partially_supported": 11,
+        "not_enough_info": 10
+      },
+      "not_enough_info": {
+        "supported": 40,
+        "partially_supported": 73,
+        "not_enough_info": 263
+      }
+    },
+    "model_name": "deepseek-v4-flash",
+    "rows_processed": 736
+  },
+  "chain_construction": {
+    "task": "chain_construction",
+    "events": 50,
+    "events_with_chain_match": 45,
+    "gold_chains": 138,
+    "pred_chains": 106,
+    "gold_evidence_ids": 385,
+    "pred_evidence_ids": 425,
+    "overlap_evidence_ids": 195,
+    "evidence_precision": 0.4588,
+    "evidence_recall": 0.5065,
+    "evidence_f1": 0.4815,
+    "model_name": "deepseek-v4-flash",
+    "rows_processed": 50
+  }
+}
