@@ -19,7 +19,7 @@ model:
   model_name: "deepseek-v4-flash"
   embedding_model: mock-embedding
   reranker_model: mock-reranker
-  api_key: "sk-Oc3xe8Pd21t6zk6lcp0kWbgaXUUHxgFOWInUS4Ig0VAnkzDCFYSB4HaxJBUTD5rt"
+  api_key: ""
   api_key_env: "OPENCODE_API_KEY"
   base_url: "https://opencode.ai/zen/go/v1"
   base_url_env: "OPENCODE_BASE_URL"
