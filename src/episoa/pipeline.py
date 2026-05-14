@@ -19,6 +19,7 @@ from episoa.evaluation.evaluate_ablation import evaluate_ablation
 from episoa.evaluation.evaluate_main import evaluate_main
 from episoa.evaluation.evaluate_retrieval import evaluate_retrieval
 from episoa.evaluation.evaluate_verifier import evaluate_verifier
+from episoa.graph.evidence_graph import write_evidence_graph
 from episoa.graph.graph_builder import build_graph
 from episoa.llm.client import OpenAICompatibleClient
 from episoa.retrieval.event_chain_retriever import retrieve_event_chains
@@ -42,7 +43,12 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
     """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
     collected = collect_evidence(events, evidence)
 
-    graph = [] if skip_graph else build_graph(events, collected)
+    if skip_graph:
+        graph_nodes = []
+    else:
+        graph = build_graph(events, collected)
+        write_evidence_graph(graph, run_dir / "evidence_graph")
+        graph_nodes = graph.node_records()
     chains = [] if skip_chains else retrieve_event_chains(events, collected, int(config.retrieval.get("top_k", 5)))
 
     model_name = config.model.get("llm_model", "deepseek-v4-flash")
@@ -50,7 +56,7 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
         events=[e.model_dump() for e in events],
         evidence_rows=[e.model_dump() for e in collected],
         chains=chains,
-        graph_nodes=graph,
+        graph_nodes=graph_nodes,
         llm_client=llm_client,
         model_name=model_name,
         output_dir=run_dir,
