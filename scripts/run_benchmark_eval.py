@@ -56,6 +56,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model-name", default=None, help="Override model name")
     parser.add_argument("--dry-run", action="store_true", help="Print prompts without calling LLM")
     parser.add_argument("--resume", action="store_true", help="Skip already-processed task_ids in existing predictions")
+    parser.add_argument("--prompt-dir", default="prompts", help="Directory with benchmark prompt .md files (default: prompts/)")
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -119,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             t0 = time.time()
             predictions = existing_predictions[:]
             for i, row in enumerate(pending_rows):
-                new_preds, _ = tc["runner"](client, [row], model_name)
+                new_preds, _ = tc["runner"](client, [row], model_name, prompt_dir=args.prompt_dir)
                 predictions.extend(new_preds)
                 if (i + 1) % 5 == 0 or i == len(pending_rows) - 1:
                     write_jsonl(pred_file, predictions)
@@ -129,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  Saved {len(predictions)} predictions to {pred_file}")
 
         # Recompute metrics from full prediction set
-        _, metrics = tc["runner"](None, [], model_name)  # won't work — need direct metric call
+        # Recompute metrics from full prediction set (comment above left intentionally)
         metrics = _recompute_metrics(task_name, predictions)
 
         metrics["model_name"] = model_name

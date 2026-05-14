@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import time
+from pathlib import Path
 
 
 def _char_overlap(a: str, b: str) -> float:
@@ -40,11 +41,27 @@ Pred 元组：
 注意：pred_index 和 gold_index 从 0 开始。如果一个 pred 不匹配任何 gold，gold_index 设为 -1。"""
 
 
+def _load_judge_prompt(name: str, prompt_dir: str | None) -> str:
+    """Load an LLM-judge prompt from file with fallback to in-module string constant."""
+    file_map = {
+        "LLM_JUDGE_SYSTEM": "benchmark_judge_system.md",
+        "LLM_JUDGE_USER": "benchmark_judge_user.md",
+    }
+    if prompt_dir:
+        file_name = file_map.get(name)
+        if file_name:
+            path = Path(prompt_dir) / file_name
+            if path.exists():
+                return path.read_text(encoding="utf-8")
+    return globals().get(name, "")
+
+
 def eval_tuple_identification_llm_judge(
     predictions: list[dict],
     llm_client=None,
     model_name: str = "",
     max_events: int = 0,
+    prompt_dir: str | None = None,
 ) -> dict:
     """Evaluate tuple identification using LLM-as-judge for semantic equivalence.
 
@@ -92,7 +109,10 @@ def eval_tuple_identification_llm_judge(
                 f"(sentiment={pt.get('sentiment', '')})"
             )
 
-        user_prompt = LLM_JUDGE_USER.format(
+        judge_system = _load_judge_prompt("LLM_JUDGE_SYSTEM", prompt_dir)
+        judge_user_template = _load_judge_prompt("LLM_JUDGE_USER", prompt_dir)
+
+        user_prompt = judge_user_template.format(
             event_name=p.get("event_id", ""),
             gold_tuples_text="\n".join(gold_lines),
             pred_tuples_text="\n".join(pred_lines),
@@ -100,7 +120,7 @@ def eval_tuple_identification_llm_judge(
 
         try:
             resp = llm_client.chat(
-                system_prompt=LLM_JUDGE_SYSTEM,
+                system_prompt=judge_system,
                 user_prompt=user_prompt,
             )
             content = resp.content.strip()

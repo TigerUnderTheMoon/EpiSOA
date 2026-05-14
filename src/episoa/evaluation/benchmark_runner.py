@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from pathlib import Path
 from typing import Any
 
 from episoa.llm.client import OpenAICompatibleClient
@@ -12,6 +13,8 @@ from episoa.llm.client import OpenAICompatibleClient
 
 # ---------------------------------------------------------------------------
 # Prompt templates (Chinese, aligned with existing EpiSOA prompt style)
+# These string constants serve as fallback defaults.  The runner functions
+# will prefer loading identically-named .md files from a prompt directory.
 # ---------------------------------------------------------------------------
 
 TUPLE_IDENTIFICATION_SYSTEM = """你是一个中文公共事件利益相关方观点归因专家。你需要根据给定的事件信息和候选证据，识别所有利益相关方及其观点。
@@ -83,6 +86,29 @@ CHAIN_CONSTRUCTION_USER = """事件：{event_name}
 请构建事件演化链，输出 JSON。"""
 
 
+# Mapping from constant name → prompt file name (relative to prompt_dir)
+_PROMPT_FILE_MAP = {
+    "TUPLE_IDENTIFICATION_SYSTEM": "benchmark_tuple_system.md",
+    "TUPLE_IDENTIFICATION_USER": "benchmark_tuple_user.md",
+    "EVIDENCE_SUPPORT_SYSTEM": "benchmark_evidence_system.md",
+    "EVIDENCE_SUPPORT_USER": "benchmark_evidence_user.md",
+    "CHAIN_CONSTRUCTION_SYSTEM": "benchmark_chain_system.md",
+    "CHAIN_CONSTRUCTION_USER": "benchmark_chain_user.md",
+}
+
+
+def _load_prompt(name: str, prompt_dir: str | None) -> str:
+    """Load a prompt from file with fallback to the in-module string constant."""
+    if prompt_dir:
+        file_name = _PROMPT_FILE_MAP.get(name)
+        if file_name:
+            path = Path(prompt_dir) / file_name
+            if path.exists():
+                return path.read_text(encoding="utf-8")
+    # Fallback to module-level string constant
+    return globals().get(name, "")
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -117,9 +143,13 @@ def _format_evidence_candidates(ev_list: list[dict], max_chars: int = 400, max_i
 # ---------------------------------------------------------------------------
 
 def run_tuple_identification(
-    client: OpenAICompatibleClient, task_rows: list[dict], model_name: str
+    client: OpenAICompatibleClient, task_rows: list[dict], model_name: str,
+    prompt_dir: str | None = None,
 ) -> tuple[list[dict], dict]:
     from episoa.evaluation.benchmark_metrics import eval_tuple_identification
+
+    system_prompt = _load_prompt("TUPLE_IDENTIFICATION_SYSTEM", prompt_dir)
+    user_template = _load_prompt("TUPLE_IDENTIFICATION_USER", prompt_dir)
 
     predictions = []
     for row in task_rows:
@@ -127,7 +157,7 @@ def run_tuple_identification(
         event = inp["event"]
         evidence_texts = _format_evidence_candidates(inp["evidence_candidates"])
 
-        user_prompt = TUPLE_IDENTIFICATION_USER.format(
+        user_prompt = user_template.format(
             event_name=event.get("event_name", ""),
             event_description=event.get("event_description", ""),
             time_window=json.dumps(event.get("time_window", {}), ensure_ascii=False),
@@ -137,7 +167,7 @@ def run_tuple_identification(
 
         try:
             resp = client.chat(
-                system_prompt=TUPLE_IDENTIFICATION_SYSTEM,
+                system_prompt=system_prompt,
                 user_prompt=user_prompt,
             )
             parsed = _extract_json(resp.content)
@@ -160,9 +190,13 @@ def run_tuple_identification(
 
 
 def run_evidence_support(
-    client: OpenAICompatibleClient, task_rows: list[dict], model_name: str
+    client: OpenAICompatibleClient, task_rows: list[dict], model_name: str,
+    prompt_dir: str | None = None,
 ) -> tuple[list[dict], dict]:
     from episoa.evaluation.benchmark_metrics import eval_evidence_support
+
+    system_prompt = _load_prompt("EVIDENCE_SUPPORT_SYSTEM", prompt_dir)
+    user_template = _load_prompt("EVIDENCE_SUPPORT_USER", prompt_dir)
 
     predictions = []
     for row in task_rows:
@@ -171,7 +205,7 @@ def run_evidence_support(
         tup = inp["tuple_claim"]
         evidence = inp["evidence"]
 
-        user_prompt = EVIDENCE_SUPPORT_USER.format(
+        user_prompt = user_template.format(
             event_name=event.get("event_name", ""),
             stakeholder=tup.get("stakeholder", ""),
             opinion=tup.get("opinion", ""),
@@ -183,7 +217,7 @@ def run_evidence_support(
 
         try:
             resp = client.chat(
-                system_prompt=EVIDENCE_SUPPORT_SYSTEM,
+                system_prompt=system_prompt,
                 user_prompt=user_prompt,
             )
             parsed = _extract_json(resp.content)
@@ -208,9 +242,13 @@ def run_evidence_support(
 
 
 def run_chain_construction(
-    client: OpenAICompatibleClient, task_rows: list[dict], model_name: str
+    client: OpenAICompatibleClient, task_rows: list[dict], model_name: str,
+    prompt_dir: str | None = None,
 ) -> tuple[list[dict], dict]:
     from episoa.evaluation.benchmark_metrics import eval_chain_construction
+
+    system_prompt = _load_prompt("CHAIN_CONSTRUCTION_SYSTEM", prompt_dir)
+    user_template = _load_prompt("CHAIN_CONSTRUCTION_USER", prompt_dir)
 
     predictions = []
     for row in task_rows:
@@ -218,7 +256,7 @@ def run_chain_construction(
         event = inp["event"]
         evidence_texts = _format_evidence_candidates(inp["evidence_candidates"])
 
-        user_prompt = CHAIN_CONSTRUCTION_USER.format(
+        user_prompt = user_template.format(
             event_name=event.get("event_name", ""),
             event_description=event.get("event_description", ""),
             time_window=json.dumps(event.get("time_window", {}), ensure_ascii=False),
@@ -228,7 +266,7 @@ def run_chain_construction(
 
         try:
             resp = client.chat(
-                system_prompt=CHAIN_CONSTRUCTION_SYSTEM,
+                system_prompt=system_prompt,
                 user_prompt=user_prompt,
             )
             parsed = _extract_json(resp.content)

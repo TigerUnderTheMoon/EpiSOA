@@ -211,6 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--task", default="all", help="Which task to run")
     parser.add_argument("--max-tasks", type=int, default=0)
     parser.add_argument("--model-name", default=None)
+    parser.add_argument("--prompt-dir", default="prompts", help="Directory with benchmark prompt .md files")
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -289,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[{task_name}] Running direct LLM baseline on {len(rows)} rows ...")
             t0 = time.time()
             runner = runner_map[task_name]
-            predictions, metrics = runner(client, rows, model_name)
+            predictions, metrics = runner(client, rows, model_name, prompt_dir=args.prompt_dir)
             elapsed = time.time() - t0
 
             pred_file = output_dir / f"{task_name}_predictions.jsonl"
