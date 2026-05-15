@@ -1,73 +1,73 @@
 {
   "tuple_identification": {
     "task": "tuple_identification",
-    "gold_tuples": 16,
-    "pred_tuples": 0,
+    "gold_tuples": 188,
+    "pred_tuples": 6,
     "true_positives": 0,
-    "true_positives_soft": 0,
-    "precision": 0,
+    "true_positives_soft": 2,
+    "precision": 0.0,
     "recall": 0.0,
     "stakeholder_opinion_f1": 0,
-    "stakeholder_opinion_f1_soft": 0,
+    "stakeholder_opinion_f1_soft": 0.0206,
     "sentiment_accuracy": 0.0,
     "model_name": "kimi-k2.6",
-    "rows_processed": 5
+    "rows_processed": 50
   },
   "evidence_support_classification": {
     "task": "evidence_support_classification",
-    "total": 5,
-    "accuracy": 0.6,
-    "positive_accuracy": 0.3333,
+    "total": 736,
+    "accuracy": 0.6304,
+    "positive_accuracy": 0.4639,
     "per_class": {
       "supported": {
-        "precision": 1.0,
-        "recall": 0.3333,
-        "f1": 0.5
+        "precision": 0.8703,
+        "recall": 0.482,
+        "f1": 0.6204
       },
       "partially_supported": {
-        "precision": 0.0,
-        "recall": 0,
-        "f1": 0
+        "precision": 0.0294,
+        "recall": 0.2308,
+        "f1": 0.0522
       },
       "not_enough_info": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0
+        "precision": 0.8559,
+        "recall": 0.7899,
+        "f1": 0.8216
       }
     },
     "confusion": {
       "supported": {
-        "supported": 1,
-        "partially_supported": 2,
-        "not_enough_info": 0
+        "supported": 161,
+        "partially_supported": 140,
+        "not_enough_info": 33
       },
       "partially_supported": {
-        "supported": 0,
-        "partially_supported": 0,
-        "not_enough_info": 0
+        "supported": 3,
+        "partially_supported": 6,
+        "not_enough_info": 17
       },
       "not_enough_info": {
-        "supported": 0,
-        "partially_supported": 0,
-        "not_enough_info": 2
+        "supported": 21,
+        "partially_supported": 58,
+        "not_enough_info": 297
       }
     },
     "model_name": "kimi-k2.6",
-    "rows_processed": 5
+    "rows_processed": 736
   },
   "chain_construction": {
     "task": "chain_construction",
-    "events": 5,
-    "events_with_chain_match": 0,
-    "gold_chains": 14,
-    "pred_chains": 0,
-    "gold_evidence_ids": 42,
-    "pred_evidence_ids": 0,
-    "overlap_evidence_ids": 0,
-    "evidence_precision": 0,
-    "evidence_recall": 0.0,
-    "evidence_f1": 0,
+    "events": 50,
+    "events_with_chain_match": 1,
+    "gold_chains": 138,
+    "pred_chains": 3,
+    "gold_evidence_ids": 385,
+    "pred_evidence_ids": 7,
+    "overlap_evidence_ids": 2,
+    "evidence_precision": 0.2857,
+    "evidence_recall": 0.0052,
+    "evidence_f1": 0.0102,
     "model_name": "kimi-k2.6",
-    "rows_processed": 5
+    "rows_processed": 50
   }
 }

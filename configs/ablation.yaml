@@ -17,6 +17,8 @@ ablation:
     - without_graph
     - without_event_chain
     - without_verifier
+    - without_event_chain_prompt
+    - without_event_chain_ranking
 model:
   mode: real
   llm_mode: real

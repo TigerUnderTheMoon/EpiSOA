@@ -2,14 +2,25 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 import csv
+from datetime import datetime, timezone
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 import yaml
 
-from episoa.attribution.schema_attributor import run_schema_attribution
+from episoa.attribution.schema_attributor import (
+    ALLOWED_SENTIMENT,
+    ALLOWED_SUPPORT,
+    MAX_OPINION_CHARS,
+    MAX_RATIONALE_CHARS,
+    MAX_TUPLES_PER_EVENT,
+    PROMPT_VERSION,
+    run_schema_attribution,
+)
 from episoa.collector.cfsm_collector import collect_evidence
 from episoa.config import api_config_status, load_config, print_api_config_status, resolve_api_config
 from episoa.data.loader import read_jsonl, read_typed_jsonl, write_jsonl
@@ -19,6 +30,7 @@ from episoa.evaluation.evaluate_ablation import evaluate_ablation
 from episoa.evaluation.evaluate_main import evaluate_main
 from episoa.evaluation.evaluate_retrieval import evaluate_retrieval
 from episoa.evaluation.evaluate_verifier import evaluate_verifier
+from episoa.evaluation.metrics import soft_tuple_f1
 from episoa.graph.evidence_graph import write_evidence_graph
 from episoa.graph.graph_builder import build_graph
 from episoa.llm.client import OpenAICompatibleClient
@@ -40,17 +52,122 @@ def _create_llm_client(config) -> OpenAICompatibleClient:
     )
 
 
-def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm_client, skip_graph, skip_chains, skip_verifier):
+def _get_git_commit() -> str:
+    """Return current git HEAD commit hash, or 'unknown' on failure."""
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+def _write_input_manifest(
+    setting_dir: Path,
+    *,
+    run_id: str,
+    timestamp: str,
+    git_commit: str,
+    setting: str,
+    config,
+    events_count: int,
+    evidence_count: int,
+    gold_count: int,
+    flags: dict[str, bool],
+) -> None:
+    manifest = {
+        "run_id": run_id,
+        "timestamp": timestamp,
+        "git_commit": git_commit,
+        "setting": setting,
+        "mode": "ablation",
+        "model": {
+            "provider": config.model.get("provider", "openai_compatible"),
+            "model_name": config.model.get("llm_model", "unknown"),
+            "base_url": config.model.get("base_url", ""),
+            "temperature": config.model.get("temperature", 0.1),
+            "max_tokens": config.model.get("max_tokens", 3000),
+        },
+        "data": {
+            "events_path": config.data.get("events_path", ""),
+            "evidence_path": config.data.get("evidence_path", ""),
+            "gold_tuples_path": config.data.get("gold_tuples_path", ""),
+            "gold_event_chains_path": config.data.get("gold_event_chains_path", ""),
+            "num_events": events_count,
+            "num_evidence": evidence_count,
+            "num_gold_tuples": gold_count,
+        },
+        "flags": flags,
+    }
+    (setting_dir / "input_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def _write_prompt_manifest(setting_dir: Path, config) -> None:
+    manifest = {
+        "prompt_version": PROMPT_VERSION,
+        "max_tuples_per_event": MAX_TUPLES_PER_EVENT,
+        "max_opinion_chars": MAX_OPINION_CHARS,
+        "max_rationale_chars": MAX_RATIONALE_CHARS,
+        "allowed_sentiment": sorted(ALLOWED_SENTIMENT),
+        "allowed_support": sorted(ALLOWED_SUPPORT),
+        "verifier_threshold": float(config.verifier.get("threshold", 0.75)),
+        "retrieval_top_k": int(config.retrieval.get("top_k", 5)),
+    }
+    (setting_dir / "prompt_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def _write_event_level_csv(path: Path, gold, predictions) -> None:
+    """Write per-event soft-match metrics as CSV."""
+    gold_by_event: dict[str, list] = defaultdict(list)
+    pred_by_event: dict[str, list] = defaultdict(list)
+    for g in gold:
+        gold_by_event[g.event_id].append(g)
+    for p in predictions:
+        pred_by_event[p.event_id].append(p)
+
+    all_event_ids = sorted(set(gold_by_event) | set(pred_by_event))
+    fieldnames = [
+        "event_id", "precision", "recall", "f1", "tp",
+        "num_gold", "num_pred", "sentiment_acc",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for event_id in all_event_ids:
+            gt = gold_by_event.get(event_id, [])
+            pt = pred_by_event.get(event_id, [])
+            soft = soft_tuple_f1(gt, pt, threshold=0.5)
+            writer.writerow({
+                "event_id": event_id,
+                "precision": soft["precision"],
+                "recall": soft["recall"],
+                "f1": soft["f1"],
+                "tp": soft["true_positives"],
+                "num_gold": len(gt),
+                "num_pred": len(pt),
+                "sentiment_acc": soft["sentiment_accuracy"],
+            })
+
+
+def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm_client, use_graph, use_event_chain, use_verifier, hide_chain_in_prompt=False, skip_chain_ranking=False):
     """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
     collected = collect_evidence(events, evidence)
 
-    if skip_graph:
-        graph_nodes = []
-    else:
+    if use_graph:
         graph = build_graph(events, collected)
         write_evidence_graph(graph, run_dir / "evidence_graph")
         graph_nodes = graph.node_records()
-    chains = [] if skip_chains else retrieve_event_chains(events, collected, int(config.retrieval.get("top_k", 5)))
+    else:
+        graph_nodes = []
+
+    if use_event_chain:
+        chains = retrieve_event_chains(events, collected, int(config.retrieval.get("top_k", 5)))
+    else:
+        chains = []
 
     model_name = config.model.get("llm_model", "deepseek-v4-flash")
     run_schema_attribution(
@@ -62,6 +179,8 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
         model_name=model_name,
         output_dir=run_dir,
         max_evidence_per_event=12,
+        hide_chain_in_prompt=hide_chain_in_prompt,
+        skip_chain_ranking=skip_chain_ranking,
     )
 
     candidates = _attribution_to_predictions(
@@ -69,12 +188,12 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
     )
     write_jsonl(run_dir / "candidate_soa_tuples.jsonl", candidates)
 
-    if skip_verifier:
-        verified = candidates
-        verifier_metrics = {"verifier_skipped": 1.0}
-    else:
+    if use_verifier:
         verified = verify_tuples(candidates, collected, float(config.verifier.get("threshold", 0.75)), llm_client=llm_client)
         verifier_metrics = evaluate_verifier(verified)
+    else:
+        verified = candidates
+        verifier_metrics = {"verifier_skipped": 1.0}
 
     write_jsonl(run_dir / "verified_soa_tuples.jsonl", verified)
     write_jsonl(run_dir / "predictions.jsonl", verified)
@@ -107,7 +226,7 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
 
     verified, retrieval_metrics, verifier_metrics = _run_core_pipeline(
         events, evidence, gold, gold_chains, config, run_dir, llm_client,
-        skip_graph=False, skip_chains=False, skip_verifier=False,
+        use_graph=True, use_event_chain=True, use_verifier=True,
     )
 
     metrics = evaluate_main(gold, verified)
@@ -158,22 +277,31 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
 
 
 ABLATION_SETTINGS = {
-    "full":                  {"skip_graph": False, "skip_chains": False, "skip_verifier": False},
-    "without_graph":         {"skip_graph": True,  "skip_chains": False, "skip_verifier": False},
-    "without_event_chain":   {"skip_graph": False, "skip_chains": True,  "skip_verifier": False},
-    "without_verifier":      {"skip_graph": False, "skip_chains": False, "skip_verifier": True},
+    "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
+    "without_graph":              {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
+    "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
+    "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False},
+    "without_event_chain_prompt":  {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": False},
+    "without_event_chain_ranking": {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True},
 }
 
 
-def run_ablation_pipeline(config_path: str | Path) -> dict:
+def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
+    """Run ablation experiments for every setting in config.ablation.settings.
+
+    Each setting runs the full pipeline independently in its own output directory
+    under outputs/runs/ablation_{setting}/.  Paper-final mode never reuses cached
+    results — all four settings always run from scratch.
+
+    When force=True, existing setting directories are removed before running.
+    """
     config = load_config(config_path)
     print_api_config_status(config)
     validation = validate_paper_data()
-    run_dir = config.run_dir
     if not validation["paper_data_ready"]:
         return {"status": "blocked", "reason": "paper data is not ready", "validation": validation}
-    run_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(config_path, run_dir / "config.yaml")
+
+    runs_dir = Path(config.output.get("runs_dir", "outputs/runs"))
 
     events = read_typed_jsonl(config.data["events_path"], EventRecord)
     evidence = read_typed_jsonl(config.data["evidence_path"], EvidenceRecord)
@@ -181,9 +309,11 @@ def run_ablation_pipeline(config_path: str | Path) -> dict:
     gold_chains = read_typed_jsonl(config.data["gold_event_chains_path"], GoldEventChain)
 
     llm_client = _create_llm_client(config)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    git_commit = _get_git_commit()
 
     all_metrics: dict[str, dict[str, float]] = {}
-    settings = config.ablation.get("settings", list(ABLATION_SETTINGS))
+    settings: list[str] = config.ablation.get("settings", list(ABLATION_SETTINGS))
 
     for setting in settings:
         flags = ABLATION_SETTINGS.get(setting)
@@ -191,10 +321,33 @@ def run_ablation_pipeline(config_path: str | Path) -> dict:
             print(f"  [SKIP] unknown ablation setting: {setting}")
             continue
 
-        setting_dir = run_dir / setting
+        setting_dir = runs_dir / f"ablation_{setting}"
+
+        if force:
+            if setting_dir.exists():
+                shutil.rmtree(setting_dir)
+                print(f"  [FORCE] removed {setting_dir}")
+
         setting_dir.mkdir(parents=True, exist_ok=True)
 
-        verified, retrieval_metrics, verifier_metrics = _run_core_pipeline(
+        # Always write manifests before running (paper-final: never skip)
+        shutil.copyfile(config_path, setting_dir / "config_snapshot.yaml")
+        _write_input_manifest(
+            setting_dir,
+            run_id=f"ablation_{setting}",
+            timestamp=timestamp,
+            git_commit=git_commit,
+            setting=setting,
+            config=config,
+            events_count=len(events),
+            evidence_count=len(evidence),
+            gold_count=len(gold),
+            flags=flags,
+        )
+        _write_prompt_manifest(setting_dir, config)
+
+        print(f"  [RUN] {setting} → {setting_dir}")
+        verified, _retrieval_metrics, _verifier_metrics = _run_core_pipeline(
             events, evidence, gold, gold_chains, config, setting_dir, llm_client,
             **flags,
         )
@@ -202,13 +355,136 @@ def run_ablation_pipeline(config_path: str | Path) -> dict:
         metrics = evaluate_ablation(gold, verified)
         all_metrics[setting] = metrics
 
-        (setting_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"  [{setting}] Tuple-F1={metrics.get('Tuple-F1', 'N/A')}")
+        (setting_dir / "metrics.json").write_text(
+            json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        _write_event_level_csv(setting_dir / "event_level_metrics.csv", gold, verified)
 
-    _write_ablation_csv(run_dir / "ablation_results.csv", all_metrics)
-    summary = {"status": "completed", "settings": list(all_metrics.keys()), "metrics": all_metrics}
-    (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"  [{setting}] Tuple-F1-soft={metrics.get('Tuple-F1-soft', 'N/A')}, "
+              f"Num-Tuples={metrics.get('Num-Tuples', 'N/A')}")
+
+    # Aggregate only from the current run (never reads old cache)
+    _write_ablation_csv(runs_dir / "ablation_results.csv", all_metrics)
+
+    # Event-level deltas for chain-prompt / chain-ranking vs full
+    _write_event_level_deltas(runs_dir, gold, settings)
+
+    summary = {
+        "status": "completed",
+        "run_id": "ablation",
+        "timestamp": timestamp,
+        "git_commit": git_commit,
+        "force": force,
+        "settings": list(all_metrics.keys()),
+        "metrics": all_metrics,
+    }
+    (runs_dir / "ablation_summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+    print()
+    print("=== Ablation Results ===")
+    print((runs_dir / "ablation_results.csv").read_text(encoding="utf-8"))
+    if (runs_dir / "event_level_deltas.json").exists():
+        print()
+        print("=== Event-Level Deltas (vs full) ===")
+        print((runs_dir / "event_level_deltas.json").read_text(encoding="utf-8"))
     return summary
+
+
+def _write_event_level_deltas(runs_dir: Path, gold: list[GoldTuple], settings: list[str]) -> None:
+    """Compute per-event deltas between 'full' and chain-prompt/chain-ranking settings.
+
+    Outputs event_level_deltas.json and event_level_deltas.csv to runs_dir.
+    """
+    target_settings = [s for s in ("without_event_chain_prompt", "without_event_chain_ranking") if s in settings]
+    if "full" not in settings or not target_settings:
+        return
+
+    def _load_setting_data(setting_name: str) -> dict:
+        sd = runs_dir / f"ablation_{setting_name}"
+        raw_path = sd / "raw_llm_responses.jsonl"
+        tuples_path = sd / "candidate_soa_tuples.jsonl"
+        raw_by_event: dict[str, dict] = {}
+        if raw_path.exists():
+            for rec in read_jsonl(raw_path):
+                raw_by_event[str(rec.get("event_id", ""))] = rec
+        tuples_by_event: dict[str, list[dict]] = defaultdict(list)
+        if tuples_path.exists():
+            for t in read_jsonl(tuples_path):
+                tuples_by_event[str(t.get("event_id", ""))].append(t)
+        return {"raw": raw_by_event, "tuples": tuples_by_event}
+
+    def _count_matched_gold(gold_tuples: list, pred_tuples: list) -> int:
+        if not gold_tuples or not pred_tuples:
+            return 0
+        soft = soft_tuple_f1(gold_tuples, pred_tuples, threshold=0.5)
+        return int(soft.get("true_positives", 0))
+
+    full_data = _load_setting_data("full")
+    deltas: list[dict] = []
+
+    for event_id, full_raw in full_data["raw"].items():
+        full_eids = set(full_raw.get("request_summary", {}).get("selected_evidence_ids", []))
+        full_chars = int(full_raw.get("request_summary", {}).get("prompt_chars", 0))
+        gold_for_event = [g for g in gold if str(g.event_id) == event_id]
+        full_tuples = full_data["tuples"].get(event_id, [])
+        full_matched = _count_matched_gold(
+            [g.model_dump() for g in gold_for_event], full_tuples
+        )
+
+        for setting_name in target_settings:
+            sd = _load_setting_data(setting_name)
+            setting_raw = sd["raw"].get(event_id)
+            if setting_raw is None:
+                continue
+            setting_eids = set(setting_raw.get("request_summary", {}).get("selected_evidence_ids", []))
+            setting_chars = int(setting_raw.get("request_summary", {}).get("prompt_chars", 0))
+            setting_tuples = sd["tuples"].get(event_id, [])
+            setting_matched = _count_matched_gold(
+                [g.model_dump() for g in gold_for_event], setting_tuples
+            )
+
+            overlap = len(full_eids & setting_eids)
+            gold_count = len(gold_for_event)
+
+            deltas.append({
+                "event_id": event_id,
+                "setting": setting_name,
+                "full_selected_count": len(full_eids),
+                "setting_selected_count": len(setting_eids),
+                "overlap_count": overlap,
+                "full_prompt_chars": full_chars,
+                "setting_prompt_chars": setting_chars,
+                "prompt_chars_delta": setting_chars - full_chars,
+                "full_matched_tuples": full_matched,
+                "setting_matched_tuples": setting_matched,
+                "matched_tuple_delta": setting_matched - full_matched,
+                "gold_tuple_count": gold_count,
+                "full_missed_gold": gold_count - full_matched,
+                "setting_missed_gold": gold_count - setting_matched,
+            })
+
+    if deltas:
+        (runs_dir / "event_level_deltas.json").write_text(
+            json.dumps(deltas, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        _write_deltas_csv(runs_dir / "event_level_deltas.csv", deltas)
+
+
+def _write_deltas_csv(path: Path, deltas: list[dict]) -> None:
+    fieldnames = [
+        "event_id", "setting",
+        "full_selected_count", "setting_selected_count", "overlap_count",
+        "full_prompt_chars", "setting_prompt_chars", "prompt_chars_delta",
+        "full_matched_tuples", "setting_matched_tuples", "matched_tuple_delta",
+        "gold_tuple_count", "full_missed_gold", "setting_missed_gold",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for d in deltas:
+            writer.writerow(d)
 
 
 def paper_status() -> dict:

@@ -21,6 +21,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     ablation = subparsers.add_parser("run-ablation")
     ablation.add_argument("--config", default="configs/ablation.yaml")
+    ablation.add_argument("--force", action="store_true",
+                          help="Re-run all settings even if metrics.json already exists")
     ablation.set_defaults(handler=_run_ablation)
     return parser
 
@@ -38,7 +40,7 @@ def _run_paper(args: argparse.Namespace) -> int:
 
 
 def _run_ablation(args: argparse.Namespace) -> int:
-    result = run_ablation_pipeline(args.config)
+    result = run_ablation_pipeline(args.config, force=args.force)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

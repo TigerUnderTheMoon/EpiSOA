@@ -119,6 +119,20 @@ python scripts/run_paper_experiment.py --config configs/paper.yaml
 python scripts/run_ablation.py --config configs/ablation.yaml
 ```
 
+Ablation experiments support resume by default — completed settings with
+non-zero metrics are skipped. Use `--force` to re-run every setting:
+
+```bash
+python scripts/run_ablation.py --config configs/ablation.yaml --force
+```
+
+Or via the CLI entry point:
+
+```bash
+python -m episoa.cli run-ablation --config configs/ablation.yaml
+python -m episoa.cli run-ablation --config configs/ablation.yaml --force
+```
+
 Reset generated artifacts:
 
 ```bash

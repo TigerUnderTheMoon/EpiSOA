@@ -146,16 +146,23 @@ class SchemaAttributor:
         chain: dict[str, Any],
         evidence_items: list[dict[str, Any]],
         stakeholder_candidates: list[str],
+        hide_chain_in_prompt: bool = False,
     ) -> tuple[str, str]:
-        stage_evidence_blocks = format_stage_evidence_blocks(evidence_items)
+        stage_evidence_blocks = format_stage_evidence_blocks(evidence_items, hide_stage=hide_chain_in_prompt)
+        if hide_chain_in_prompt:
+            chain_confidence = 0
+            missing_stages = "[]"
+        else:
+            chain_confidence = chain.get("chain_confidence", 0)
+            missing_stages = json.dumps(chain.get("missing_stages", []), ensure_ascii=False)
         user_prompt = USER_PROMPT_TEMPLATE.format(
             event_id=event.get("event_id", ""),
             event_name=event.get("event_name", ""),
             event_description=event.get("event_description", ""),
             seed_keywords=json.dumps(event.get("seed_keywords", []), ensure_ascii=False),
             stakeholder_hints=json.dumps(event.get("stakeholder_hints", []), ensure_ascii=False),
-            chain_confidence=chain.get("chain_confidence", 0),
-            missing_stages=json.dumps(chain.get("missing_stages", []), ensure_ascii=False),
+            chain_confidence=chain_confidence,
+            missing_stages=missing_stages,
             stage_evidence_blocks=stage_evidence_blocks,
             stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
         )
@@ -177,20 +184,24 @@ class SchemaAttributor:
         evidence_items: list[dict[str, Any]],
         stakeholder_candidates: list[str],
         dry_run: bool = False,
+        hide_chain_in_prompt: bool = False,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         system_prompt, user_prompt = self.build_prompt(
             event=event,
             chain=chain,
             evidence_items=evidence_items,
             stakeholder_candidates=stakeholder_candidates,
+            hide_chain_in_prompt=hide_chain_in_prompt,
         )
         event_id = str(event.get("event_id", ""))
+        selected_eids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
         request_summary = {
             "num_evidence": len(evidence_items),
             "chain_confidence": chain.get("chain_confidence", 0),
             "prompt_chars": len(system_prompt) + len(user_prompt),
             "api_calls_made": 0,
             "json_mode": True,
+            "selected_evidence_ids": selected_eids,
         }
         if dry_run:
             preview = user_prompt[:2500]
@@ -265,6 +276,8 @@ def run_schema_attribution(
     max_events: int | None = None,
     max_evidence_per_event: int = 12,
     dry_run: bool = False,
+    hide_chain_in_prompt: bool = False,
+    skip_chain_ranking: bool = False,
 ) -> dict[str, Any]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -296,6 +309,7 @@ def run_schema_attribution(
             chain=chain,
             evidence_rows=evidence_by_event.get(event_id, []),
             max_evidence=max_evidence_per_event,
+            skip_chain_ranking=skip_chain_ranking,
         )
         if not evidence_items:
             no_chain_context_events.append(event_id)
@@ -307,6 +321,7 @@ def run_schema_attribution(
                 evidence_items=evidence_items,
                 stakeholder_candidates=stakeholder_candidates,
                 dry_run=dry_run,
+                hide_chain_in_prompt=hide_chain_in_prompt,
             )
             raw_records.append(record)
             api_calls += int(record.get("request_summary", {}).get("api_calls_made", 0) or 0)
@@ -443,7 +458,13 @@ def select_prompt_evidence(
     chain: dict[str, Any],
     evidence_rows: list[dict[str, Any]],
     max_evidence: int,
+    skip_chain_ranking: bool = False,
 ) -> list[dict[str, Any]]:
+    if skip_chain_ranking:
+        return _select_evidence_by_composite(
+            event=event, chain=chain, evidence_rows=evidence_rows, max_evidence=max_evidence,
+        )
+
     evidence_by_id = {str(row.get("evidence_id", "")): row for row in evidence_rows}
     selected: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -481,6 +502,74 @@ def select_prompt_evidence(
     return selected
 
 
+def _select_evidence_by_composite(
+    *,
+    event: dict[str, Any],
+    chain: dict[str, Any],
+    evidence_rows: list[dict[str, Any]],
+    max_evidence: int,
+) -> list[dict[str, Any]]:
+    """Select evidence using composite score: quality + relevance + source diversity."""
+    chain_scores: dict[str, dict[str, float]] = {}
+    for stage in chain.get("stages", []):
+        for item in stage.get("evidence", []):
+            eid = str(item.get("evidence_id", ""))
+            if eid:
+                chain_scores[eid] = {
+                    "event_relevance_score": float(item.get("event_relevance_score", 0) or 0),
+                    "final_stage_score": float(item.get("final_stage_score", item.get("score", 0)) or 0),
+                }
+
+    scored: list[tuple[float, dict[str, Any]]] = []
+    for row in evidence_rows:
+        eid = str(row.get("evidence_id", ""))
+        quality = float(row.get("quality_score", 0) or 0)
+        cs = chain_scores.get(eid, {})
+        relevance = cs.get("event_relevance_score", 0.0)
+        composite = 0.4 * quality + 0.4 * relevance
+        scored.append((composite, row))
+
+    selected: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    source_counts: dict[str, int] = {}
+    remaining = sorted(scored, key=lambda x: x[0], reverse=True)
+
+    while len(selected) < max_evidence and remaining:
+        best_item: dict[str, Any] | None = None
+        best_score = -1.0
+        best_idx = -1
+        for i, (base_score, row) in enumerate(remaining):
+            source = str(row.get("source_type") or row.get("source") or "unknown")
+            source_count = source_counts.get(source, 0)
+            diversity_bonus = 0.2 if source_count == 0 else 0.0
+            adjusted = base_score + diversity_bonus
+            if adjusted > best_score:
+                best_score = adjusted
+                best_item = row
+                best_idx = i
+
+        if best_item is None:
+            break
+
+        remaining.pop(best_idx)
+        eid = str(best_item.get("evidence_id", ""))
+        if not eid or eid in seen:
+            continue
+
+        cs = chain_scores.get(eid, {})
+        selected.append(normalize_prompt_evidence(
+            {"evidence_id": eid, "stage": "unknown",
+             "final_stage_score": cs.get("final_stage_score", ""),
+             "event_relevance_score": cs.get("event_relevance_score", "")},
+            best_item, "unknown",
+        ))
+        seen.add(eid)
+        source = str(best_item.get("source_type") or best_item.get("source") or "unknown")
+        source_counts[source] = source_counts.get(source, 0) + 1
+
+    return selected
+
+
 def normalize_prompt_evidence(chain_item: dict[str, Any], row: dict[str, Any], stage: str) -> dict[str, Any]:
     text = str(row.get("text") or chain_item.get("text_excerpt") or "")
     return {
@@ -496,24 +585,24 @@ def normalize_prompt_evidence(chain_item: dict[str, Any], row: dict[str, Any], s
     }
 
 
-def format_stage_evidence_blocks(evidence_items: list[dict[str, Any]], *, max_excerpt_chars: int = 360) -> str:
+def format_stage_evidence_blocks(evidence_items: list[dict[str, Any]], *, max_excerpt_chars: int = 360, hide_stage: bool = False) -> str:
     lines: list[str] = []
     for item in evidence_items:
-        lines.append(
-            "\n".join(
-                [
-                    f"- evidence_id: {item.get('evidence_id')}",
-                    f"  stage: {item.get('stage')}",
-                    f"  source: {item.get('source')}",
-                    f"  domain: {item.get('domain')}",
-                    f"  url: {item.get('url')}",
-                    f"  title: {truncate_text(item.get('title', ''), 80)}",
-                    f"  final_stage_score: {item.get('final_stage_score')}",
-                    f"  event_relevance_score: {item.get('event_relevance_score')}",
-                    f"  text_excerpt: {truncate_text(item.get('text_excerpt', ''), max_excerpt_chars)}",
-                ]
-            )
-        )
+        parts = [
+            f"- evidence_id: {item.get('evidence_id')}",
+        ]
+        if not hide_stage:
+            parts.append(f"  stage: {item.get('stage')}")
+        parts.extend([
+            f"  source: {item.get('source')}",
+            f"  domain: {item.get('domain')}",
+            f"  url: {item.get('url')}",
+            f"  title: {truncate_text(item.get('title', ''), 80)}",
+            f"  final_stage_score: {item.get('final_stage_score')}",
+            f"  event_relevance_score: {item.get('event_relevance_score')}",
+            f"  text_excerpt: {truncate_text(item.get('text_excerpt', ''), max_excerpt_chars)}",
+        ])
+        lines.append("\n".join(parts))
     return "\n".join(lines) if lines else "无可用 evidence。"
 
 
