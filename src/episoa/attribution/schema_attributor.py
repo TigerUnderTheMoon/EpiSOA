@@ -285,9 +285,11 @@ def run_schema_attribution(
     for event in selected_events:
         event_id = str(event.get("event_id", ""))
         chain = chains_by_event.get(event_id)
-        if not chain or float(chain.get("chain_confidence", 0) or 0) <= 0:
+        if chain is None:
             no_chain_context_events.append(event_id)
-            continue
+            chain = {}  # use empty chain so select_prompt_evidence falls back to quality_score
+        elif float(chain.get("chain_confidence", 0) or 0) <= 0:
+            no_chain_context_events.append(event_id)
         stakeholder_candidates = stakeholders_by_event.get(event_id) or stakeholders_by_event.get("__global__", [])
         evidence_items = select_prompt_evidence(
             event=event,
