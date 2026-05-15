@@ -6,6 +6,7 @@ from collections import defaultdict
 import csv
 from datetime import datetime, timezone
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -30,9 +31,13 @@ from episoa.evaluation.evaluate_ablation import evaluate_ablation
 from episoa.evaluation.evaluate_main import evaluate_main
 from episoa.evaluation.evaluate_retrieval import evaluate_retrieval
 from episoa.evaluation.evaluate_verifier import evaluate_verifier
+from episoa.evaluation.ablation_audit import (
+    CHAIN_ABLATION_SETTINGS,
+    write_ablation_audit_report,
+    write_ablation_delta_audits,
+)
 from episoa.evaluation.metrics import soft_tuple_f1
-from episoa.graph.evidence_graph import write_evidence_graph
-from episoa.graph.graph_builder import build_graph
+from episoa.graph.evidence_graph import EvidenceGraph, build_stakeholder_event_evidence_graph, write_evidence_graph
 from episoa.llm.client import OpenAICompatibleClient
 from episoa.retrieval.event_chain_retriever import retrieve_event_chains
 from episoa.verifier.faithfulness_verifier import verify_tuples
@@ -84,7 +89,8 @@ def _write_input_manifest(
         "model": {
             "provider": config.model.get("provider", "openai_compatible"),
             "model_name": config.model.get("llm_model", "unknown"),
-            "base_url": config.model.get("base_url", ""),
+            "base_url": os.environ.get(config.model.get("base_url_env", ""), config.model.get("base_url", "")),
+            "base_url_env": config.model.get("base_url_env", ""),
             "temperature": config.model.get("temperature", 0.1),
             "max_tokens": config.model.get("max_tokens", 3000),
         },
@@ -158,10 +164,28 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
     collected = collect_evidence(events, evidence)
 
     if use_graph:
-        graph = build_graph(events, collected)
+        graph = build_stakeholder_event_evidence_graph(
+            [event.model_dump() for event in events],
+            [item.model_dump() for item in collected],
+        )
         write_evidence_graph(graph, run_dir / "evidence_graph")
         graph_nodes = graph.node_records()
     else:
+        write_evidence_graph(
+            EvidenceGraph(
+                nodes=[],
+                edges=[],
+                summary={
+                    "graph_disabled": True,
+                    "num_stakeholder_candidates": 0,
+                    "num_stage_candidates": 0,
+                    "num_nodes": 0,
+                    "num_edges": 0,
+                    "events_without_stakeholder": [event.event_id for event in events],
+                },
+            ),
+            run_dir / "evidence_graph",
+        )
         graph_nodes = []
 
     if use_event_chain:
@@ -279,7 +303,7 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
 ABLATION_SETTINGS = {
     "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
     "without_graph":              {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
-    "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
+    "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True},
     "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False},
     "without_event_chain_prompt":  {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": False},
     "without_event_chain_ranking": {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True},
@@ -291,7 +315,7 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
 
     Each setting runs the full pipeline independently in its own output directory
     under outputs/runs/ablation_{setting}/.  Paper-final mode never reuses cached
-    results — all four settings always run from scratch.
+    results; every configured setting always runs from scratch.
 
     When force=True, existing setting directories are removed before running.
     """
@@ -352,7 +376,7 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
             **flags,
         )
 
-        metrics = evaluate_ablation(gold, verified)
+        metrics = evaluate_ablation(gold, verified, verifier_enabled=bool(flags["use_verifier"]))
         all_metrics[setting] = metrics
 
         (setting_dir / "metrics.json").write_text(
@@ -366,8 +390,16 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
     # Aggregate only from the current run (never reads old cache)
     _write_ablation_csv(runs_dir / "ablation_results.csv", all_metrics)
 
-    # Event-level deltas for chain-prompt / chain-ranking vs full
-    _write_event_level_deltas(runs_dir, gold, settings)
+    delta_paths = write_ablation_delta_audits(
+        runs_dir=runs_dir,
+        gold_tuples=gold,
+        settings=[setting for setting in CHAIN_ABLATION_SETTINGS if setting in settings],
+    )
+    audit_report_path = write_ablation_audit_report(
+        runs_dir=runs_dir,
+        settings=settings,
+        flags_by_setting={setting: ABLATION_SETTINGS.get(setting, {}) for setting in settings},
+    )
 
     summary = {
         "status": "completed",
@@ -377,6 +409,8 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
         "force": force,
         "settings": list(all_metrics.keys()),
         "metrics": all_metrics,
+        "delta_audits": {setting: str(path) for setting, path in delta_paths.items()},
+        "audit_report": str(audit_report_path),
     }
     (runs_dir / "ablation_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -385,10 +419,9 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
     print()
     print("=== Ablation Results ===")
     print((runs_dir / "ablation_results.csv").read_text(encoding="utf-8"))
-    if (runs_dir / "event_level_deltas.json").exists():
-        print()
-        print("=== Event-Level Deltas (vs full) ===")
-        print((runs_dir / "event_level_deltas.json").read_text(encoding="utf-8"))
+    print()
+    print(f"=== Delta Audit ===\n{runs_dir / 'ablation_delta'}")
+    print(f"=== Audit Report ===\n{runs_dir / 'ablation_audit_report.md'}")
     return summary
 
 
@@ -561,16 +594,35 @@ def _write_csv(path: Path, label_name: str, label: str, metrics: dict[str, float
         writer.writerow([label, *[f"{value:.4f}" for value in metrics.values()]])
 
 
-def _write_ablation_csv(path: Path, all_metrics: dict[str, dict[str, float]]) -> None:
+def _write_ablation_csv(path: Path, all_metrics: dict[str, dict[str, float | None]]) -> None:
     """Write ablation comparison CSV: rows = settings, columns = metrics."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    metric_names = sorted({k for m in all_metrics.values() for k in m})
+    preferred = [
+        "Num-Gold",
+        "Num-Tuples",
+        "Tuple-F1-soft",
+        "Tuple-Precision",
+        "Tuple-Recall",
+        "Sentiment-Acc",
+        "Stakeholder-Recall",
+        "ESR",
+        "UTR",
+        "Candidate-UTR",
+    ]
+    available = {k for m in all_metrics.values() for k in m}
+    metric_names = [name for name in preferred if name in available]
+    metric_names.extend(sorted(available - set(metric_names)))
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(["Setting", *metric_names])
-        for setting in sorted(all_metrics):
+        for setting in all_metrics:
             row = [setting]
             for name in metric_names:
                 value = all_metrics[setting].get(name, "")
-                row.append(f"{value:.4f}" if isinstance(value, (int, float)) else str(value))
+                if value is None:
+                    row.append("N/A")
+                elif isinstance(value, (int, float)):
+                    row.append(f"{value:.4f}")
+                else:
+                    row.append(str(value))
             writer.writerow(row)

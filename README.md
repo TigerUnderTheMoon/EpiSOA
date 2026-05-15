@@ -116,15 +116,18 @@ Run paper experiments after `paper_data_ready=true`:
 
 ```bash
 python scripts/run_paper_experiment.py --config configs/paper.yaml
-python scripts/run_ablation.py --config configs/ablation.yaml
+python scripts/run_ablation.py --config configs/ablation.yaml --force
 ```
 
-Ablation experiments support resume by default — completed settings with
-non-zero metrics are skipped. Use `--force` to re-run every setting:
+Use `--force` for the paper reproduction ablation run:
 
 ```bash
 python scripts/run_ablation.py --config configs/ablation.yaml --force
 ```
+
+`run_ablation.py` runs every configured setting. `--force` first removes
+existing per-setting output directories so the aggregate CSV cannot read stale
+artifacts.
 
 Or via the CLI entry point:
 

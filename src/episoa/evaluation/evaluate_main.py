@@ -12,17 +12,26 @@ from episoa.evaluation.metrics import (
 
 
 def evaluate_main(
-    gold: list[GoldTuple], predictions: list[PredictionTuple]
-) -> dict[str, float]:
+    gold: list[GoldTuple],
+    predictions: list[PredictionTuple],
+    *,
+    verifier_enabled: bool = True,
+) -> dict[str, float | None]:
     soft = soft_tuple_f1(gold, predictions, threshold=0.5)
-    return {
+    metrics: dict[str, float | int | None] = {
         "Tuple-F1-soft": soft["f1"],
         "Tuple-Precision": soft["precision"],
         "Tuple-Recall": soft["recall"],
         "Stakeholder-Recall": stakeholder_recall(gold, predictions),
         "Sentiment-Acc": soft["sentiment_accuracy"],
-        "ESR": support_rate(predictions),
-        "UTR": unsupported_rate(predictions),
         "Num-Tuples": len(predictions),
         "Num-Gold": len(gold),
     }
+    if verifier_enabled:
+        metrics["ESR"] = support_rate(predictions)
+        metrics["UTR"] = unsupported_rate(predictions)
+    else:
+        metrics["ESR"] = None
+        metrics["UTR"] = None
+        metrics["Candidate-UTR"] = unsupported_rate(predictions)
+    return metrics

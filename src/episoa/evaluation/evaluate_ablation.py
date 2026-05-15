@@ -7,11 +7,14 @@ from episoa.evaluation.evaluate_main import evaluate_main
 
 
 def evaluate_ablation(
-    gold: list[GoldTuple], predictions: list[PredictionTuple]
-) -> dict[str, float]:
+    gold: list[GoldTuple],
+    predictions: list[PredictionTuple],
+    *,
+    verifier_enabled: bool = True,
+) -> dict[str, float | None]:
     """Evaluate one ablation setting against gold.
 
     Uses soft-match tuple F1 so that different ablation settings produce
     differentiated scores (unlike exact-match which is always ~0).
     """
-    return evaluate_main(gold, predictions)
+    return evaluate_main(gold, predictions, verifier_enabled=verifier_enabled)

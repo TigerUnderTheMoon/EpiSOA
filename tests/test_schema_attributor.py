@@ -39,6 +39,24 @@ def test_prompt_contains_event_and_evidence_id():
     assert "Return strict JSON only" in system_prompt
 
 
+def test_hidden_chain_prompt_omits_chain_fields():
+    attributor = SchemaAttributor(llm_client=None, model_name="fake")
+    _system_prompt, user_prompt = attributor.build_prompt(
+        event=event_row(),
+        chain=chain_row(),
+        evidence_items=[prompt_evidence("ev-1")],
+        stakeholder_candidates=["Residents"],
+        hide_chain_in_prompt=True,
+    )
+
+    assert "chain_confidence" not in user_prompt
+    assert "missing_stages" not in user_prompt
+    assert "stage:" not in user_prompt
+    assert "final_stage_score" not in user_prompt
+    assert "event_relevance_score" not in user_prompt
+    assert "event_chain_stage" not in user_prompt
+
+
 def test_parse_response_accepts_pure_json():
     parsed = parse_response(valid_payload(), event_id="E012", allowed_evidence_ids={"ev-1"}, model_name="fake")
 
@@ -198,6 +216,32 @@ def test_empty_llm_content_retries_with_short_prompt(tmp_path):
     assert fake.calls == 2
     assert summary["num_api_calls"] == 2
     assert summary["num_tuples_generated"] == 1
+
+
+def test_raw_response_records_ablation_request_summary_flags(tmp_path):
+    fake = FakeLLMClient(valid_payload())
+
+    run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        hide_chain_in_prompt=True,
+        skip_chain_ranking=True,
+    )
+
+    rows = [json.loads(line) for line in (tmp_path / "raw_llm_responses.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = rows[0]["request_summary"]
+
+    assert summary["selected_evidence_ids"] == ["ev-1"]
+    assert summary["prompt_chars"] > 0
+    assert summary["chain_confidence"] == 0
+    assert summary["hide_chain_in_prompt"] is True
+    assert summary["skip_chain_ranking"] is True
 
 
 def test_module_does_not_read_or_generate_gold(tmp_path):

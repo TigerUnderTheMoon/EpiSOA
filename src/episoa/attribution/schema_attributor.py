@@ -118,6 +118,66 @@ JSON schema:
 }}"""
 
 
+NO_CHAIN_USER_PROMPT_TEMPLATE = """Task: Extract stakeholder-opinion-sentiment-rationale tuples from the event and evidence below.
+Use only the provided evidence. Do not use external knowledge. Do not invent stakeholders, opinions, rationales, or evidence IDs.
+If the evidence is insufficient, return an empty tuples list.
+Return strict JSON only.
+
+event_id: {event_id}
+event_name: {event_name}
+event_description: {event_description}
+seed_keywords: {seed_keywords}
+stakeholder_hints: {stakeholder_hints}
+
+evidence:
+{stage_evidence_blocks}
+
+stakeholder_candidates:
+{stakeholder_candidates}
+
+JSON schema:
+{{
+  "event_id": "{event_id}",
+  "tuples": [
+    {{
+      "stakeholder": "stakeholder name",
+      "opinion": "opinion supported by evidence",
+      "sentiment": "positive|negative|neutral",
+      "rationale": "short evidence-grounded rationale",
+      "evidence_ids": ["evidence_id shown above"],
+      "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
+      "confidence": 0.0
+    }}
+  ]
+}}"""
+
+
+NO_CHAIN_RETRY_USER_PROMPT_TEMPLATE = """Extract up to 4 stakeholder-opinion tuples from the evidence below.
+Return one strict JSON object only.
+
+event_id: {event_id}
+event_name: {event_name}
+
+evidence:
+{stage_evidence_blocks}
+
+JSON schema:
+{{
+  "event_id": "{event_id}",
+  "tuples": [
+    {{
+      "stakeholder": "stakeholder",
+      "opinion": "opinion supported by evidence",
+      "sentiment": "positive|negative|neutral",
+      "rationale": "short evidence-grounded rationale",
+      "evidence_ids": ["evidence_id shown above"],
+      "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
+      "confidence": 0.0
+    }}
+  ]
+}}"""
+
+
 @dataclass
 class ParseResult:
     tuples: list[dict[str, Any]]
@@ -148,13 +208,23 @@ class SchemaAttributor:
         stakeholder_candidates: list[str],
         hide_chain_in_prompt: bool = False,
     ) -> tuple[str, str]:
-        stage_evidence_blocks = format_stage_evidence_blocks(evidence_items, hide_stage=hide_chain_in_prompt)
+        stage_evidence_blocks = format_stage_evidence_blocks(
+            evidence_items,
+            hide_chain_fields=hide_chain_in_prompt,
+        )
         if hide_chain_in_prompt:
-            chain_confidence = 0
-            missing_stages = "[]"
-        else:
-            chain_confidence = chain.get("chain_confidence", 0)
-            missing_stages = json.dumps(chain.get("missing_stages", []), ensure_ascii=False)
+            user_prompt = NO_CHAIN_USER_PROMPT_TEMPLATE.format(
+                event_id=event.get("event_id", ""),
+                event_name=event.get("event_name", ""),
+                event_description=event.get("event_description", ""),
+                seed_keywords=json.dumps(event.get("seed_keywords", []), ensure_ascii=False),
+                stakeholder_hints=json.dumps(event.get("stakeholder_hints", []), ensure_ascii=False),
+                stage_evidence_blocks=stage_evidence_blocks,
+                stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
+            )
+            return SYSTEM_PROMPT, user_prompt
+        chain_confidence = chain.get("chain_confidence", 0)
+        missing_stages = json.dumps(chain.get("missing_stages", []), ensure_ascii=False)
         user_prompt = USER_PROMPT_TEMPLATE.format(
             event_id=event.get("event_id", ""),
             event_name=event.get("event_name", ""),
@@ -168,8 +238,24 @@ class SchemaAttributor:
         )
         return SYSTEM_PROMPT, user_prompt
 
-    def build_retry_prompt(self, *, event: dict[str, Any], evidence_items: list[dict[str, Any]]) -> tuple[str, str]:
-        stage_evidence_blocks = format_stage_evidence_blocks(evidence_items, max_excerpt_chars=220)
+    def build_retry_prompt(
+        self,
+        *,
+        event: dict[str, Any],
+        evidence_items: list[dict[str, Any]],
+        hide_chain_in_prompt: bool = False,
+    ) -> tuple[str, str]:
+        stage_evidence_blocks = format_stage_evidence_blocks(
+            evidence_items,
+            max_excerpt_chars=220,
+            hide_chain_fields=hide_chain_in_prompt,
+        )
+        if hide_chain_in_prompt:
+            return SYSTEM_PROMPT, NO_CHAIN_RETRY_USER_PROMPT_TEMPLATE.format(
+                event_id=event.get("event_id", ""),
+                event_name=event.get("event_name", ""),
+                stage_evidence_blocks=stage_evidence_blocks,
+            )
         return SYSTEM_PROMPT, RETRY_USER_PROMPT_TEMPLATE.format(
             event_id=event.get("event_id", ""),
             event_name=event.get("event_name", ""),
@@ -185,6 +271,7 @@ class SchemaAttributor:
         stakeholder_candidates: list[str],
         dry_run: bool = False,
         hide_chain_in_prompt: bool = False,
+        skip_chain_ranking: bool = False,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         system_prompt, user_prompt = self.build_prompt(
             event=event,
@@ -202,6 +289,8 @@ class SchemaAttributor:
             "api_calls_made": 0,
             "json_mode": True,
             "selected_evidence_ids": selected_eids,
+            "hide_chain_in_prompt": hide_chain_in_prompt,
+            "skip_chain_ranking": skip_chain_ranking,
         }
         if dry_run:
             preview = user_prompt[:2500]
@@ -230,7 +319,11 @@ class SchemaAttributor:
         raw_response_id = getattr(response, "response_id", "")
 
         if parsed.parse_error == "empty_llm_content":
-            retry_system_prompt, retry_user_prompt = self.build_retry_prompt(event=event, evidence_items=evidence_items)
+            retry_system_prompt, retry_user_prompt = self.build_retry_prompt(
+                event=event,
+                evidence_items=evidence_items,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+            )
             retry_response = self.llm_client.chat(
                 system_prompt=retry_system_prompt,
                 user_prompt=retry_user_prompt,
@@ -322,6 +415,7 @@ def run_schema_attribution(
                 stakeholder_candidates=stakeholder_candidates,
                 dry_run=dry_run,
                 hide_chain_in_prompt=hide_chain_in_prompt,
+                skip_chain_ranking=skip_chain_ranking,
             )
             raw_records.append(record)
             api_calls += int(record.get("request_summary", {}).get("api_calls_made", 0) or 0)
@@ -336,7 +430,19 @@ def run_schema_attribution(
                 raw_record(
                     event_id=event_id,
                     model_name=model_name,
-                    request_summary={"num_evidence": len(evidence_items), "api_calls_made": 0},
+                    request_summary={
+                        "num_evidence": len(evidence_items),
+                        "api_calls_made": 0,
+                        "chain_confidence": chain.get("chain_confidence", 0),
+                        "prompt_chars": 0,
+                        "selected_evidence_ids": [
+                            str(item.get("evidence_id", ""))
+                            for item in evidence_items
+                            if item.get("evidence_id")
+                        ],
+                        "hide_chain_in_prompt": hide_chain_in_prompt,
+                        "skip_chain_ranking": skip_chain_ranking,
+                    },
                     raw_response="",
                     parse_success=False,
                     parse_error=str(exc),
@@ -461,7 +567,7 @@ def select_prompt_evidence(
     skip_chain_ranking: bool = False,
 ) -> list[dict[str, Any]]:
     if skip_chain_ranking:
-        return _select_evidence_by_composite(
+        return _select_evidence_by_non_chain_baseline(
             event=event, chain=chain, evidence_rows=evidence_rows, max_evidence=max_evidence,
         )
 
@@ -502,31 +608,26 @@ def select_prompt_evidence(
     return selected
 
 
-def _select_evidence_by_composite(
+def _select_evidence_by_non_chain_baseline(
     *,
     event: dict[str, Any],
     chain: dict[str, Any],
     evidence_rows: list[dict[str, Any]],
     max_evidence: int,
 ) -> list[dict[str, Any]]:
-    """Select evidence using composite score: quality + relevance + source diversity."""
-    chain_scores: dict[str, dict[str, float]] = {}
-    for stage in chain.get("stages", []):
-        for item in stage.get("evidence", []):
-            eid = str(item.get("evidence_id", ""))
-            if eid:
-                chain_scores[eid] = {
-                    "event_relevance_score": float(item.get("event_relevance_score", 0) or 0),
-                    "final_stage_score": float(item.get("final_stage_score", item.get("score", 0)) or 0),
-                }
+    """Select evidence using a non-chain baseline score.
+
+    Ranking uses only quality score, source balance, and stakeholder signal.
+    Chain fields are copied later for prompt context when a chain-enabled
+    setting asks to hide only the ranking component.
+    """
+    chain_scores = chain_metadata_by_evidence(chain)
 
     scored: list[tuple[float, dict[str, Any]]] = []
     for row in evidence_rows:
-        eid = str(row.get("evidence_id", ""))
         quality = float(row.get("quality_score", 0) or 0)
-        cs = chain_scores.get(eid, {})
-        relevance = cs.get("event_relevance_score", 0.0)
-        composite = 0.4 * quality + 0.4 * relevance
+        stakeholder_signal = evidence_stakeholder_signal(row, event)
+        composite = 0.7 * quality + 0.3 * stakeholder_signal
         scored.append((composite, row))
 
     selected: list[dict[str, Any]] = []
@@ -557,17 +658,52 @@ def _select_evidence_by_composite(
             continue
 
         cs = chain_scores.get(eid, {})
+        stage_name = str(cs.get("stage") or "unknown")
         selected.append(normalize_prompt_evidence(
-            {"evidence_id": eid, "stage": "unknown",
+            {"evidence_id": eid, "stage": stage_name,
              "final_stage_score": cs.get("final_stage_score", ""),
              "event_relevance_score": cs.get("event_relevance_score", "")},
-            best_item, "unknown",
+            best_item, stage_name,
         ))
         seen.add(eid)
         source = str(best_item.get("source_type") or best_item.get("source") or "unknown")
         source_counts[source] = source_counts.get(source, 0) + 1
 
     return selected
+
+
+def chain_metadata_by_evidence(chain: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    metadata: dict[str, dict[str, Any]] = {}
+    for stage in chain.get("stages", []):
+        stage_name = str(stage.get("stage", "unknown"))
+        for item in stage.get("evidence", []):
+            eid = str(item.get("evidence_id", ""))
+            if not eid:
+                continue
+            current = metadata.get(eid)
+            score = float(item.get("final_stage_score", item.get("score", 0)) or 0)
+            if current is None or score > float(current.get("final_stage_score", 0) or 0):
+                metadata[eid] = {
+                    "stage": stage_name,
+                    "event_relevance_score": item.get("event_relevance_score", ""),
+                    "final_stage_score": item.get("final_stage_score", item.get("score", "")),
+                }
+    return metadata
+
+
+def evidence_stakeholder_signal(row: dict[str, Any], event: dict[str, Any]) -> float:
+    text = " ".join(
+        str(row.get(key) or "")
+        for key in ("stakeholder_hint", "stance_hint", "title", "text")
+    )
+    hints = [str(item).strip() for item in event.get("stakeholder_hints", []) if str(item).strip()]
+    hits = 0
+    for hint in hints:
+        if hint and hint in text:
+            hits += 1
+    if row.get("stakeholder_hint"):
+        hits += 1
+    return min(1.0, hits / 3)
 
 
 def normalize_prompt_evidence(chain_item: dict[str, Any], row: dict[str, Any], stage: str) -> dict[str, Any]:
@@ -585,23 +721,32 @@ def normalize_prompt_evidence(chain_item: dict[str, Any], row: dict[str, Any], s
     }
 
 
-def format_stage_evidence_blocks(evidence_items: list[dict[str, Any]], *, max_excerpt_chars: int = 360, hide_stage: bool = False) -> str:
+def format_stage_evidence_blocks(
+    evidence_items: list[dict[str, Any]],
+    *,
+    max_excerpt_chars: int = 360,
+    hide_stage: bool = False,
+    hide_chain_fields: bool = False,
+) -> str:
     lines: list[str] = []
     for item in evidence_items:
         parts = [
             f"- evidence_id: {item.get('evidence_id')}",
         ]
-        if not hide_stage:
+        if not hide_stage and not hide_chain_fields:
             parts.append(f"  stage: {item.get('stage')}")
         parts.extend([
             f"  source: {item.get('source')}",
             f"  domain: {item.get('domain')}",
             f"  url: {item.get('url')}",
             f"  title: {truncate_text(item.get('title', ''), 80)}",
-            f"  final_stage_score: {item.get('final_stage_score')}",
-            f"  event_relevance_score: {item.get('event_relevance_score')}",
-            f"  text_excerpt: {truncate_text(item.get('text_excerpt', ''), max_excerpt_chars)}",
         ])
+        if not hide_chain_fields:
+            parts.extend([
+                f"  final_stage_score: {item.get('final_stage_score')}",
+                f"  event_relevance_score: {item.get('event_relevance_score')}",
+            ])
+        parts.append(f"  text_excerpt: {truncate_text(item.get('text_excerpt', ''), max_excerpt_chars)}")
         lines.append("\n".join(parts))
     return "\n".join(lines) if lines else "无可用 evidence。"
 
@@ -619,6 +764,11 @@ def stakeholder_candidates_by_event(graph_nodes: list[dict[str, Any]]) -> dict[s
         if not name:
             continue
         global_candidates.add(name)
+        event_ids = attrs.get("event_ids")
+        if isinstance(event_ids, list):
+            for event_id in event_ids:
+                if str(event_id):
+                    by_event.setdefault(str(event_id), set()).add(name)
         event_id = attrs.get("event_id")
         if event_id:
             by_event.setdefault(str(event_id), set()).add(name)

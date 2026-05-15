@@ -158,10 +158,15 @@ def build_stakeholder_event_evidence_graph(events: list[dict[str, Any]], evidenc
         add_edge(edges, evidence_node_id, domain_node_id, "from_domain", evidence_id=evidence_id)
 
         for stakeholder in stakeholders:
-            stakeholder_node_id = f"stakeholder:{normalize_node_token(stakeholder)}"
+            stakeholder_node_id = f"stakeholder:{event_id}:{normalize_node_token(stakeholder)}"
             nodes.setdefault(
                 stakeholder_node_id,
-                GraphNode(stakeholder_node_id, "stakeholder_candidate", stakeholder, {"stakeholder": stakeholder}),
+                GraphNode(
+                    stakeholder_node_id,
+                    "stakeholder_candidate",
+                    stakeholder,
+                    {"stakeholder": stakeholder, "event_id": event_id},
+                ),
             )
             add_edge(edges, evidence_node_id, stakeholder_node_id, "mentions_stakeholder", evidence_id=evidence_id)
             stakeholder_by_event[event_id].add(stakeholder)
@@ -176,7 +181,12 @@ def build_stakeholder_event_evidence_graph(events: list[dict[str, Any]], evidenc
 
     for event_id, stakeholders in stakeholder_by_event.items():
         for stakeholder in stakeholders:
-            add_edge(edges, f"event:{event_id}", f"stakeholder:{normalize_node_token(stakeholder)}", "involves_stakeholder")
+            add_edge(
+                edges,
+                f"event:{event_id}",
+                f"stakeholder:{event_id}:{normalize_node_token(stakeholder)}",
+                "involves_stakeholder",
+            )
 
     node_types = Counter(node.node_type for node in nodes.values())
     summary = {

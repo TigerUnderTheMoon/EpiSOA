@@ -63,6 +63,9 @@ def test_build_evidence_graph_from_small_sample():
     edge_types = {item["edge_type"] for item in edge_records}
 
     assert {"event", "evidence", "stakeholder_candidate", "source", "domain", "temporal_stage_candidate"} <= node_types
+    stakeholder_nodes = [item for item in node_records if item["node_type"] == "stakeholder_candidate"]
+    assert stakeholder_nodes
+    assert all(item["attributes"]["event_id"] == "E1" for item in stakeholder_nodes)
     assert {
         "has_evidence",
         "mentions_stakeholder",

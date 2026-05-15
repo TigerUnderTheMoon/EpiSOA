@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from episoa.data.schema import GoldTuple, PredictionTuple
 
 
@@ -44,27 +46,33 @@ def soft_tuple_f1(
 
     gold_list = list(gold)
     pred_list = list(predictions)
+    candidate_pairs: list[tuple[float, int, int]] = []
+
+    for gold_idx, gt in enumerate(gold_list):
+        gold_event_id = _field(gt, "event_id")
+        for pred_idx, pt in enumerate(pred_list):
+            if _field(pt, "event_id") != gold_event_id:
+                continue
+            stake_sim = _char_overlap(_field(gt, "stakeholder"), _field(pt, "stakeholder"))
+            opinion_sim = _char_overlap(_field(gt, "opinion"), _field(pt, "opinion"))
+            combined = 0.5 * stake_sim + 0.5 * opinion_sim
+            if combined >= threshold:
+                candidate_pairs.append((combined, gold_idx, pred_idx))
+
+    candidate_pairs.sort(reverse=True, key=lambda item: item[0])
+    matched_gold_indices: set[int] = set()
     matched_pred_indices: set[int] = set()
-    true_positives = 0
     sentiment_correct = 0
 
-    for gt in gold_list:
-        best_score = 0.0
-        best_pred_idx = -1
-        for j, pt in enumerate(pred_list):
-            stake_sim = _char_overlap(gt.stakeholder, pt.stakeholder)
-            opinion_sim = _char_overlap(gt.opinion, pt.opinion)
-            combined = 0.5 * stake_sim + 0.5 * opinion_sim
-            if combined > best_score:
-                best_score = combined
-                best_pred_idx = j
+    for _score, gold_idx, pred_idx in candidate_pairs:
+        if gold_idx in matched_gold_indices or pred_idx in matched_pred_indices:
+            continue
+        matched_gold_indices.add(gold_idx)
+        matched_pred_indices.add(pred_idx)
+        if _field(gold_list[gold_idx], "sentiment") == _field(pred_list[pred_idx], "sentiment"):
+            sentiment_correct += 1
 
-        if best_score >= threshold and best_pred_idx not in matched_pred_indices:
-            true_positives += 1
-            matched_pred_indices.add(best_pred_idx)
-            if gt.sentiment == pred_list[best_pred_idx].sentiment:
-                sentiment_correct += 1
-
+    true_positives = len(matched_pred_indices)
     precision = true_positives / len(pred_list)
     recall = true_positives / len(gold_list)
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
@@ -82,14 +90,28 @@ def soft_tuple_f1(
 def stakeholder_recall(
     gold: list[GoldTuple], predictions: list[PredictionTuple], threshold: float = 0.5
 ) -> float:
-    """Fraction of gold stakeholders covered by at least one prediction."""
+    """Fraction of gold stakeholders covered by a same-event prediction."""
     if not gold:
         return 0.0
-    covered = 0
-    for gt in gold:
-        if any(_char_overlap(gt.stakeholder, pt.stakeholder) >= threshold for pt in predictions):
-            covered += 1
-    return round(covered / len(gold), 4)
+    candidate_pairs: list[tuple[float, int, int]] = []
+    for gold_idx, gt in enumerate(gold):
+        gold_event_id = _field(gt, "event_id")
+        for pred_idx, pt in enumerate(predictions):
+            if _field(pt, "event_id") != gold_event_id:
+                continue
+            score = _char_overlap(_field(gt, "stakeholder"), _field(pt, "stakeholder"))
+            if score >= threshold:
+                candidate_pairs.append((score, gold_idx, pred_idx))
+
+    candidate_pairs.sort(reverse=True, key=lambda item: item[0])
+    matched_gold_indices: set[int] = set()
+    matched_pred_indices: set[int] = set()
+    for _score, gold_idx, pred_idx in candidate_pairs:
+        if gold_idx in matched_gold_indices or pred_idx in matched_pred_indices:
+            continue
+        matched_gold_indices.add(gold_idx)
+        matched_pred_indices.add(pred_idx)
+    return round(len(matched_gold_indices) / len(gold), 4)
 
 
 def support_rate(predictions: list[PredictionTuple]) -> float:
@@ -103,5 +125,16 @@ def unsupported_rate(predictions: list[PredictionTuple]) -> float:
     return sum(1 for item in predictions if item.support_label in unsupported) / len(predictions) if predictions else 0.0
 
 
+def _field(item: GoldTuple | PredictionTuple | dict[str, Any], name: str) -> str:
+    if isinstance(item, dict):
+        return str(item.get(name, ""))
+    return str(getattr(item, name))
+
+
 def _key(item: GoldTuple | PredictionTuple) -> tuple[str, str, str, str]:
-    return (item.event_id, item.stakeholder.lower(), item.opinion.lower(), item.sentiment)
+    return (
+        _field(item, "event_id"),
+        _field(item, "stakeholder").lower(),
+        _field(item, "opinion").lower(),
+        _field(item, "sentiment"),
+    )

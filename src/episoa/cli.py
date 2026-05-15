@@ -22,7 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     ablation = subparsers.add_parser("run-ablation")
     ablation.add_argument("--config", default="configs/ablation.yaml")
     ablation.add_argument("--force", action="store_true",
-                          help="Re-run all settings even if metrics.json already exists")
+                          help="Remove existing setting directories before re-running all settings")
     ablation.set_defaults(handler=_run_ablation)
     return parser
 
