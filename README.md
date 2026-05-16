@@ -13,7 +13,7 @@ The core output schema is:
 1. Formal event registry construction
 2. Evidence collection with C-FSM
 3. Evidence normalization and annotation sheet generation
-4. LLM preannotation, human review, and gold export
+4. LLM preannotation as silver data, human adjudication, and human_gold export
 5. Experiment execution and evaluation
 
 The formal pipeline starts directly from accepted concrete public events in:
@@ -34,9 +34,19 @@ data/pubevent_soa_lite/
 |-- annotation_full_v3_repaired_plus_low37/
 |   |-- llm_gold_tuples.jsonl
 |   `-- llm_gold_event_chains.jsonl
+|-- silver_v1/
+|-- human_gold_v1/
 |-- evidence_v3_repaired_plus_low37.jsonl
 `-- README.md
 ```
+
+`annotation_full_v3_repaired_plus_low37/llm_gold_*` files are LLM
+preannotation artifacts. They are silver/pseudo-gold, not final human-verified
+gold. Use `scripts/export_silver_benchmark.py`,
+`scripts/build_human_adjudication_sheet.py`,
+`scripts/convert_adjudication_to_human_gold.py`, and
+`scripts/audit_human_gold.py` to create `human_gold_v1` before final paper
+experiments.
 
 Formal data flow:
 
@@ -46,8 +56,10 @@ events.jsonl
   -> scripts/normalize_evidence.py
   -> scripts/make_annotation_sheet.py
   -> scripts/run_llm_gold_preannotation.py
-  -> scripts/build_gold_review_sheets.py
-  -> scripts/convert_review_sheets_to_gold.py
+  -> scripts/export_silver_benchmark.py
+  -> scripts/build_human_adjudication_sheet.py
+  -> scripts/convert_adjudication_to_human_gold.py
+  -> scripts/audit_human_gold.py
   -> scripts/validate_gold_dataset.py
   -> scripts/run_paper_experiment.py
 ```
@@ -90,8 +102,11 @@ python scripts/collect_evidence.py
 python scripts/normalize_evidence.py
 python scripts/make_annotation_sheet.py
 python scripts/run_llm_gold_preannotation.py
-python scripts/build_gold_review_sheets.py
-python scripts/convert_review_sheets_to_gold.py
+python scripts/export_silver_benchmark.py
+python scripts/build_human_adjudication_sheet.py
+# after human review:
+python scripts/convert_adjudication_to_human_gold.py
+python scripts/audit_human_gold.py
 python scripts/validate_gold_dataset.py
 python scripts/inspect_gold_samples.py --num-events 3 --seed 42
 ```

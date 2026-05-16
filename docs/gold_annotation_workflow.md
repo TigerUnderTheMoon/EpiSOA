@@ -8,6 +8,57 @@ All scripts support `--max-events` to limit scope for rehearsal runs.
 Do NOT use `evidence_filtered.jsonl` to audit gold annotation — gold tuples
 and chains reference evidence_ids from the repaired evidence namespace.
 
+## Silver to Human Gold v1 Upgrade
+
+Current files named `llm_gold_tuples.jsonl` and `llm_gold_event_chains.jsonl`
+are LLM preannotation artifacts. They are not final human-verified gold and
+must be treated as silver/pseudo-gold until a real adjudication pass is
+completed.
+
+The strict upgrade path is:
+
+```bash
+# 1. Copy LLM preannotation into a new silver namespace.
+python scripts/export_silver_benchmark.py
+
+# 2. Build reviewer-facing sheets with evidence text and source metadata.
+python scripts/build_human_adjudication_sheet.py
+
+# 3. After humans fill review_decision/revised_* fields, convert to human_gold_v1.
+python scripts/convert_adjudication_to_human_gold.py
+
+# 4. Audit human_gold_v1 and update readiness in the manifest.
+python scripts/audit_human_gold.py
+```
+
+Default outputs:
+
+```text
+data/pubevent_soa_lite/silver_v1/
+|-- silver_tuples_v1.jsonl
+|-- silver_event_chains_v1.jsonl
+`-- silver_manifest_v1.json
+
+data/pubevent_soa_lite/human_gold_v1/
+|-- human_tuple_adjudication_sheet.csv
+|-- human_chain_adjudication_sheet.csv
+|-- human_gold_tuples_v1.jsonl
+|-- human_gold_event_chains_v1.jsonl
+|-- human_gold_manifest_v1.json
+|-- human_gold_audit.md
+`-- human_gold_audit.json
+```
+
+Rules:
+- Original `llm_gold_*` files and canonical evidence must never be overwritten
+  by this workflow.
+- Existing outputs are timestamp-backed up before replacement.
+- `uncertain` and `drop` rows never enter `human_gold_v1`.
+- `revise` rows must use the `revised_*` fields.
+- `add_missing` rows are allowed only with nonempty evidence IDs.
+- `human_gold_manifest_v1.json.ready_for_main_experiment` may be true only
+  after `scripts/audit_human_gold.py` reports `total_issues=0`.
+
 ## Standard Workflow
 
 ### 1. Normalize Evidence Source Types

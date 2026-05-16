@@ -1,0 +1,40 @@
+{
+  "dataset_name": "pubevent_soa_lite_silver_v1",
+  "dataset_level": "silver",
+  "source": "llm_preannotation",
+  "human_verified": false,
+  "auto_reviewer_accept_all": true,
+  "original_files_modified": false,
+  "created_at": "2026-05-16T06:54:22.603195+00:00",
+  "input_files": {
+    "tuples": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_tuples.jsonl",
+    "event_chains": "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_event_chains.jsonl"
+  },
+  "input_fingerprints": {
+    "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_tuples.jsonl": {
+      "sha256": "9c45e923dcfeb8b3fd3188bc7929e8817c045a07bea424d108c0a788bb6a7efb",
+      "size_bytes": 80713,
+      "mtime_ns": 1778618117806495100
+    },
+    "data\\pubevent_soa_lite\\annotation_full_v3_repaired_plus_low37\\llm_gold_event_chains.jsonl": {
+      "sha256": "0f1c47feb66dea91119c3159f331cf5b267fc82ba692c09130926216957ab751",
+      "size_bytes": 57891,
+      "mtime_ns": 1778623267619888300
+    }
+  },
+  "outputs": {
+    "silver_tuples": "data\\pubevent_soa_lite\\silver_v1\\silver_tuples_v1.jsonl",
+    "silver_event_chains": "data\\pubevent_soa_lite\\silver_v1\\silver_event_chains_v1.jsonl",
+    "silver_manifest": "data\\pubevent_soa_lite\\silver_v1\\silver_manifest_v1.json"
+  },
+  "counts": {
+    "silver_tuples": 188,
+    "silver_event_chains": 138,
+    "events_with_tuples": 50,
+    "events_with_chains": 50
+  },
+  "notes": [
+    "The source files are LLM preannotation outputs, not final human gold.",
+    "This script copies records to a new silver_v1 namespace and never writes to original llm_gold_* files."
+  ]
+}
