@@ -1,0 +1,25 @@
+{
+  "status": "completed",
+  "run_id": "ablation",
+  "timestamp": "2026-05-15T19:02:16.343944+00:00",
+  "git_commit": "702988001868fd477fdcd146703b61a48721f000",
+  "force": true,
+  "settings": [
+    "full"
+  ],
+  "metrics": {
+    "full": {
+      "Tuple-F1-soft": 0.386,
+      "Tuple-Precision": 0.567,
+      "Tuple-Recall": 0.2926,
+      "Stakeholder-Recall": 0.3191,
+      "Sentiment-Acc": 0.7091,
+      "Num-Tuples": 97,
+      "Num-Gold": 188,
+      "ESR": 0.8762886597938144,
+      "UTR": 0.030927835051546393
+    }
+  },
+  "delta_audits": {},
+  "audit_report": "outputs\\runs_p0_parse_repair\\ablation_audit_report.md"
+}

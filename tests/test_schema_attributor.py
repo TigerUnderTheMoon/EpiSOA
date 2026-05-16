@@ -6,6 +6,7 @@ from episoa.attribution.schema_attributor import (
     SchemaAttributor,
     parse_response,
     run_schema_attribution,
+    select_oracle_prompt_evidence,
     select_prompt_evidence,
 )
 
@@ -310,6 +311,18 @@ def test_select_prompt_evidence_prefers_chain_context():
 
     assert selected[0]["evidence_id"] == "ev-1"
     assert selected[0]["stage"] == "conflict"
+
+
+def test_select_oracle_prompt_evidence_keeps_gold_ids_first():
+    selected = select_oracle_prompt_evidence(
+        event=event_row(),
+        chain=chain_row(),
+        evidence_rows=[evidence_row("ev-1"), evidence_row("ev-2"), evidence_row("ev-3")],
+        oracle_evidence_ids=["ev-2"],
+        max_evidence=2,
+    )
+
+    assert [row["evidence_id"] for row in selected] == ["ev-2", "ev-1"]
 
 
 def valid_payload() -> str:

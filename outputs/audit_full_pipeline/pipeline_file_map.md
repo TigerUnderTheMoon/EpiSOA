@@ -1,0 +1,129 @@
+# Pipeline File Map and Input/Output Audit
+
+| Stage | Entry Script | Config | Inputs | Outputs | Overwrite | API | Search | Reads Gold | Leakage Risk | Reproduce |
+|---|---|---|---|---|---|---|---|---|---|---|
+| event registry | scripts/validate_events.py<br>scripts/upgrade_events_schema.py | configs/default.yaml |  | data/pubevent_soa_lite/events.jsonl | no | no | no | no | low | yes |
+| evidence collection | scripts/collect_evidence.py | configs/collector.yaml<br>configs/collector_budget_50.yaml<br>configs/source_detection.yaml | data/pubevent_soa_lite/events.jsonl | data/pubevent_soa_lite/raw/raw_posts.jsonl<br>outputs/runs/collector_* | yes unless versioned output dir is used | yes | yes | no | low | yes |
+| evidence normalization / filtering | scripts/normalize_evidence.py<br>scripts/filter_evidence_quality.py<br>scripts/merge_evidence.py | configs/source_detection.yaml | data/pubevent_soa_lite/raw/raw_posts.jsonl<br>data/pubevent_soa_lite/interim/evidence_candidates*.jsonl | data/pubevent_soa_lite/evidence_filtered.jsonl<br>data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl | yes unless backup flag/script copy is used | no | no | no | low | yes |
+| annotation sheet construction | scripts/make_annotation_sheet.py<br>scripts/build_gold_review_sheets.py | configs/paper.yaml | events.jsonl<br>evidence_v3_repaired_plus_low37.jsonl<br>candidate_soa_tuples.jsonl | annotation_sheet.csv<br>review_sheets/*.csv | yes | no | no | may read candidate predictions | medium if predictions are evaluated as gold | not final paper metric |
+| LLM preannotation | scripts/run_llm_gold_preannotation.py | configs/paper.yaml<br>prompts/gold_*_preannotation.md | events.jsonl<br>evidence_v3_repaired_plus_low37.jsonl | llm_gold_tuples.jsonl<br>llm_gold_event_chains.jsonl<br>llm_preannotation_audit.jsonl | yes when merge/overwrite enabled | yes | no | no | high if treated as final gold | no unless explicitly silver |
+| human review / gold export | scripts/build_gold_review_sheets.py<br>scripts/convert_review_sheets_to_gold.py | docs/gold_annotation_workflow.md | review_sheets/*_reviewed.csv<br>evidence_v3_repaired_plus_low37.jsonl | human_reviewed_gold/gold_tuples.jsonl<br>data/releases/*/gold_tuples.jsonl | yes with backup in release scripts | no | no | reads candidate tuples | medium; reviewer must be independent | yes only with real human review |
+| gold validation | scripts/validate_gold_dataset.py<br>scripts/summarize_gold_dataset.py | configs/paper.yaml | gold_tuples.jsonl<br>gold_event_chains.jsonl<br>evidence_v3_repaired_plus_low37.jsonl | gold_validation_report.json<br>dataset_statistics.* | yes | no | no | yes | low | yes |
+| benchmark task construction | scripts/build_benchmark_tasks.py |  | release/events.jsonl<br>release/evidence.jsonl<br>release/gold_tuples.jsonl<br>release/gold_event_chains.jsonl | data/benchmark/pubevent_soa_lite_v3_repaired_plus_low37_gold/*.jsonl | yes, script supports backup | no | no | yes | high if benchmark includes output labels in prompts | yes for benchmark release |
+| graph construction | scripts/build_evidence_graph.py<br>src/episoa/graph/evidence_graph.py |  | events.jsonl<br>evidence_v3_repaired_plus_low37.jsonl | outputs/runs/*/evidence_graph/*.jsonl | yes per run dir | no | no | no | low | yes |
+| event-chain retrieval | src/episoa/retrieval/event_chain_retriever.py<br>scripts/retrieve_event_chains.py | configs/paper.yaml | events.jsonl<br>evidence_v3_repaired_plus_low37.jsonl | in-memory chains<br>retrieval_results.csv | yes per run dir | no | no | no | low | yes |
+| schema attribution | src/episoa/attribution/schema_attributor.py | configs/paper.yaml<br>prompts/benchmark_tuple_*.md | events.jsonl<br>evidence_v3_repaired_plus_low37.jsonl<br>chains<br>graph_nodes | candidate_soa_tuples.jsonl<br>raw_llm_responses.jsonl | yes per run dir | yes | no | no | medium; oracle mode intentionally reads gold evidence ids | yes |
+| verifier | src/episoa/verifier/faithfulness_verifier.py | configs/paper.yaml | candidate_soa_tuples.jsonl<br>evidence_v3_repaired_plus_low37.jsonl | verified_soa_tuples.jsonl<br>predictions.jsonl | yes per run dir | yes | no | no | low | yes |
+| main experiment | scripts/run_paper_experiment.py<br>src/episoa/pipeline.py | configs/paper.yaml | events.jsonl<br>evidence_v3_repaired_plus_low37.jsonl<br>llm_gold_tuples.jsonl | outputs/runs/pubevent-soa-lite-paper/* | yes | yes | no | yes for evaluation only | medium if gold file is pseudo-gold | yes after gold fix |
+| ablation experiment | scripts/run_ablation.py<br>src/episoa/pipeline.py | configs/ablation.yaml<br>configs/ablation_p0_parse_repair.yaml | same as main | outputs/runs/ablation_*<br>outputs/runs_p0_parse_repair/ablation_full | yes with --force | yes | no | yes for evaluation only | medium if settings not rerun equally | yes after P0 rerun |
+| evaluation | src/episoa/evaluation/*.py |  | predictions.jsonl<br>gold_tuples.jsonl | metrics.json<br>event_level_metrics.csv<br>ablation_results.csv | yes per run dir | no | no | yes | medium; metric can under/over-estimate | yes |
+| audit/report generation | scripts/audit_full_pipeline.py<br>scripts/export_paper_tables.py |  | all above outputs | outputs/audit_full_pipeline/*<br>outputs/paper_tables/* | yes; audit script backs up existing report files | no | no | yes | low if labelled diagnostic | supporting material |
+
+## File Inventory
+### event registry
+- `scripts/validate_events.py`: exists=True, lines=48, records=48, keys=
+- `scripts/upgrade_events_schema.py`: exists=True, lines=163, records=163, keys=
+- `configs/default.yaml`: exists=True, lines=27, records=27, keys=
+- `data/pubevent_soa_lite/events.jsonl`: exists=True, lines=50, records=50, keys=event_id, domain, event_type, event_name, event_description, location, time_window, trigger, anchor_entities, anchor_urls, source_scope, query_seeds
+### evidence collection
+- `scripts/collect_evidence.py`: exists=True, lines=1570, records=1570, keys=
+- `configs/collector.yaml`: exists=True, lines=39, records=39, keys=
+- `configs/collector_budget_50.yaml`: exists=True, lines=42, records=42, keys=
+- `configs/source_detection.yaml`: exists=True, lines=165, records=165, keys=
+- `data/pubevent_soa_lite/events.jsonl`: exists=True, lines=50, records=50, keys=event_id, domain, event_type, event_name, event_description, location, time_window, trigger, anchor_entities, anchor_urls, source_scope, query_seeds
+- `data/pubevent_soa_lite/raw/raw_posts.jsonl`: exists=True, lines=20, records=20, keys=raw_id, event_id, query, query_round, source, platform, publish_time, url, title, text, snippet, collected_at
+### evidence normalization / filtering
+- `scripts/normalize_evidence.py`: exists=True, lines=79, records=79, keys=
+- `scripts/filter_evidence_quality.py`: exists=True, lines=567, records=567, keys=
+- `scripts/merge_evidence.py`: exists=True, lines=54, records=54, keys=
+- `configs/source_detection.yaml`: exists=True, lines=165, records=165, keys=
+- `data/pubevent_soa_lite/raw/raw_posts.jsonl`: exists=True, lines=20, records=20, keys=raw_id, event_id, query, query_round, source, platform, publish_time, url, title, text, snippet, collected_at
+- `data/pubevent_soa_lite/evidence_filtered.jsonl`: exists=True, lines=797, records=797, keys=evidence_id, event_id, source, platform, publish_time, url, text, stakeholder_hint, stance_hint, temporal_stage, traceable, original_source
+- `data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl`: exists=True, lines=1767, records=1767, keys=evidence_id, event_id, source, platform, publish_time, url, text, stakeholder_hint, stance_hint, temporal_stage, traceable, source_type
+### annotation sheet construction
+- `scripts/make_annotation_sheet.py`: exists=True, lines=235, records=235, keys=
+- `scripts/build_gold_review_sheets.py`: exists=True, lines=58, records=58, keys=
+- `configs/paper.yaml`: exists=True, lines=52, records=52, keys=
+- `events.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `candidate_soa_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `annotation_sheet.csv`: exists=False, lines=0, records=0, keys=
+### LLM preannotation
+- `scripts/run_llm_gold_preannotation.py`: exists=True, lines=607, records=607, keys=
+- `configs/paper.yaml`: exists=True, lines=52, records=52, keys=
+- `events.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `llm_gold_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `llm_gold_event_chains.jsonl`: exists=False, lines=0, records=0, keys=
+- `llm_preannotation_audit.jsonl`: exists=False, lines=0, records=0, keys=
+### human review / gold export
+- `scripts/build_gold_review_sheets.py`: exists=True, lines=58, records=58, keys=
+- `scripts/convert_review_sheets_to_gold.py`: exists=True, lines=45, records=45, keys=
+- `docs/gold_annotation_workflow.md`: exists=True, lines=255, records=255, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `human_reviewed_gold/gold_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+### gold validation
+- `scripts/validate_gold_dataset.py`: exists=True, lines=36, records=36, keys=
+- `scripts/summarize_gold_dataset.py`: exists=True, lines=255, records=255, keys=
+- `configs/paper.yaml`: exists=True, lines=52, records=52, keys=
+- `gold_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `gold_event_chains.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `gold_validation_report.json`: exists=False, lines=0, records=0, keys=
+### benchmark task construction
+- `scripts/build_benchmark_tasks.py`: exists=True, lines=603, records=603, keys=
+- `release/events.jsonl`: exists=False, lines=0, records=0, keys=
+- `release/evidence.jsonl`: exists=False, lines=0, records=0, keys=
+- `release/gold_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `release/gold_event_chains.jsonl`: exists=False, lines=0, records=0, keys=
+### graph construction
+- `scripts/build_evidence_graph.py`: exists=True, lines=42, records=42, keys=
+- `src/episoa/graph/evidence_graph.py`: exists=True, lines=282, records=282, keys=
+- `events.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+### event-chain retrieval
+- `src/episoa/retrieval/event_chain_retriever.py`: exists=True, lines=660, records=660, keys=
+- `scripts/retrieve_event_chains.py`: exists=True, lines=112, records=112, keys=
+- `configs/paper.yaml`: exists=True, lines=52, records=52, keys=
+- `events.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `retrieval_results.csv`: exists=False, lines=0, records=0, keys=
+### schema attribution
+- `src/episoa/attribution/schema_attributor.py`: exists=True, lines=1032, records=1032, keys=
+- `configs/paper.yaml`: exists=True, lines=52, records=52, keys=
+- `events.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `chains`: exists=False, lines=0, records=0, keys=
+- `graph_nodes`: exists=False, lines=0, records=0, keys=
+- `candidate_soa_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `raw_llm_responses.jsonl`: exists=False, lines=0, records=0, keys=
+### verifier
+- `src/episoa/verifier/faithfulness_verifier.py`: exists=True, lines=125, records=125, keys=
+- `configs/paper.yaml`: exists=True, lines=52, records=52, keys=
+- `candidate_soa_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `verified_soa_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `predictions.jsonl`: exists=False, lines=0, records=0, keys=
+### main experiment
+- `scripts/run_paper_experiment.py`: exists=True, lines=20, records=20, keys=
+- `src/episoa/pipeline.py`: exists=True, lines=663, records=663, keys=
+- `configs/paper.yaml`: exists=True, lines=52, records=52, keys=
+- `events.jsonl`: exists=False, lines=0, records=0, keys=
+- `evidence_v3_repaired_plus_low37.jsonl`: exists=False, lines=0, records=0, keys=
+- `llm_gold_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+### ablation experiment
+- `scripts/run_ablation.py`: exists=True, lines=27, records=27, keys=
+- `src/episoa/pipeline.py`: exists=True, lines=663, records=663, keys=
+- `configs/ablation.yaml`: exists=True, lines=47, records=47, keys=
+- `configs/ablation_p0_parse_repair.yaml`: exists=True, lines=42, records=42, keys=
+- `outputs/runs_p0_parse_repair/ablation_full`: exists=True, lines=0, records=0, keys=
+### evaluation
+- `predictions.jsonl`: exists=False, lines=0, records=0, keys=
+- `gold_tuples.jsonl`: exists=False, lines=0, records=0, keys=
+- `metrics.json`: exists=False, lines=0, records=0, keys=
+- `event_level_metrics.csv`: exists=False, lines=0, records=0, keys=
+- `ablation_results.csv`: exists=False, lines=0, records=0, keys=
+### audit/report generation
+- `scripts/audit_full_pipeline.py`: exists=True, lines=1177, records=1177, keys=
+- `scripts/export_paper_tables.py`: exists=True, lines=240, records=240, keys=
+- `all above outputs`: exists=False, lines=0, records=0, keys=

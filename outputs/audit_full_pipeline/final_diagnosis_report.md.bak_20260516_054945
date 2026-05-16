@@ -1,0 +1,83 @@
+# Final Diagnosis Report
+
+## 1. Executive Summary
+Most likely causes of the current F1=0.386 bottleneck, in order:
+1. Gold quality / label definition: the configured gold is LLM preannotation, not strict human-verified gold.
+2. Evidence selection and event-chain retrieval: prompt gold-evidence overlap is incomplete, especially for zero-prediction events.
+3. Prompt/extraction constraints and model behavior: max 4 tuples per event and strict evidence-ID filtering suppress recall.
+4. Lightweight graph weakness: current graph gives only rule-based candidate hints and no opinion/relation structure.
+5. Metric strictness: character Jaccard can underestimate semantic matches, but metric sensitivity must be interpreted after gold cleanup.
+
+- Gold status: silver/pseudo-gold, not strictly human-verified gold
+- Avg gold evidence in prompt ratio: 0.5656
+- Current graph has opinion/relation nodes: False
+- Metric baseline: {'metric': 'char_jaccard', 'threshold': 0.5, 'Tuple-F1': 0.386, 'Precision': 0.567, 'Recall': 0.2926, 'Sentiment-Acc': 0.7091, 'Stakeholder-Recall': 0.3191}
+- Dataset scale: 50 events / 188 tuples.
+
+## 2. Pipeline Map
+See `outputs/audit_full_pipeline/pipeline_file_map.md` for the complete stage-by-stage input/output table.
+
+## 3. Gold Quality Diagnosis
+- The main experiment reads `llm_gold_tuples.jsonl`, whose `source_type` is `llm_preannotation` and lacks direct human fields.
+- The human-reviewed export is auto-reviewed (`auto_reviewer`) with all rows accepted and no edits, so it is not independent human gold.
+- Recommendation: relabel current data as silver/pseudo-gold and perform real human review before final paper claims.
+
+## 4. Evidence Selection Diagnosis
+- Average prompt gold-evidence coverage: 0.5656.
+- Zero-prediction events: ['E001', 'E002', 'E010', 'E032', 'E033', 'E037', 'E038', 'E047']
+- Coverage-constrained upper bound from current prompt evidence: 0.6968.
+- Oracle evidence result: not available yet or run failed.
+
+## 5. Graph Diagnosis
+- Current graph is mostly event/evidence/source/domain plus rule-derived stakeholder and stage nodes.
+- It should be upgraded with LLM-extracted stakeholder/opinion/stage/relation nodes and used as structured constraints.
+
+## 6. LLM Capability Diagnosis
+- Model capability probe output is not available yet or no API run completed.
+- Do not conclude current LLM is intrinsically weak until oracle evidence and real gold are both tested.
+
+## 7. Evaluation Diagnosis
+- Current F1 is not pure parse failure after P0; parse failures are zero.
+- The metric is strict on event_id and one-to-one matching; it excludes rationale/evidence support from core F1.
+- Report multiple metrics rather than a single soft Tuple-F1.
+
+## 8. Dataset Scale Diagnosis
+- 50 events / 188 tuples is too small for a strong benchmark claim.
+- Expand to at least 100 events and 300-500 human-adjudicated tuples with double annotation and adjudication.
+
+## 9. Recommended Fix Plan
+### P0: Engineering stability
+- Keep P0 parse repair; rerun all six ablations under one config snapshot.
+- Store prompt selected evidence, chain evidence, parse status, and verifier status per event.
+### P1: Gold human verification
+- Replace auto-reviewed LLM labels with real human review, adjudication, provenance, and IAA.
+### P2: Evidence selection / oracle evidence
+- Use oracle evidence as a diagnostic ceiling, then implement source balance + stakeholder signal + support-evidence reranking.
+### P3: Graph upgrade
+- Add `model_graph_builder.py` and compare no_graph / graph_rule_based / graph_llm_extracted.
+### P4: Stronger model / prompt redesign
+- Run 10-event capability probe first, then scale only if it shows material gain.
+### P5: Metric redesign and final paper tables
+- Report strict, soft, stakeholder, opinion, evidence-grounded precision, recall@K, and coverage metrics.
+
+## 10. Go/No-Go Decision
+- Current result is not ready as a final一区 paper table.
+- Minimum go requirements: real human gold, P0-rerun full ablation set, oracle evidence diagnostic, graph-upgrade diagnostic, and multi-metric evaluation.
+- Recommended final tables: dataset statistics, gold quality/IAA, main results, ablations, oracle evidence upper bound, model capability probe, metric sensitivity, and error analysis.
+
+## Report Index
+- `outputs/audit_full_pipeline/gold_quality_audit.md`
+- `outputs/audit_full_pipeline/evidence_coverage_audit.md`
+- `outputs/audit_full_pipeline/graph_quality_audit.md`
+- `outputs/audit_full_pipeline/evaluation_metric_audit.md`
+- `outputs/audit_full_pipeline/experiment_fairness_audit.md`
+- `outputs/audit_full_pipeline/dataset_scale_audit.md`
+
+## Fairness Issues
+- P0 full and old full differ; final ablation table should be rerun under P0 parse repair.
+- full has parse failures.
+- without_graph has parse failures.
+- without_event_chain has parse failures.
+- without_verifier has parse failures.
+- without_event_chain_prompt has parse failures.
+- without_event_chain_ranking has parse failures.

@@ -1,0 +1,11 @@
+{
+  "Tuple-F1-soft": 0.386,
+  "Tuple-Precision": 0.567,
+  "Tuple-Recall": 0.2926,
+  "Stakeholder-Recall": 0.3191,
+  "Sentiment-Acc": 0.7091,
+  "Num-Tuples": 97,
+  "Num-Gold": 188,
+  "ESR": 0.8762886597938144,
+  "UTR": 0.030927835051546393
+}

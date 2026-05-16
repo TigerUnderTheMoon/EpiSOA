@@ -269,6 +269,7 @@ class SchemaAttributor:
         chain: dict[str, Any],
         evidence_items: list[dict[str, Any]],
         stakeholder_candidates: list[str],
+        selection_metadata: dict[str, Any] | None = None,
         dry_run: bool = False,
         hide_chain_in_prompt: bool = False,
         skip_chain_ranking: bool = False,
@@ -292,6 +293,8 @@ class SchemaAttributor:
             "hide_chain_in_prompt": hide_chain_in_prompt,
             "skip_chain_ranking": skip_chain_ranking,
         }
+        if selection_metadata:
+            request_summary.update(selection_metadata)
         if dry_run:
             preview = user_prompt[:2500]
             safe_console_print(f"\n--- prompt preview: {event_id} ---\n{preview}\n--- end prompt preview: {event_id} ---\n")
@@ -318,7 +321,8 @@ class SchemaAttributor:
         raw_response_text = normalize_raw_response(response)
         raw_response_id = getattr(response, "response_id", "")
 
-        if parsed.parse_error == "empty_llm_content":
+        retryable_errors = {"empty_llm_content", "incomplete_or_malformed_json"}
+        if parsed.parse_error in retryable_errors:
             retry_system_prompt, retry_user_prompt = self.build_retry_prompt(
                 event=event,
                 evidence_items=evidence_items,
@@ -330,7 +334,10 @@ class SchemaAttributor:
                 response_format={"type": "json_object"},
             )
             request_summary["api_calls_made"] = 2
-            request_summary["retried_after_empty_content"] = True
+            if parsed.parse_error == "empty_llm_content":
+                request_summary["retried_after_empty_content"] = True
+            else:
+                request_summary["retried_after_malformed_json"] = True
             parsed = self._parse_llm_response(retry_response, event_id, allowed_evidence_ids)
             raw_response_text = normalize_raw_response(retry_response)
             raw_response_id = getattr(retry_response, "response_id", "")
@@ -368,6 +375,7 @@ def run_schema_attribution(
     event_ids: list[str] | None = None,
     max_events: int | None = None,
     max_evidence_per_event: int = 12,
+    oracle_evidence_ids_by_event: dict[str, list[str]] | None = None,
     dry_run: bool = False,
     hide_chain_in_prompt: bool = False,
     skip_chain_ranking: bool = False,
@@ -397,13 +405,33 @@ def run_schema_attribution(
         elif float(chain.get("chain_confidence", 0) or 0) <= 0:
             no_chain_context_events.append(event_id)
         stakeholder_candidates = stakeholders_by_event.get(event_id) or stakeholders_by_event.get("__global__", [])
-        evidence_items = select_prompt_evidence(
-            event=event,
-            chain=chain,
-            evidence_rows=evidence_by_event.get(event_id, []),
-            max_evidence=max_evidence_per_event,
-            skip_chain_ranking=skip_chain_ranking,
-        )
+        oracle_evidence_ids = (oracle_evidence_ids_by_event or {}).get(event_id)
+        selection_metadata: dict[str, Any] | None = None
+        if oracle_evidence_ids is not None:
+            evidence_items = select_oracle_prompt_evidence(
+                event=event,
+                chain=chain,
+                evidence_rows=evidence_by_event.get(event_id, []),
+                oracle_evidence_ids=oracle_evidence_ids,
+                max_evidence=max_evidence_per_event,
+                skip_chain_ranking=skip_chain_ranking,
+            )
+            selected_ids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
+            selection_metadata = {
+                "oracle_evidence": True,
+                "oracle_gold_evidence_ids": oracle_evidence_ids,
+                "oracle_gold_evidence_in_prompt": [eid for eid in oracle_evidence_ids if eid in set(selected_ids)],
+                "oracle_gold_evidence_missing": [eid for eid in oracle_evidence_ids if eid not in set(selected_ids)],
+                "oracle_gold_evidence_truncated": len([eid for eid in oracle_evidence_ids if eid not in set(selected_ids)]) > 0,
+            }
+        else:
+            evidence_items = select_prompt_evidence(
+                event=event,
+                chain=chain,
+                evidence_rows=evidence_by_event.get(event_id, []),
+                max_evidence=max_evidence_per_event,
+                skip_chain_ranking=skip_chain_ranking,
+            )
         if not evidence_items:
             no_chain_context_events.append(event_id)
             continue
@@ -413,6 +441,7 @@ def run_schema_attribution(
                 chain=chain,
                 evidence_items=evidence_items,
                 stakeholder_candidates=stakeholder_candidates,
+                selection_metadata=selection_metadata,
                 dry_run=dry_run,
                 hide_chain_in_prompt=hide_chain_in_prompt,
                 skip_chain_ranking=skip_chain_ranking,
@@ -605,6 +634,68 @@ def select_prompt_evidence(
         seen.add(evidence_id)
         if len(selected) >= max_evidence:
             break
+    return selected
+
+
+def select_oracle_prompt_evidence(
+    *,
+    event: dict[str, Any],
+    chain: dict[str, Any],
+    evidence_rows: list[dict[str, Any]],
+    oracle_evidence_ids: list[str],
+    max_evidence: int,
+    skip_chain_ranking: bool = False,
+) -> list[dict[str, Any]]:
+    """Select prompt evidence while forcing gold-support evidence first.
+
+    The caller is responsible for passing only evidence IDs, not gold tuple text.
+    Remaining slots are filled with the normal full-selection strategy.
+    """
+    evidence_by_id = {str(row.get("evidence_id", "")): row for row in evidence_rows if row.get("evidence_id")}
+    chain_scores = chain_metadata_by_evidence(chain)
+    selected: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for evidence_id in dedupe([str(eid) for eid in oracle_evidence_ids if str(eid).strip()]):
+        if len(selected) >= max_evidence:
+            break
+        row = evidence_by_id.get(evidence_id)
+        if not row or evidence_id in seen:
+            continue
+        metadata = chain_scores.get(evidence_id, {})
+        stage_name = str(metadata.get("stage") or row.get("temporal_stage") or "oracle_gold")
+        selected.append(
+            normalize_prompt_evidence(
+                {
+                    "evidence_id": evidence_id,
+                    "stage": stage_name,
+                    "final_stage_score": metadata.get("final_stage_score", "oracle"),
+                    "event_relevance_score": metadata.get("event_relevance_score", "oracle"),
+                },
+                row,
+                stage_name,
+            )
+        )
+        seen.add(evidence_id)
+
+    if len(selected) >= max_evidence:
+        return selected
+
+    baseline = select_prompt_evidence(
+        event=event,
+        chain=chain,
+        evidence_rows=evidence_rows,
+        max_evidence=max_evidence,
+        skip_chain_ranking=skip_chain_ranking,
+    )
+    for item in baseline:
+        if len(selected) >= max_evidence:
+            break
+        evidence_id = str(item.get("evidence_id", ""))
+        if not evidence_id or evidence_id in seen:
+            continue
+        selected.append(item)
+        seen.add(evidence_id)
     return selected
 
 

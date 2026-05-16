@@ -1,0 +1,18 @@
+{
+  "prompt_version": "schema_attribution_v2_json",
+  "max_tuples_per_event": 4,
+  "max_opinion_chars": 40,
+  "max_rationale_chars": 60,
+  "allowed_sentiment": [
+    "negative",
+    "neutral",
+    "positive"
+  ],
+  "allowed_support": [
+    "candidate_partially_supported",
+    "candidate_supported",
+    "candidate_unclear"
+  ],
+  "verifier_threshold": 0.75,
+  "retrieval_top_k": 5
+}

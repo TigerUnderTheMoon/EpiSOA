@@ -1,0 +1,42 @@
+run_id: pubevent-soa-lite-p0-parse-repair
+mode: ablation
+seed: 42
+data:
+  events_path: data/pubevent_soa_lite/events.jsonl
+  raw_posts_path: data/pubevent_soa_lite/raw/raw_posts.jsonl
+  evidence_candidates_path: data/pubevent_soa_lite/interim/evidence_candidates.jsonl
+  evidence_path: data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
+  annotation_sheet_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/annotation_sheet.csv
+  gold_tuples_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl
+  gold_event_chains_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl
+output:
+  runs_dir: outputs/runs_p0_parse_repair
+ablation:
+  settings:
+    - full
+model:
+  mode: real
+  llm_mode: real
+  provider: openai_compatible
+  llm_model: "deepseek-v4-flash"
+  model_name: "deepseek-v4-flash"
+  embedding_model: mock-embedding
+  reranker_model: mock-reranker
+  api_key: ""
+  api_key_env: "OPENCODE_API_KEY"
+  base_url: "https://opencode.ai/zen/go/v1"
+  base_url_env: "OPENCODE_BASE_URL"
+  temperature: 0.1
+  max_tokens: 8000
+  timeout_seconds: 180
+  max_retries: 2
+search:
+  provider: custom
+  api_key_env: SEARCH_API_KEY
+  base_url_env: SEARCH_BASE_URL
+  timeout_seconds: 30
+  max_retries: 2
+retrieval:
+  top_k: 5
+verifier:
+  threshold: 0.75

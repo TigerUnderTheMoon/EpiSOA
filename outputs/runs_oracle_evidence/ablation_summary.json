@@ -1,0 +1,25 @@
+{
+  "status": "completed",
+  "run_id": "ablation",
+  "timestamp": "2026-05-15T20:23:25.302578+00:00",
+  "git_commit": "702988001868fd477fdcd146703b61a48721f000",
+  "force": true,
+  "settings": [
+    "full_oracle_evidence"
+  ],
+  "metrics": {
+    "full_oracle_evidence": {
+      "Tuple-F1-soft": 0.443,
+      "Tuple-Precision": 0.5714,
+      "Tuple-Recall": 0.3617,
+      "Stakeholder-Recall": 0.383,
+      "Sentiment-Acc": 0.5735,
+      "Num-Tuples": 119,
+      "Num-Gold": 188,
+      "ESR": 0.7899159663865546,
+      "UTR": 0.09243697478991597
+    }
+  },
+  "delta_audits": {},
+  "audit_report": "outputs\\runs_oracle_evidence\\ablation_audit_report.md"
+}

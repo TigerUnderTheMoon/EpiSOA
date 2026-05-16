@@ -1,0 +1,126 @@
+{
+  "classification": "silver/pseudo-gold, not strictly human-verified gold",
+  "primary_gold_file": "data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl",
+  "primary_gold_field_counts": {
+    "event_id": 188,
+    "candidate_id": 188,
+    "source_type": 188,
+    "stakeholder": 188,
+    "opinion": 188,
+    "sentiment": 188,
+    "rationale": 188,
+    "evidence_ids": 188,
+    "support_label": 188
+  },
+  "primary_gold_has_human_fields": {
+    "reviewed_by": false,
+    "human_verified": false,
+    "review_status": false,
+    "annotator_id": false,
+    "revision_note": false,
+    "confidence": false,
+    "source": false,
+    "annotation_provenance": false
+  },
+  "human_reviewed_export_exists": true,
+  "human_reviewed_export_reviewer_distribution": {
+    "auto_reviewer": 188
+  },
+  "review_sheet_human_decision_distribution": {
+    "accept": 188
+  },
+  "review_sheet_review_status_distribution": {
+    "reviewed": 188
+  },
+  "review_sheet_annotator_distribution": {
+    "auto_reviewer": 188
+  },
+  "events_count": 50,
+  "gold_tuples_total": 188,
+  "gold_event_chains_total": 138,
+  "tuple_count_per_event": {
+    "min": 3,
+    "median": 3.5,
+    "mean": 3.76,
+    "max": 5
+  },
+  "events_with_less_than_2_tuples": [],
+  "events_with_more_than_6_tuples": [],
+  "support_label_distribution": {
+    "supported": 170,
+    "partially_supported": 18
+  },
+  "sentiment_distribution": {
+    "mixed": 5,
+    "positive": 38,
+    "negative": 88,
+    "neutral": 57
+  },
+  "stakeholder_top20": {
+    "公众": 14,
+    "媒体": 5,
+    "市民": 4,
+    "应急管理部": 3,
+    "国务院事故调查组": 3,
+    "网约车司机": 3,
+    "原业主（拆迁户）": 2,
+    "家长": 2,
+    "学生家长": 2,
+    "邓州市卫生健康委员会": 2,
+    "广西医科大学第一附属医院": 2,
+    "成都市市场监督管理局": 2,
+    "牡丹江市城市管理综合执法局": 2,
+    "武汉东湖风景区城管执法局": 2,
+    "共享单车运营企业": 2,
+    "三元里村村民": 1,
+    "广州市白云区政府": 1,
+    "对改造持积极态度的村民": 1,
+    "对补偿方案不满的村民": 1,
+    "小湾村、暮二村居民": 1
+  },
+  "evidence_ids_per_tuple": {
+    "min": 1,
+    "median": 2.0,
+    "mean": 1.9149,
+    "max": 12
+  },
+  "tuples_with_at_least_one_evidence_id": 188,
+  "missing_evidence_ref_count": 0,
+  "gold_evidence_source_type_distribution": {
+    "public_web": 45,
+    "mainstream_news": 122,
+    "official": 59,
+    "social_media": 113,
+    "public_interaction": 13,
+    "forum": 8
+  },
+  "gold_evidence_domain_top20": {
+    "www.toutiao.com": 48,
+    "www.sohu.com": 40,
+    "www.163.com": 31,
+    "finance.sina.com.cn": 11,
+    "www.thepaper.cn": 10,
+    "m.sohu.com": 9,
+    "news.qq.com": 7,
+    "m.163.com": 7,
+    "m.thepaper.cn": 6,
+    "www.kankanews.com": 6,
+    "finance.sina.cn": 5,
+    "www.gz.gov.cn": 4,
+    "www.pudong.gov.cn": 4,
+    "news.cnr.cn": 4,
+    "tousu.sina.cn": 4,
+    "www.chinanews.com.cn": 4,
+    "m.toutiao.com": 4,
+    "cgw.wuhan.gov.cn": 4,
+    "www.gov.cn": 4,
+    "news.sohu.com": 3
+  },
+  "recommendation": {
+    "can_call_gold": false,
+    "must_human_verify": true,
+    "188_tuples_enough_for_top_journal": false,
+    "suggested_minimum": "100 events and 300-500 human-adjudicated tuples; stronger target is 150-200 events with 600+ tuples.",
+    "recommended_name": "silver benchmark or weakly supervised benchmark until double human review is complete"
+  }
+}

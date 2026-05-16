@@ -159,7 +159,7 @@ def _write_event_level_csv(path: Path, gold, predictions) -> None:
             })
 
 
-def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm_client, use_graph, use_event_chain, use_verifier, hide_chain_in_prompt=False, skip_chain_ranking=False):
+def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm_client, use_graph, use_event_chain, use_verifier, hide_chain_in_prompt=False, skip_chain_ranking=False, oracle_evidence=False):
     """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
     collected = collect_evidence(events, evidence)
 
@@ -194,6 +194,8 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
         chains = []
 
     model_name = config.model.get("llm_model", "deepseek-v4-flash")
+    max_evidence_per_event = int(config.ablation.get("max_evidence_per_event", 12))
+    oracle_evidence_ids_by_event = _oracle_evidence_ids_by_event(gold) if oracle_evidence else None
     run_schema_attribution(
         events=[e.model_dump() for e in events],
         evidence_rows=[e.model_dump() for e in collected],
@@ -202,7 +204,8 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
         llm_client=llm_client,
         model_name=model_name,
         output_dir=run_dir,
-        max_evidence_per_event=12,
+        max_evidence_per_event=max_evidence_per_event,
+        oracle_evidence_ids_by_event=oracle_evidence_ids_by_event,
         hide_chain_in_prompt=hide_chain_in_prompt,
         skip_chain_ranking=skip_chain_ranking,
     )
@@ -224,6 +227,37 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
 
     retrieval_metrics = evaluate_retrieval([item.model_dump() for item in gold_chains], chains)
     return verified, retrieval_metrics, verifier_metrics
+
+
+def _oracle_evidence_ids_by_event(gold: list[GoldTuple]) -> dict[str, list[str]]:
+    """Return ordered gold evidence IDs without exposing gold tuple text.
+
+    The first pass keeps one unseen evidence item per tuple where possible, so
+    truncation still covers more distinct tuple supports.
+    """
+    grouped: dict[str, list[GoldTuple]] = defaultdict(list)
+    for row in gold:
+        grouped[str(row.event_id)].append(row)
+
+    output: dict[str, list[str]] = {}
+    for event_id, rows in grouped.items():
+        seen: set[str] = set()
+        ordered: list[str] = []
+        for row in rows:
+            for evidence_id in row.evidence_ids:
+                evidence_id = str(evidence_id)
+                if evidence_id and evidence_id not in seen:
+                    seen.add(evidence_id)
+                    ordered.append(evidence_id)
+                    break
+        for row in rows:
+            for evidence_id in row.evidence_ids:
+                evidence_id = str(evidence_id)
+                if evidence_id and evidence_id not in seen:
+                    seen.add(evidence_id)
+                    ordered.append(evidence_id)
+        output[event_id] = ordered
+    return output
 
 
 def run_paper_pipeline(config_path: str | Path) -> dict:
@@ -302,6 +336,7 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
 
 ABLATION_SETTINGS = {
     "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
+    "full_oracle_evidence":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True},
     "without_graph":              {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
     "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True},
     "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False},

@@ -1,0 +1,2 @@
+Setting,Num-Gold,Num-Tuples,Tuple-F1-soft,Tuple-Precision,Tuple-Recall,Sentiment-Acc,Stakeholder-Recall,ESR,UTR
+full,188.0000,97.0000,0.3860,0.5670,0.2926,0.7091,0.3191,0.8763,0.0309

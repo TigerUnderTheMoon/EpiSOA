@@ -1,0 +1,32 @@
+{
+  "run_id": "ablation_full_oracle_evidence",
+  "timestamp": "2026-05-15T20:23:25.302578+00:00",
+  "git_commit": "702988001868fd477fdcd146703b61a48721f000",
+  "setting": "full_oracle_evidence",
+  "mode": "ablation",
+  "model": {
+    "provider": "openai_compatible",
+    "model_name": "deepseek-v4-flash",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "base_url_env": "OPENCODE_BASE_URL",
+    "temperature": 0.1,
+    "max_tokens": 8000
+  },
+  "data": {
+    "events_path": "data/pubevent_soa_lite/events.jsonl",
+    "evidence_path": "data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl",
+    "gold_tuples_path": "data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl",
+    "gold_event_chains_path": "data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl",
+    "num_events": 50,
+    "num_evidence": 1767,
+    "num_gold_tuples": 188
+  },
+  "flags": {
+    "use_graph": true,
+    "use_event_chain": true,
+    "use_verifier": true,
+    "hide_chain_in_prompt": false,
+    "skip_chain_ranking": false,
+    "oracle_evidence": true
+  }
+}
