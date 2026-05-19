@@ -1,0 +1,22 @@
+{
+  "ready_for_human_review": true,
+  "total_errors": 0,
+  "total_warnings": 0,
+  "error_counts": {},
+  "warning_counts": {},
+  "errors": [],
+  "warnings": [],
+  "counts": {
+    "tuple_rows": 188,
+    "chain_rows": 138,
+    "canonical_evidence_records": 1767,
+    "events": 50
+  },
+  "inputs": {
+    "tuple_sheet": "data\\pubevent_soa_lite\\human_gold_v1\\human_tuple_adjudication_sheet.csv",
+    "chain_sheet": "data\\pubevent_soa_lite\\human_gold_v1\\human_chain_adjudication_sheet.csv",
+    "canonical_evidence": "data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.jsonl",
+    "events": "data\\pubevent_soa_lite\\events.jsonl"
+  },
+  "audited_at": "2026-05-16T07:06:05.861935+00:00"
+}

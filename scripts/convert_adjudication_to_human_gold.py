@@ -24,12 +24,21 @@ VALID_SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "insu
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    tuple_sheet = Path(args.tuple_sheet)
+    chain_sheet = Path(args.chain_sheet)
+    output_dir = Path(args.output_dir)
+    if args.pilot:
+        if tuple_sheet == DEFAULT_OUTPUT_DIR / "human_tuple_adjudication_sheet.csv":
+            tuple_sheet = output_dir / "human_tuple_adjudication_sheet_pilot5.csv"
+        if chain_sheet == DEFAULT_OUTPUT_DIR / "human_chain_adjudication_sheet.csv":
+            chain_sheet = output_dir / "human_chain_adjudication_sheet_pilot5.csv"
     summary = convert_adjudication_to_human_gold(
-        tuple_sheet=Path(args.tuple_sheet),
-        chain_sheet=Path(args.chain_sheet),
+        tuple_sheet=tuple_sheet,
+        chain_sheet=chain_sheet,
         evidence_path=Path(args.evidence),
         events_path=Path(args.events),
-        output_dir=Path(args.output_dir),
+        output_dir=output_dir,
+        pilot=args.pilot,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
@@ -42,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--evidence", default=str(DEFAULT_EVIDENCE))
     parser.add_argument("--events", default=str(DEFAULT_EVENTS))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--pilot", action="store_true", help="Write pilot_human_gold_* outputs instead of formal human_gold_v1 outputs.")
     return parser
 
 
@@ -52,6 +62,7 @@ def convert_adjudication_to_human_gold(
     evidence_path: Path,
     events_path: Path,
     output_dir: Path,
+    pilot: bool = False,
 ) -> dict[str, Any]:
     tuple_rows = read_csv(tuple_sheet)
     chain_rows = read_csv(chain_sheet)
@@ -66,10 +77,16 @@ def convert_adjudication_to_human_gold(
     validate_unique_ids(gold_chains, id_field="chain_id", object_name="chain")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    tuples_out = output_dir / "human_gold_tuples_v1.jsonl"
-    chains_out = output_dir / "human_gold_event_chains_v1.jsonl"
-    manifest_out = output_dir / "human_gold_manifest_v1.json"
-    rejected_out = output_dir / "rejected_or_uncertain_log.csv"
+    if pilot:
+        tuples_out = output_dir / "pilot_human_gold_tuples_v1.jsonl"
+        chains_out = output_dir / "pilot_human_gold_event_chains_v1.jsonl"
+        manifest_out = output_dir / "pilot_human_gold_manifest_v1.json"
+        rejected_out = output_dir / "pilot_rejected_or_uncertain_log.csv"
+    else:
+        tuples_out = output_dir / "human_gold_tuples_v1.jsonl"
+        chains_out = output_dir / "human_gold_event_chains_v1.jsonl"
+        manifest_out = output_dir / "human_gold_manifest_v1.json"
+        rejected_out = output_dir / "rejected_or_uncertain_log.csv"
     write_jsonl(tuples_out, gold_tuples)
     write_jsonl(chains_out, gold_chains)
     write_csv(rejected_out, tuple_log + chain_log, [
@@ -79,9 +96,10 @@ def convert_adjudication_to_human_gold(
     tuple_decisions = Counter(normalize_decision(row.get("review_decision")) for row in tuple_rows)
     chain_decisions = Counter(normalize_decision(row.get("review_decision")) for row in chain_rows)
     manifest = {
-        "dataset_name": "pubevent_soa_lite_human_gold_v1",
-        "dataset_level": "human_gold",
-        "source": "human_adjudication",
+        "dataset_name": "pubevent_soa_lite_pilot_human_gold_v1" if pilot else "pubevent_soa_lite_human_gold_v1",
+        "dataset_level": "pilot_human_gold" if pilot else "human_gold",
+        "source": "pilot_human_adjudication" if pilot else "human_adjudication",
+        "pilot": pilot,
         "human_verified": True,
         "ready_for_main_experiment": False,
         "original_files_modified": False,

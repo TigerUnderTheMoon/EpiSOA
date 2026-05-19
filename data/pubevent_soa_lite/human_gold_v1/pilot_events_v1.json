@@ -1,0 +1,84 @@
+{
+  "version": "pilot_events_v1",
+  "created_at": "2026-05-16T07:33:16.885749+00:00",
+  "selection_policy": [
+    "high coverage: highest gold_evidence_in_prompt_ratio",
+    "low coverage: lowest gold_evidence_in_prompt_ratio",
+    "tuple many: highest gold_tuple_count",
+    "chain many: highest chain count in full chain adjudication sheet",
+    "model poor: lowest event-level model probe Tuple-F1-soft, prioritizing zero_pred_count"
+  ],
+  "inputs": {
+    "evidence_coverage_by_event": "outputs\\audit_full_pipeline\\evidence_coverage_by_event.csv",
+    "gold_quality_by_event": "outputs\\audit_full_pipeline\\gold_quality_by_event.csv",
+    "model_capability_probe_results": "outputs\\model_probe\\model_capability_probe_results.csv",
+    "chain_adjudication_sheet": "data\\pubevent_soa_lite\\human_gold_v1\\human_chain_adjudication_sheet.csv"
+  },
+  "events": [
+    {
+      "event_id": "E015",
+      "category": "high_coverage",
+      "reason": "highest gold evidence prompt coverage (1.0000)",
+      "metrics": {
+        "gold_evidence_in_prompt_ratio": 1.0,
+        "gold_evidence_in_chain_ratio": 0.8333,
+        "gold_tuple_count": 3,
+        "chain_count": 3,
+        "model_probe_tuple_f1_soft": null,
+        "model_probe_error_category": ""
+      }
+    },
+    {
+      "event_id": "E049",
+      "category": "low_coverage",
+      "reason": "lowest gold evidence prompt coverage (0.1250)",
+      "metrics": {
+        "gold_evidence_in_prompt_ratio": 0.125,
+        "gold_evidence_in_chain_ratio": 0.0,
+        "gold_tuple_count": 5,
+        "chain_count": 2,
+        "model_probe_tuple_f1_soft": null,
+        "model_probe_error_category": ""
+      }
+    },
+    {
+      "event_id": "E020",
+      "category": "many_tuples",
+      "reason": "largest silver tuple count (5)",
+      "metrics": {
+        "gold_evidence_in_prompt_ratio": 0.5385,
+        "gold_evidence_in_chain_ratio": 0.6923,
+        "gold_tuple_count": 5,
+        "chain_count": 3,
+        "model_probe_tuple_f1_soft": null,
+        "model_probe_error_category": ""
+      }
+    },
+    {
+      "event_id": "E050",
+      "category": "many_chains",
+      "reason": "largest chain count (3)",
+      "metrics": {
+        "gold_evidence_in_prompt_ratio": 1.0,
+        "gold_evidence_in_chain_ratio": 0.5,
+        "gold_tuple_count": 3,
+        "chain_count": 3,
+        "model_probe_tuple_f1_soft": null,
+        "model_probe_error_category": ""
+      }
+    },
+    {
+      "event_id": "E002",
+      "category": "model_probe_poor",
+      "reason": "model probe poor performance: F1=0.0000, zero_pred=1",
+      "metrics": {
+        "gold_evidence_in_prompt_ratio": 0.7143,
+        "gold_evidence_in_chain_ratio": 0.0,
+        "gold_tuple_count": 3,
+        "chain_count": 3,
+        "model_probe_tuple_f1_soft": 0.0,
+        "model_probe_error_category": "zero_prediction"
+      }
+    }
+  ]
+}
