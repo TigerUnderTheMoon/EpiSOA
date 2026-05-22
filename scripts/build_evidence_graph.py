@@ -1,4 +1,4 @@
-"""Build the Stakeholder-Event Evidence Graph from events and filtered evidence."""
+"""Build the Stakeholder-Event Evidence Graph from events and canonical evidence."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build EpiSOA Stakeholder-Event Evidence Graph.")
     parser.add_argument("--events", default="data/pubevent_soa_lite/events.jsonl")
-    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_filtered.jsonl")
+    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
     parser.add_argument("--output-dir", default="data/pubevent_soa_lite/graph")
     return parser
 

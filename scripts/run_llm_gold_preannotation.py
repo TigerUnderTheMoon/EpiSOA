@@ -12,11 +12,63 @@ from typing import Any
 
 from episoa.config import load_config
 from episoa.data.loader import read_jsonl, write_jsonl
-from episoa.llm.client import build_llm_client
+from episoa.llm.client import build_llm_client, json_schema_response_format
 
 
 SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "unclear"}
 SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
+
+TUPLE_PREANNOTATION_RESPONSE_FORMAT = json_schema_response_format(
+    "gold_tuple_preannotation_response",
+    {
+        "type": "object",
+        "properties": {
+            "event_id": {"type": "string"},
+            "tuples": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "stakeholder": {"type": "string"},
+                        "opinion": {"type": "string"},
+                        "sentiment": {"type": "string", "enum": sorted(SENTIMENTS)},
+                        "rationale": {"type": "string"},
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                        "support_label": {"type": "string", "enum": sorted(SUPPORT_LABELS)},
+                    },
+                    "required": ["stakeholder", "opinion", "sentiment", "rationale", "evidence_ids", "support_label"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["event_id", "tuples"],
+        "additionalProperties": False,
+    },
+)
+
+CHAIN_PREANNOTATION_RESPONSE_FORMAT = json_schema_response_format(
+    "gold_chain_preannotation_response",
+    {
+        "type": "object",
+        "properties": {
+            "event_id": {"type": "string"},
+            "event_chains": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "event_chain": {"type": "array", "items": {"type": "string"}},
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["event_chain", "evidence_ids"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["event_id", "event_chains"],
+        "additionalProperties": False,
+    },
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,7 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run LLM preannotation for PubEvent-SOA gold review.")
     parser.add_argument("--config", default="configs/paper.yaml")
     parser.add_argument("--events", default="data/pubevent_soa_lite/events.jsonl")
-    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence.jsonl")
+    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
     parser.add_argument("--output-dir", default="data/pubevent_soa_lite/annotation")
     parser.add_argument("--tuple-prompt", default="prompts/gold_tuple_preannotation.md")
     parser.add_argument("--chain-prompt", default="prompts/gold_chain_preannotation.md")
@@ -148,6 +200,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                 client,
                 system_prompt="You are a careful PubEvent-SOA gold annotation assistant. Return JSON only.",
                 user_prompt=prompt,
+                response_format=response_format_for_task(task),
                 max_attempts=max(1, int(args.max_retries) + 1),
             )
             raw_path = raw_response_path(raw_dir, event_id, task)
@@ -431,6 +484,7 @@ def call_with_retries(
     *,
     system_prompt: str,
     user_prompt: str,
+    response_format: dict[str, Any],
     max_attempts: int,
 ) -> tuple[Any | None, str]:
     last_error = ""
@@ -440,7 +494,7 @@ def call_with_retries(
                 client.chat(
                     system_prompt=system_prompt,
                     user_prompt=user_prompt,
-                    response_format={"type": "json_object"},
+                    response_format=response_format,
                 ),
                 "",
             )
@@ -449,6 +503,10 @@ def call_with_retries(
             if attempt + 1 < max_attempts:
                 time.sleep(min(2, attempt + 1))
     return None, last_error
+
+
+def response_format_for_task(task: str) -> dict[str, Any]:
+    return TUPLE_PREANNOTATION_RESPONSE_FORMAT if task == "tuple" else CHAIN_PREANNOTATION_RESPONSE_FORMAT
 
 
 def classify_error(message: str) -> str:

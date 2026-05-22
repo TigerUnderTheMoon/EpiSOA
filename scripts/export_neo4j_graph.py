@@ -22,6 +22,11 @@ NODE_LABELS = {
     "domain": "Domain",
     "stakeholder_candidate": "StakeholderCandidate",
     "temporal_stage_candidate": "TemporalStageCandidate",
+    "event_stage": "EventStage",
+    "stakeholder": "Stakeholder",
+    "opinion": "Opinion",
+    "sentiment": "Sentiment",
+    "evidence_span": "EvidenceSpan",
 }
 
 NODE_FIELDS = [
@@ -57,6 +62,13 @@ RELATIONSHIP_TYPES = {
     "mentions_stakeholder": "MENTIONS_STAKEHOLDER",
     "indicates_stage": "INDICATES_STAGE",
     "involves_stakeholder": "INVOLVES_STAKEHOLDER",
+    "has_stage": "HAS_STAGE",
+    "has_stakeholder": "HAS_STAKEHOLDER",
+    "expresses": "EXPRESSES",
+    "has_sentiment": "HAS_SENTIMENT",
+    "supported_by": "SUPPORTED_BY",
+    "occurs_at_stage": "OCCURS_AT_STAGE",
+    "quotes_evidence": "QUOTES_EVIDENCE",
 }
 
 

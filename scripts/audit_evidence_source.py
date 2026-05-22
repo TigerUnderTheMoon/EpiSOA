@@ -11,7 +11,7 @@ from typing import Any
 from episoa.data.loader import read_jsonl
 
 
-DEFAULT_INPUT = Path("data/pubevent_soa_lite/evidence_filtered.jsonl")
+DEFAULT_INPUT = Path("data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
 DEFAULT_OUTPUT = Path("data/pubevent_soa_lite/interim/source_type_audit.json")
 
 VALID_SOURCE_TYPES = {"official", "mainstream_news", "social_media", "forum", "public_interaction", "public_web"}

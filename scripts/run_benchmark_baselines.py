@@ -220,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.baseline == "rule":
         run_label = "rule_baseline"
     else:
-        model_name = args.model_name or cfg.model.get("model_name", "deepseek-v4-flash")
+        model_name = args.model_name or cfg.model.get("model_name", "gpt-5.5")
         run_label = f"direct_llm_{model_name}"
 
     output_dir = Path(args.output_dir) if args.output_dir else Path(f"outputs/benchmark_runs/{run_label}")
@@ -270,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {k}: {v}")
 
     else:  # direct_llm
-        model_name = args.model_name or cfg.model.get("model_name", "deepseek-v4-flash")
+        model_name = args.model_name or cfg.model.get("model_name", "gpt-5.5")
         client = build_llm_client(cfg.model)
         runner_map = {
             "tuple_identification": run_tuple_identification,

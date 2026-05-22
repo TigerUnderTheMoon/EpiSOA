@@ -1,4 +1,4 @@
-"""Retrieve candidate event chains from filtered evidence."""
+"""Retrieve candidate event chains from canonical evidence."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Retrieve candidate EpiSOA event chains.")
     parser.add_argument("--events", default="data/pubevent_soa_lite/events.jsonl")
-    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_filtered.jsonl")
+    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
     parser.add_argument("--graph-dir", default="data/pubevent_soa_lite/graph")
     parser.add_argument("--output-dir", default="outputs/runs/event_chain_retrieval")
     parser.add_argument("--top-k-per-stage", type=int, default=3)

@@ -48,7 +48,7 @@ class OpenAICompatibleClient:
         *,
         system_prompt: str,
         user_prompt: str,
-        response_format: dict[str, str] | None = None,
+        response_format: dict[str, Any] | None = None,
     ) -> LLMResponse:
         url = f"{self.base_url}/chat/completions"
         payload = {
@@ -98,7 +98,7 @@ def build_llm_client(model_config: dict[str, Any]) -> OpenAICompatibleClient:
         model_config.get("model_name")
         or model_config.get("llm_model")
         or model_config.get("model")
-        or "gpt-4o-mini"
+        or "gpt-5.5"
     )
     return OpenAICompatibleClient(
         api_key=resolved["api_key"],
@@ -111,6 +111,17 @@ def build_llm_client(model_config: dict[str, Any]) -> OpenAICompatibleClient:
     )
 
 
+def json_schema_response_format(name: str, schema: dict[str, Any], *, strict: bool = True) -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": name,
+            "strict": strict,
+            "schema": schema,
+        },
+    }
+
+
 def _looks_like_response_format_error(exc: Exception) -> bool:
     text = str(exc).lower()
-    return "response_format" in text or "json_object" in text or "unsupported" in text
+    return "response_format" in text or "json_object" in text or "json_schema" in text or "unsupported" in text

@@ -22,7 +22,7 @@ from typing import Any
 
 from episoa.config import load_config
 from episoa.data.loader import read_jsonl, write_jsonl
-from episoa.llm.client import build_llm_client
+from episoa.llm.client import build_llm_client, json_schema_response_format
 
 BASE_DIR = Path("data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37")
 EVIDENCE_PATH = Path("data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
@@ -30,6 +30,56 @@ EVENTS_PATH = Path("data/pubevent_soa_lite/events.jsonl")
 
 VALID_SENTIMENTS = {"positive", "negative", "neutral", "mixed"}
 VALID_SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "unclear"}
+
+TUPLE_EXPANSION_RESPONSE_FORMAT = json_schema_response_format(
+    "gold_tuple_expansion_response",
+    {
+        "type": "object",
+        "properties": {
+            "tuples": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "stakeholder": {"type": "string"},
+                        "opinion": {"type": "string"},
+                        "sentiment": {"type": "string", "enum": sorted(VALID_SENTIMENTS)},
+                        "rationale": {"type": "string"},
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                        "support_label": {"type": "string", "enum": sorted(VALID_SUPPORT_LABELS)},
+                    },
+                    "required": ["stakeholder", "opinion", "sentiment", "rationale", "evidence_ids", "support_label"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["tuples"],
+        "additionalProperties": False,
+    },
+)
+
+CHAIN_EXPANSION_RESPONSE_FORMAT = json_schema_response_format(
+    "gold_chain_expansion_response",
+    {
+        "type": "object",
+        "properties": {
+            "event_chains": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "event_chain": {"type": "array", "items": {"type": "string"}},
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["event_chain", "evidence_ids"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["event_chains"],
+        "additionalProperties": False,
+    },
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -254,7 +304,7 @@ def _call_llm_and_parse(
         resp = client.chat(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            response_format={"type": "json_object"},
+            response_format=response_format_for_task(task),
         )
         content = resp.content or ""
     except Exception as exc:
@@ -322,6 +372,10 @@ def _call_llm_and_parse(
                 "evidence_ids": ids,
             })
     return parsed, ""
+
+
+def response_format_for_task(task: str) -> dict[str, Any]:
+    return TUPLE_EXPANSION_RESPONSE_FORMAT if task == "tuple" else CHAIN_EXPANSION_RESPONSE_FORMAT
 
 
 def _expand_tuples_llm(

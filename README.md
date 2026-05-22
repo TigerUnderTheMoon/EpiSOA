@@ -167,9 +167,9 @@ Example model configuration:
 model:
   mode: real
   llm_mode: real
-  llm_model: gpt-4o-mini
+  llm_model: gpt-5.5
   api_key_env: OPENAI_API_KEY
-  base_url: "https://your-llm-api-base-url/v1"
+  base_url: "https://api.openai.com/v1"
   timeout_seconds: 60
   max_retries: 2
   temperature: 0

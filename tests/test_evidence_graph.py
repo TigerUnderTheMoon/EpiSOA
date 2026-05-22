@@ -1,4 +1,5 @@
 from episoa.graph.evidence_graph import (
+    build_event_soa_graph,
     build_stakeholder_event_evidence_graph,
     extract_stakeholder_candidates,
     infer_temporal_stage_candidates,
@@ -81,3 +82,30 @@ def test_build_evidence_graph_from_small_sample():
     assert "stage_distribution" in graph.summary
     assert not graph.summary["events_without_stakeholder"]
     assert not graph.summary["events_without_stage"]
+
+
+def test_build_event_soa_graph_adds_tuple_structure():
+    events = [{"event_id": "E1", "event_name": "event", "stakeholder_hints": ["Residents"], "stance_hints": ["complain"]}]
+    evidence = [{"event_id": "E1", "evidence_id": "ev1", "source": "news", "text": "Residents complain"}]
+    tuples = [
+        {
+            "event_id": "E1",
+            "tuple_id": "E1_SOA_001",
+            "stakeholder": "Residents",
+            "opinion": "complain about safety",
+            "sentiment": "negative",
+            "rationale": "Residents complain",
+            "evidence_ids": ["ev1"],
+            "event_chain_stage": "conflict",
+            "evidence_spans": [{"evidence_id": "ev1", "char_start": 0, "char_end": 19, "text": "Residents complain"}],
+        }
+    ]
+
+    graph = build_event_soa_graph(events, evidence, tuples)
+    node_types = {item["node_type"] for item in graph.node_records()}
+    edge_types = {item["edge_type"] for item in graph.edge_records()}
+
+    assert {"event_stage", "stakeholder", "opinion", "sentiment", "evidence_span"} <= node_types
+    assert {"has_stage", "has_stakeholder", "expresses", "supported_by", "occurs_at_stage", "quotes_evidence"} <= edge_types
+    assert graph.summary["graph_type"] == "event_soa_graph"
+    assert graph.summary["num_opinions"] == 1

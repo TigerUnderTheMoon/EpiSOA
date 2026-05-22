@@ -97,8 +97,16 @@ def test_build_pilot_sheets_filters_without_modifying_full_sheets(tmp_path):
     pilot_events.write_text(json.dumps({"events": [{"event_id": f"E{i}"} for i in range(1, 6)]}), encoding="utf-8")
     tuple_sheet = output_dir / "human_tuple_adjudication_sheet.csv"
     chain_sheet = output_dir / "human_chain_adjudication_sheet.csv"
-    write_csv(tuple_sheet, [{"event_id": "E1", "tuple_id": "T1"}, {"event_id": "E6", "tuple_id": "T6"}])
-    write_csv(chain_sheet, [{"event_id": "E1", "chain_id": "C1"}, {"event_id": "E6", "chain_id": "C6"}])
+    write_csv(tuple_sheet, [
+        {"event_id": "E1", "tuple_id": "T1", "adjudication_priority_score": "0.100", "priority_bucket": "low", "priority_reason": "low_risk"},
+        {"event_id": "E2", "tuple_id": "T2", "adjudication_priority_score": "0.900", "priority_bucket": "high", "priority_reason": "few_evidence"},
+        {"event_id": "E6", "tuple_id": "T6", "adjudication_priority_score": "1.000", "priority_bucket": "high", "priority_reason": "few_evidence"},
+    ])
+    write_csv(chain_sheet, [
+        {"event_id": "E1", "chain_id": "C1", "adjudication_priority_score": "0.100", "priority_bucket": "low", "priority_reason": "low_risk"},
+        {"event_id": "E2", "chain_id": "C2", "adjudication_priority_score": "0.800", "priority_bucket": "high", "priority_reason": "short_chain"},
+        {"event_id": "E6", "chain_id": "C6", "adjudication_priority_score": "1.000", "priority_bucket": "high", "priority_reason": "short_chain"},
+    ])
     before = {tuple_sheet: digest(tuple_sheet), chain_sheet: digest(chain_sheet)}
 
     subprocess.run(
@@ -121,7 +129,12 @@ def test_build_pilot_sheets_filters_without_modifying_full_sheets(tmp_path):
     )
 
     assert before == {path: digest(path) for path in before}
-    assert "T1" in (output_dir / "human_tuple_adjudication_sheet_pilot5.csv").read_text(encoding="utf-8-sig")
+    with (output_dir / "human_tuple_adjudication_sheet_pilot5.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+        pilot_tuple_rows = list(csv.DictReader(handle))
+    with (output_dir / "human_chain_adjudication_sheet_pilot5.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+        pilot_chain_rows = list(csv.DictReader(handle))
+    assert [row["tuple_id"] for row in pilot_tuple_rows] == ["T2", "T1"]
+    assert [row["chain_id"] for row in pilot_chain_rows] == ["C2", "C1"]
     assert "T6" not in (output_dir / "human_tuple_adjudication_sheet_pilot5.csv").read_text(encoding="utf-8-sig")
 
 

@@ -9,6 +9,33 @@ import json
 import time
 from pathlib import Path
 
+from episoa.llm.client import json_schema_response_format
+
+
+LLM_JUDGE_RESPONSE_FORMAT = json_schema_response_format(
+    "benchmark_tuple_judge_response",
+    {
+        "type": "object",
+        "properties": {
+            "matches": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "pred_index": {"type": "integer"},
+                        "gold_index": {"type": "integer"},
+                        "match": {"type": "boolean"},
+                        "reason": {"type": "string"},
+                    },
+                    "required": ["pred_index", "gold_index", "match", "reason"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["matches"],
+        "additionalProperties": False,
+    },
+)
 
 def _char_overlap(a: str, b: str) -> float:
     """Character-level Jaccard similarity between two strings."""
@@ -122,6 +149,7 @@ def eval_tuple_identification_llm_judge(
             resp = llm_client.chat(
                 system_prompt=judge_system,
                 user_prompt=user_prompt,
+                response_format=LLM_JUDGE_RESPONSE_FORMAT,
             )
             content = resp.content.strip()
             # Extract JSON

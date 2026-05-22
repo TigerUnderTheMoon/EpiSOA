@@ -18,6 +18,12 @@ DEFAULT_HUMAN_DIR = Path("data/pubevent_soa_lite/human_gold_v1")
 DEFAULT_EVIDENCE = Path("data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
 DEFAULT_EVENTS = Path("data/pubevent_soa_lite/events.jsonl")
 DEFAULT_OUTPUT_DIR = Path("outputs/audit_full_pipeline")
+PRIORITY_FIELDS = [
+    "adjudication_priority_score",
+    "priority_bucket",
+    "priority_reason",
+]
+VALID_PRIORITY_BUCKETS = {"high", "medium", "low"}
 
 REQUIRED_TUPLE_FIELDS = [
     "event_id",
@@ -30,6 +36,7 @@ REQUIRED_TUPLE_FIELDS = [
     "evidence_ids",
     "evidence_texts",
     "evidence_source_types",
+    *PRIORITY_FIELDS,
     "review_decision",
     "revised_stakeholder",
     "revised_opinion",
@@ -47,6 +54,7 @@ REQUIRED_CHAIN_FIELDS = [
     "evidence_ids",
     "evidence_texts",
     "evidence_source_types",
+    *PRIORITY_FIELDS,
     "review_decision",
     "revised_event_chain",
     "revised_evidence_ids",
@@ -150,6 +158,7 @@ def audit_tuple_rows(
             errors.append(item("tuple_id_unique", row_id, f"duplicate tuple_id {tuple_id}"))
         seen_tuple_ids.add(tuple_id)
         check_default_uncertain("tuple", row, row_id, errors)
+        check_priority_fields("tuple", row, row_id, errors)
         for field in ("stakeholder", "opinion", "sentiment"):
             if not str(row.get(field) or "").strip():
                 errors.append(item(f"tuple_{field}_nonempty", row_id, f"{field} is empty"))
@@ -176,6 +185,7 @@ def audit_chain_rows(
             errors.append(item("chain_id_unique", row_id, f"duplicate chain_id {chain_id}"))
         seen_chain_ids.add(chain_id)
         check_default_uncertain("chain", row, row_id, errors)
+        check_priority_fields("chain", row, row_id, errors)
         if not str(row.get("event_chain") or "").strip():
             errors.append(item("chain_event_chain_nonempty", row_id, "event_chain is empty"))
         audit_evidence_cells("chain", row, row_id, event_id, evidence_by_id, errors, warnings)
@@ -212,6 +222,22 @@ def check_default_uncertain(record_type: str, row: dict[str, str], row_id: str, 
         errors.append(item(f"{record_type}_review_decision_valid", row_id, f"invalid review_decision {decision}"))
     if decision != "uncertain":
         errors.append(item(f"{record_type}_review_decision_default_uncertain", row_id, f"review_decision is {decision}"))
+
+
+def check_priority_fields(record_type: str, row: dict[str, str], row_id: str, errors: list[dict[str, Any]]) -> None:
+    score_text = str(row.get("adjudication_priority_score") or "").strip()
+    try:
+        score = float(score_text)
+    except ValueError:
+        errors.append(item(f"{record_type}_priority_score_valid", row_id, f"invalid priority score {score_text}"))
+    else:
+        if not 0.0 <= score <= 1.0:
+            errors.append(item(f"{record_type}_priority_score_valid", row_id, f"priority score out of range {score_text}"))
+    bucket = str(row.get("priority_bucket") or "").strip()
+    if bucket not in VALID_PRIORITY_BUCKETS:
+        errors.append(item(f"{record_type}_priority_bucket_valid", row_id, f"invalid priority_bucket {bucket}"))
+    if not str(row.get("priority_reason") or "").strip():
+        errors.append(item(f"{record_type}_priority_reason_nonempty", row_id, "priority_reason is empty"))
 
 
 def check_required_fields(record_type: str, fields: list[str], required: list[str], errors: list[dict[str, Any]]) -> None:

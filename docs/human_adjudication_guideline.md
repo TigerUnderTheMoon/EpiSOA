@@ -45,6 +45,25 @@ Valid chains should:
 
 `uncertain`: Reviewer cannot decide confidently. This is the default pre-review value and never enters `human_gold_v1`.
 
+## Priority Fields
+
+`adjudication_priority_score`, `priority_bucket`, and `priority_reason` are lightweight uncertainty-driven review aids.
+
+They only control review ordering and risk explanation. They do not automatically accept, reject, revise, or drop any record, and they do not change the `human_gold_v1` conversion rules.
+
+Review high-priority rows first. Typical `priority_reason` values include:
+
+- `weak_support_label`: the silver support label is not fully supported.
+- `few_evidence`: the candidate uses too few evidence records.
+- `single_source_type`: the candidate is supported by only one source type.
+- `no_chain_evidence_overlap`: tuple evidence does not overlap with same-event chain evidence.
+- `short_candidate_text`: tuple fields are too short to be confidently interpreted.
+- `short_chain`: the event chain has too few nodes.
+- `missing_response_or_resolution_signal`: the chain lacks response or resolution cues.
+- `short_evidence_text`: the chain is backed by too little evidence text.
+
+Low priority does not mean safe to skip. Full adjudication still requires human decisions for every row.
+
 ## Evidence Support
 
 Evidence support is strong when the evidence explicitly contains the stakeholder and the opinion/action/stance, or clearly supports them through a direct factual statement.

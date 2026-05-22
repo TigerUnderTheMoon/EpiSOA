@@ -105,9 +105,9 @@ def test_no_json_object_is_reported():
     assert parsed.parse_error == "no JSON object found"
 
 
-def test_output_over_four_tuples_keeps_first_four_and_truncates_long_text():
+def test_output_over_eight_tuples_keeps_first_eight_and_truncates_long_text():
     rows = []
-    for idx in range(6):
+    for idx in range(10):
         rows.append(
             {
                 "stakeholder": f"主体{idx}",
@@ -124,7 +124,7 @@ def test_output_over_four_tuples_keeps_first_four_and_truncates_long_text():
 
     parsed = parse_response(raw, event_id="E012", allowed_evidence_ids={"ev-1"}, model_name="fake")
 
-    assert len(parsed.tuples) == 4
+    assert len(parsed.tuples) == 8
     assert len(parsed.tuples[0]["opinion"]) <= MAX_OPINION_CHARS
     assert len(parsed.tuples[0]["rationale"]) <= MAX_RATIONALE_CHARS
     assert parsed.tuples[0]["confidence"] == 1.0

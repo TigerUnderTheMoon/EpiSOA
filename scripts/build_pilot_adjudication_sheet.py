@@ -47,8 +47,8 @@ def build_pilot_sheets(
     event_ids = read_pilot_event_ids(pilot_events_path)
     tuple_rows, tuple_fields = read_csv_with_fields(tuple_sheet)
     chain_rows, chain_fields = read_csv_with_fields(chain_sheet)
-    pilot_tuples = [row for row in tuple_rows if row.get("event_id") in event_ids]
-    pilot_chains = [row for row in chain_rows if row.get("event_id") in event_ids]
+    pilot_tuples = sort_priority_rows([row for row in tuple_rows if row.get("event_id") in event_ids], id_field="tuple_id")
+    pilot_chains = sort_priority_rows([row for row in chain_rows if row.get("event_id") in event_ids], id_field="chain_id")
     output_dir.mkdir(parents=True, exist_ok=True)
     tuple_out = output_dir / "human_tuple_adjudication_sheet_pilot5.csv"
     chain_out = output_dir / "human_chain_adjudication_sheet_pilot5.csv"
@@ -91,6 +91,24 @@ def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> 
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def sort_priority_rows(rows: list[dict[str, str]], *, id_field: str) -> list[dict[str, str]]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            -safe_float(row.get("adjudication_priority_score")),
+            str(row.get("event_id") or ""),
+            str(row.get(id_field) or ""),
+        ),
+    )
+
+
+def safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def backup_existing(path: Path) -> None:

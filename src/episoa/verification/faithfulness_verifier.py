@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from episoa.data.loader import write_jsonl
+from episoa.llm.client import json_schema_response_format
 
 
 VERIFIER_PROMPT_VERSION = "faithfulness_verification_v1_json"
@@ -28,6 +29,44 @@ ALLOWED_ISSUE_FLAGS = {
     "official_action_should_be_neutral",
     "media_comment_should_be_neutral",
     "no_issue",
+}
+VERIFIER_RESPONSE_FORMAT = json_schema_response_format(
+    "faithfulness_verification_response",
+    {
+        "type": "object",
+        "properties": {
+            "tuple_id": {"type": "string"},
+            "event_id": {"type": "string"},
+            "verification_label": {"type": "string", "enum": sorted(ALLOWED_LABELS)},
+            "verification_score": {"type": "number", "minimum": 0, "maximum": 1},
+            "verification_rationale": {"type": "string"},
+            "supported_claims": {"type": "array", "items": {"type": "string"}},
+            "unsupported_claims": {"type": "array", "items": {"type": "string"}},
+            "evidence_quotes": {"type": "array", "items": {"type": "string"}},
+            "issue_flags": {"type": "array", "items": {"type": "string", "enum": sorted(ALLOWED_ISSUE_FLAGS)}},
+        },
+        "required": [
+            "tuple_id",
+            "event_id",
+            "verification_label",
+            "verification_score",
+            "verification_rationale",
+            "supported_claims",
+            "unsupported_claims",
+            "evidence_quotes",
+            "issue_flags",
+        ],
+        "additionalProperties": False,
+    },
+)
+DIAGNOSIS_FIELDS = {
+    "stakeholder_support",
+    "opinion_support",
+    "sentiment_support",
+    "rationale_support",
+    "evidence_same_event",
+    "temporal_stage_consistency",
+    "over_inference",
 }
 POSITIVE_ATTITUDE_TERMS = ["支持", "点赞", "满意", "认可", "感谢", "欢迎", "肯定", "赞扬", "好事", "益处", "有益"]
 INFERENTIAL_ATTITUDE_TERMS = ["抵触", "强烈反对", "质疑", "认可", "满意", "支持", "赞扬"]
@@ -223,7 +262,7 @@ class FaithfulnessVerifier:
         response = self.llm_client.chat(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            response_format={"type": "json_object"},
+            response_format=VERIFIER_RESPONSE_FORMAT,
         )
         request_summary["api_calls_made"] = 1
         parsed = parse_verifier_response(
@@ -376,6 +415,7 @@ def parse_verifier_response(
         return VerificationParseResult(None, False, f"invalid verification_label: {label}")
     score = clamp_float(payload.get("verification_score", 0.0))
     flags = normalize_issue_flags(list(payload.get("issue_flags", []) or []) + list(precheck_flags or []))
+    diagnosis = normalize_verification_diagnosis(payload, flags=flags, score=score)
     row = verified_tuple_row(
         candidate=candidate,
         verification_label=label,
@@ -385,6 +425,7 @@ def parse_verifier_response(
         unsupported_claims=normalize_string_list(payload.get("unsupported_claims", []), max_items=8, max_chars=120),
         evidence_quotes=normalize_string_list(payload.get("evidence_quotes", []), max_items=6, max_chars=160),
         issue_flags=flags,
+        verification_diagnosis=diagnosis,
         model_name=model_name,
         verifier_prompt_version=verifier_prompt_version,
         raw_response_id=raw_response_id,
@@ -428,6 +469,43 @@ def rule_precheck(
     if known_stages and stage and stage not in known_stages and stage != "unknown":
         flags.append("stage_mismatch")
     return normalize_issue_flags(flags)
+
+
+def normalize_verification_diagnosis(payload: dict[str, Any], *, flags: list[str], score: float) -> dict[str, Any]:
+    diagnosis: dict[str, Any] = {}
+    for field in DIAGNOSIS_FIELDS:
+        if field in payload:
+            diagnosis[field] = normalize_diagnosis_value(payload.get(field))
+    diagnosis.setdefault("stakeholder_support", "stakeholder_not_supported" not in flags)
+    diagnosis.setdefault("opinion_support", "partial" if "opinion_overgeneralized" in flags else support_level(score))
+    diagnosis.setdefault("sentiment_support", "sentiment_not_supported" not in flags)
+    diagnosis.setdefault("rationale_support", "rationale_not_supported" not in flags)
+    diagnosis.setdefault("evidence_same_event", "missing_evidence" not in flags)
+    diagnosis.setdefault("temporal_stage_consistency", "stage_mismatch" not in flags)
+    diagnosis.setdefault("over_inference", any(flag in flags for flag in ("opinion_overgeneralized", "rationale_not_supported")))
+    diagnosis["support_score"] = clamp_float(score)
+    return diagnosis
+
+
+def normalize_diagnosis_value(value: Any) -> Any:
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip()
+    if text in {"supported", "partial", "unsupported", "unclear"}:
+        return text
+    if text.lower() in {"true", "yes"}:
+        return True
+    if text.lower() in {"false", "no"}:
+        return False
+    return text if text else "unclear"
+
+
+def support_level(score: float) -> str:
+    if score >= 0.75:
+        return "supported"
+    if score >= 0.4:
+        return "partial"
+    return "unsupported"
 
 
 def resolve_candidate_evidence(
@@ -508,6 +586,7 @@ def verified_tuple_row(
     unsupported_claims: list[str],
     evidence_quotes: list[str],
     issue_flags: list[str],
+    verification_diagnosis: dict[str, Any] | None = None,
     model_name: str,
     verifier_prompt_version: str,
     raw_response_id: str,
@@ -529,6 +608,8 @@ def verified_tuple_row(
         "unsupported_claims": unsupported_claims,
         "evidence_quotes": evidence_quotes,
         "issue_flags": normalize_issue_flags(issue_flags),
+        "verification_diagnosis": verification_diagnosis
+        or normalize_verification_diagnosis({}, flags=issue_flags, score=verification_score),
         "model_name": model_name,
         "verifier_prompt_version": verifier_prompt_version,
         "raw_response_id": raw_response_id,
@@ -555,6 +636,7 @@ def fallback_verification_row(
         unsupported_claims=[rationale] if rationale else [],
         evidence_quotes=[],
         issue_flags=issue_flags,
+        verification_diagnosis=normalize_verification_diagnosis({}, flags=issue_flags, score=score),
         model_name=model_name,
         verifier_prompt_version=VERIFIER_PROMPT_VERSION,
         raw_response_id=raw_response_id,
@@ -574,6 +656,12 @@ def build_summary(
 ) -> dict[str, Any]:
     label_counts = Counter(row.get("verification_label", "unclear") for row in verified)
     flag_counts = Counter(flag for row in verified for flag in row.get("issue_flags", []))
+    diagnosis_counts = Counter(
+        key
+        for row in verified
+        for key, value in (row.get("verification_diagnosis") or {}).items()
+        if value is False or value == "unsupported"
+    )
     scores = [float(row.get("verification_score", 0) or 0) for row in verified]
     total = len(verified) or 1
     return {
@@ -585,6 +673,7 @@ def build_summary(
         "missing_evidence_tuples": missing_evidence_tuples,
         "label_distribution": dict(label_counts),
         "issue_flag_distribution": dict(flag_counts),
+        "diagnosis_failure_distribution": dict(diagnosis_counts),
         "avg_verification_score": round(sum(scores) / len(scores), 4) if scores else 0.0,
         "supported_rate": round(label_counts.get("supported", 0) / total, 4),
         "partially_supported_rate": round(label_counts.get("partially_supported", 0) / total, 4),
@@ -613,6 +702,7 @@ def write_verifier_table(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "verification_score",
         "verification_rationale",
         "issue_flags",
+        "verification_diagnosis",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
@@ -621,6 +711,7 @@ def write_verifier_table(path: str | Path, rows: list[dict[str, Any]]) -> None:
             flat = dict(row)
             flat["evidence_ids"] = "|".join(str(item) for item in row.get("evidence_ids", []))
             flat["issue_flags"] = "|".join(str(item) for item in row.get("issue_flags", []))
+            flat["verification_diagnosis"] = json.dumps(row.get("verification_diagnosis", {}), ensure_ascii=False)
             writer.writerow(flat)
 
 

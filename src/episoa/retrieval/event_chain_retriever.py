@@ -224,7 +224,7 @@ class EventChainRetriever:
             "num_evidence_considered": len(related),
             "num_evidence_passed_relevance": passed_relevance,
             "num_evidence_passing_relevance": passed_relevance,
-            "num_evidence_filtered_by_relevance": len(related) - passed_relevance,
+            "num_evidence_excluded_by_relevance": len(related) - passed_relevance,
             "avg_event_relevance": round(sum(relevance_scores) / len(relevance_scores), 4) if relevance_scores else 0.0,
             "generic_penalty_count": generic_penalty_count,
             "deduplicated_evidence_count": duplicate_assignments_removed,

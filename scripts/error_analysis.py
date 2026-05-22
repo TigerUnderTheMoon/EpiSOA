@@ -228,7 +228,7 @@ def analyze_chain_construction(run_dir: str) -> dict:
 def main() -> int:
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--run-dir", default="outputs/benchmark_runs/pubevent-soa-lite-paper_deepseek-v4-flash")
+    parser.add_argument("--run-dir", default="outputs/benchmark_runs/pubevent-soa-lite-paper_gpt-5.5")
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
 

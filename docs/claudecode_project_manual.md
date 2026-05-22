@@ -67,7 +67,7 @@ python scripts/reset_workspace.py
 不得使用下面文件做 gold audit：
 
 ```text
-data/pubevent_soa_lite/evidence_filtered.jsonl
+legacy filtered-evidence export
 ```
 
 原因：当前 gold tuples 和 gold chains 引用的是 repaired evidence namespace，即：
@@ -752,7 +752,7 @@ data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
 不要替换为：
 
 ```text
-data/pubevent_soa_lite/evidence_filtered.jsonl
+legacy filtered-evidence export
 ```
 
 ### 5.3 Gold tuple 文件
@@ -950,7 +950,7 @@ Figure 4 Case study event-chain visualization
 可以直接复制给 Claude Code：
 
 ```text
-你正在接手 EpiSOA 论文项目。不要重置 workspace，不要使用 evidence_filtered.jsonl，不要重跑全量采集。当前 canonical evidence 是 data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl；当前 gold 目录是 data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/；当前 benchmark 目录是 data/benchmark/pubevent_soa_lite_v3_repaired_plus_low37_gold/。
+你正在接手 EpiSOA 论文项目。不要重置 workspace，不要使用 legacy filtered-evidence export，不要重跑全量采集。当前 canonical evidence 是 data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl；当前 gold 目录是 data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/；当前 benchmark 目录是 data/benchmark/pubevent_soa_lite_v3_repaired_plus_low37_gold/。
 
 项目已经完成 50 events、1767 evidence、188 gold tuples、138 gold chains；gold audit 0 issue 且 ready_for_final_gold=true；benchmark 三个任务已构建：tuple_identification 50 rows、evidence_support_classification 736 rows、chain_construction 50 rows，train/dev/test=40/5/5 且无重叠。
 

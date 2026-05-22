@@ -129,7 +129,7 @@ def main():
     parser.add_argument("--events", nargs="+", default=["E001", "E003", "E018"],
                         help="Event IDs for case studies")
     parser.add_argument("--output", default="outputs/paper_tables/case_studies.md")
-    parser.add_argument("--run-dir", default="outputs/benchmark_runs/pubevent-soa-lite-paper_deepseek-v4-flash")
+    parser.add_argument("--run-dir", default="outputs/benchmark_runs/pubevent-soa-lite-paper_gpt-5.5")
     args = parser.parse_args()
 
     events = load_jsonl("data/pubevent_soa_lite/events.jsonl")

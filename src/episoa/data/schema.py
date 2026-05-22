@@ -81,6 +81,12 @@ class GoldTuple(BaseModel):
     rationale: str = Field(..., min_length=1)
     evidence_ids: list[str] = Field(..., min_length=1)
     support_label: SupportLabel
+    event_chain_stage: str | None = None
+    evidence_spans: list[dict[str, Any]] | None = None
+    stage_id: str | None = None
+    stakeholder_id: str | None = None
+    opinion_id: str | None = None
+    annotation_provenance: dict[str, Any] | None = None
 
 
 class GoldEventChain(BaseModel):
@@ -99,3 +105,5 @@ class GoldEventChain(BaseModel):
 class PredictionTuple(GoldTuple):
     support_score: float = 0.0
     verified: bool = False
+    selection_diagnostics: dict[str, Any] | None = None
+    verification_diagnosis: dict[str, Any] | None = None

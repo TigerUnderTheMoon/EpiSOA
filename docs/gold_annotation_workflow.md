@@ -5,8 +5,8 @@ All scripts support `--max-events` to limit scope for rehearsal runs.
 
 **IMPORTANT**: The canonical evidence namespace for gold annotation is
 `data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl`.
-Do NOT use `evidence_filtered.jsonl` to audit gold annotation — gold tuples
-and chains reference evidence_ids from the repaired evidence namespace.
+Do not use legacy filtered-evidence exports to audit gold annotation — gold
+tuples and chains reference evidence_ids from the repaired evidence namespace.
 
 ## Silver to Human Gold v1 Upgrade
 

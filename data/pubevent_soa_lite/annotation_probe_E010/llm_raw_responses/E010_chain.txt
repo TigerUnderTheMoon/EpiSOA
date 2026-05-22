@@ -1,4 +1,0 @@
-{
-  "event_id": "E010",
-  "event_chains": []
-}

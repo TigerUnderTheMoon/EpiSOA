@@ -12,7 +12,6 @@ DATA_DIR = Path("data/pubevent_soa_lite")
 CANONICAL_ANNOTATION_DIR = DATA_DIR / "annotation_full_v3_repaired_plus_low37"
 REQUIRED_FILES = {
     "events": DATA_DIR / "events.jsonl",
-    "raw_posts": DATA_DIR / "raw" / "raw_posts.jsonl",
     "evidence": DATA_DIR / "evidence_v3_repaired_plus_low37.jsonl",
     "gold_tuples": CANONICAL_ANNOTATION_DIR / "llm_gold_tuples.jsonl",
     "gold_event_chains": CANONICAL_ANNOTATION_DIR / "llm_gold_event_chains.jsonl",
@@ -28,7 +27,6 @@ def validate_paper_data(data_dir: str | Path = DATA_DIR, outputs_dir: str | Path
     outputs_dir = Path(outputs_dir)
     paths = {
         "events": data_dir / "events.jsonl",
-        "raw_posts": data_dir / "raw" / "raw_posts.jsonl",
         "evidence": data_dir / "evidence_v3_repaired_plus_low37.jsonl",
         "gold_tuples": data_dir / "annotation_full_v3_repaired_plus_low37" / "llm_gold_tuples.jsonl",
         "gold_event_chains": data_dir / "annotation_full_v3_repaired_plus_low37" / "llm_gold_event_chains.jsonl",
@@ -51,7 +49,15 @@ def validate_paper_data(data_dir: str | Path = DATA_DIR, outputs_dir: str | Path
             errors.append(f"{path} is empty")
 
     events = records.get("events", [])
-    raw_posts = records.get("raw_posts", [])
+    raw_posts_path = data_dir / "raw" / "raw_posts.jsonl"
+    if raw_posts_path.exists():
+        try:
+            raw_posts = read_jsonl(raw_posts_path)
+        except ValueError as exc:
+            errors.append(str(exc))
+            raw_posts = []
+    else:
+        raw_posts = []
     evidence = records.get("evidence", [])
     gold_tuples = records.get("gold_tuples", [])
     gold_event_chains = records.get("gold_event_chains", [])
@@ -93,10 +99,8 @@ def validate_paper_data(data_dir: str | Path = DATA_DIR, outputs_dir: str | Path
         if not skip_event_references and item.get("event_id") not in event_ids:
             errors.append(f"evidence:{index} references unknown event_id: {item.get('event_id')!r}")
 
-    if not raw_posts and not evidence:
-        errors.append("no collected evidence found; run scripts/collect_evidence.py and scripts/normalize_evidence.py before annotation")
-    elif raw_posts and not evidence:
-        errors.append("raw posts exist but evidence.jsonl is empty; run scripts/normalize_evidence.py before annotation")
+    if not evidence:
+        errors.append("canonical evidence is missing or empty; run scripts/collect_evidence.py and scripts/normalize_evidence.py before annotation")
 
     if (gold_tuples or gold_event_chains) and not evidence:
         errors.append("gold annotations exist but evidence.jsonl is missing or empty; do not create gold before normalized evidence")

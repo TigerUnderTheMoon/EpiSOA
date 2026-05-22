@@ -17,7 +17,7 @@ from episoa.data.loader import read_jsonl, write_jsonl
 
 DEFAULT_INPUT = Path("data/pubevent_soa_lite/evidence.jsonl")
 DEFAULT_EVENTS = Path("data/pubevent_soa_lite/events.jsonl")
-DEFAULT_OUTPUT = Path("data/pubevent_soa_lite/evidence_filtered.jsonl")
+DEFAULT_OUTPUT = Path("data/pubevent_soa_lite/interim/evidence_quality_filtered.jsonl")
 DEFAULT_REPORT_JSON = Path("data/pubevent_soa_lite/interim/evidence_quality_report.json")
 DEFAULT_REPORT_CSV = Path("data/pubevent_soa_lite/interim/evidence_quality_report.csv")
 DEFAULT_CLASSIFICATION_CSV = Path("data/pubevent_soa_lite/interim/source_classification_report.csv")

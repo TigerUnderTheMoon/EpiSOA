@@ -40,16 +40,16 @@ def main(argv: list[str] | None = None) -> int:
     evidence = read_jsonl(ROOT / config.data["evidence_path"])
     gold = read_jsonl(ROOT / config.data["gold_tuples_path"])
     selected_events = select_probe_events(events, gold, probe_config, args.event_ids)
-    models = probe_models(config.model, probe_config, args.stronger_model)
+    model_specs = probe_model_specs(config.model, probe_config, args.stronger_model)
+    models = [spec["model_name"] for spec in model_specs]
     max_evidence = int(probe_config.get("max_evidence_per_event") or args.max_evidence)
 
     all_rows: list[dict[str, Any]] = []
     all_predictions: list[dict[str, Any]] = []
     all_raw: list[dict[str, Any]] = []
-    for model_name in models:
-        model_config = dict(config.model)
-        model_config["llm_model"] = model_name
-        model_config["model_name"] = model_name
+    for spec in model_specs:
+        model_name = spec["model_name"]
+        model_config = dict(spec["config"])
         try:
             client = build_llm_client(model_config)
             setup_error = ""
@@ -247,10 +247,60 @@ def select_probe_events(
 
 
 def probe_models(model_config: dict[str, Any], probe_config: dict[str, Any], stronger_model_arg: str) -> list[str]:
+    return [spec["model_name"] for spec in probe_model_specs(model_config, probe_config, stronger_model_arg)]
+
+
+def probe_model_specs(
+    model_config: dict[str, Any],
+    probe_config: dict[str, Any],
+    stronger_model_arg: str,
+) -> list[dict[str, Any]]:
+    configured = probe_config.get("models")
+    if isinstance(configured, list) and configured:
+        specs: list[dict[str, Any]] = []
+        for item in configured:
+            if isinstance(item, str):
+                name = item.strip()
+                override: dict[str, Any] = {}
+            elif isinstance(item, dict):
+                name = str(item.get("model_name") or item.get("llm_model") or item.get("name") or "").strip()
+                override = {key: value for key, value in item.items() if key != "name"}
+            else:
+                continue
+            if not name:
+                continue
+            merged = dict(model_config)
+            merged.update(override)
+            merged["llm_model"] = name
+            merged["model_name"] = name
+            specs.append({"model_name": name, "config": merged})
+        if stronger_model_arg.strip():
+            specs.append(_probe_model_spec(model_config, stronger_model_arg.strip()))
+        return _dedupe_specs(specs)
+
     current = str(probe_config.get("current_model") or model_config.get("llm_model") or model_config.get("model_name") or "").strip()
     stronger = str(stronger_model_arg or probe_config.get("stronger_model") or "").strip()
     models = [model for model in [current, stronger] if model]
-    return list(dict.fromkeys(models))
+    return [_probe_model_spec(model_config, model) for model in dict.fromkeys(models)]
+
+
+def _probe_model_spec(model_config: dict[str, Any], model_name: str) -> dict[str, Any]:
+    merged = dict(model_config)
+    merged["llm_model"] = model_name
+    merged["model_name"] = model_name
+    return {"model_name": model_name, "config": merged}
+
+
+def _dedupe_specs(specs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for spec in specs:
+        name = spec["model_name"]
+        if name in seen:
+            continue
+        seen.add(name)
+        deduped.append(spec)
+    return deduped
 
 
 def oracle_evidence_ids(gold_rows: list[dict[str, Any]]) -> list[str]:

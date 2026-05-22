@@ -78,7 +78,7 @@ def write_manifest(args: argparse.Namespace) -> int:
 
     notes = [
         "Use evidence_v3_repaired_plus_low37.jsonl as canonical evidence namespace.",
-        "Do not audit this gold version against evidence_filtered.jsonl.",
+        "Do not audit this gold version against legacy filtered-evidence exports.",
     ]
     if args.notes:
         notes.extend(args.notes)

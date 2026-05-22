@@ -37,7 +37,7 @@ from episoa.evaluation.ablation_audit import (
     write_ablation_delta_audits,
 )
 from episoa.evaluation.metrics import soft_tuple_f1
-from episoa.graph.evidence_graph import EvidenceGraph, build_stakeholder_event_evidence_graph, write_evidence_graph
+from episoa.graph.evidence_graph import EvidenceGraph, build_event_soa_graph, build_stakeholder_event_evidence_graph, write_evidence_graph
 from episoa.llm.client import OpenAICompatibleClient
 from episoa.retrieval.event_chain_retriever import retrieve_event_chains
 from episoa.verifier.faithfulness_verifier import verify_tuples
@@ -49,7 +49,7 @@ def _create_llm_client(config) -> OpenAICompatibleClient:
     return OpenAICompatibleClient(
         api_key=resolved["api_key"],
         base_url=resolved["base_url"],
-        model_name=config.model.get("llm_model", "deepseek-v4-flash"),
+        model_name=config.model.get("llm_model", "gpt-5.5"),
         temperature=config.model.get("temperature", 0.1),
         max_tokens=config.model.get("max_tokens", 3000),
         timeout_seconds=config.model.get("timeout_seconds", 60),
@@ -110,15 +110,19 @@ def _write_input_manifest(
     )
 
 
-def _write_prompt_manifest(setting_dir: Path, config) -> None:
+def _write_prompt_manifest(setting_dir: Path, config, flags: dict | None = None) -> None:
+    flags = flags or {}
     manifest = {
         "prompt_version": PROMPT_VERSION,
-        "max_tuples_per_event": MAX_TUPLES_PER_EVENT,
+        "method_version": flags.get("method_version", config.ablation.get("method_version", "legacy")),
+        "max_tuples_per_event": int(flags.get("max_tuples_per_event", config.ablation.get("max_tuples_per_event", MAX_TUPLES_PER_EVENT))),
         "max_opinion_chars": MAX_OPINION_CHARS,
         "max_rationale_chars": MAX_RATIONALE_CHARS,
         "allowed_sentiment": sorted(ALLOWED_SENTIMENT),
         "allowed_support": sorted(ALLOWED_SUPPORT),
         "verifier_threshold": float(config.verifier.get("threshold", 0.75)),
+        "verifier_mode": flags.get("verifier_mode", config.verifier.get("mode", "decomposed")),
+        "evidence_selector_mode": flags.get("selector_mode", (config.ablation.get("evidence_selector", {}) or {}).get("mode", "chain_aware")),
         "retrieval_top_k": int(config.retrieval.get("top_k", 5)),
     }
     (setting_dir / "prompt_manifest.json").write_text(
@@ -159,7 +163,27 @@ def _write_event_level_csv(path: Path, gold, predictions) -> None:
             })
 
 
-def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm_client, use_graph, use_event_chain, use_verifier, hide_chain_in_prompt=False, skip_chain_ranking=False, oracle_evidence=False):
+def _run_core_pipeline(
+    events,
+    evidence,
+    gold,
+    gold_chains,
+    config,
+    run_dir,
+    llm_client,
+    use_graph,
+    use_event_chain,
+    use_verifier,
+    hide_chain_in_prompt=False,
+    skip_chain_ranking=False,
+    oracle_evidence=False,
+    use_soe_graph=False,
+    selector_mode=None,
+    verifier_mode="decomposed",
+    method_version="legacy",
+    max_tuples_per_event=None,
+    enforce_candidate_constraints=None,
+):
     """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
     collected = collect_evidence(events, evidence)
 
@@ -193,8 +217,12 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
     else:
         chains = []
 
-    model_name = config.model.get("llm_model", "deepseek-v4-flash")
+    model_name = config.model.get("llm_model", "gpt-5.5")
+    selector_config = config.ablation.get("evidence_selector", {}) or {}
+    configured_selector_mode = selector_config.get("mode") or config.ablation.get("evidence_selector_mode")
+    selector_mode = selector_mode or configured_selector_mode or "chain_aware"
     max_evidence_per_event = int(config.ablation.get("max_evidence_per_event", 12))
+    max_tuples = int(max_tuples_per_event or config.ablation.get("max_tuples_per_event", MAX_TUPLES_PER_EVENT))
     oracle_evidence_ids_by_event = _oracle_evidence_ids_by_event(gold) if oracle_evidence else None
     run_schema_attribution(
         events=[e.model_dump() for e in events],
@@ -208,15 +236,33 @@ def _run_core_pipeline(events, evidence, gold, gold_chains, config, run_dir, llm
         oracle_evidence_ids_by_event=oracle_evidence_ids_by_event,
         hide_chain_in_prompt=hide_chain_in_prompt,
         skip_chain_ranking=skip_chain_ranking,
+        selector_mode=selector_mode,
+        method_version=method_version,
+        max_tuples_per_event=max_tuples,
+        seed=int(config.ablation.get("seed", 42)),
+        enforce_candidate_constraints=enforce_candidate_constraints,
     )
 
     candidates = _attribution_to_predictions(
         read_jsonl(run_dir / "candidate_soa_tuples.jsonl")
     )
     write_jsonl(run_dir / "candidate_soa_tuples.jsonl", candidates)
+    if use_soe_graph and use_graph:
+        soe_graph = build_event_soa_graph(
+            [event.model_dump() for event in events],
+            [item.model_dump() for item in collected],
+            [candidate.model_dump() for candidate in candidates],
+        )
+        write_evidence_graph(soe_graph, run_dir / "soe_graph")
 
     if use_verifier:
-        verified = verify_tuples(candidates, collected, float(config.verifier.get("threshold", 0.75)), llm_client=llm_client)
+        verified = verify_tuples(
+            candidates,
+            collected,
+            float(config.verifier.get("threshold", 0.75)),
+            llm_client=llm_client,
+            mode=verifier_mode,
+        )
         verifier_metrics = evaluate_verifier(verified)
     else:
         verified = candidates
@@ -321,27 +367,45 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
         predictions.append(
             PredictionTuple(
                 event_id=row.get("event_id", ""),
+                tuple_id=row.get("tuple_id", ""),
                 stakeholder=row.get("stakeholder", ""),
                 opinion=row.get("opinion", ""),
                 sentiment=row.get("sentiment", "unknown"),
                 rationale=row.get("rationale", ""),
                 evidence_ids=row.get("evidence_ids", []),
+                evidence_spans=row.get("evidence_spans", []),
+                event_chain_stage=row.get("event_chain_stage", "unknown"),
+                stage_id=row.get("stage_id"),
+                stakeholder_id=row.get("stakeholder_id"),
+                opinion_id=row.get("opinion_id"),
                 support_label=_map_support_label(row.get("support_status", "candidate_unclear")),
                 support_score=row.get("confidence", 0.5),
                 verified=False,
+                confidence=row.get("confidence", 0.0),
+                support_status=row.get("support_status", ""),
+                selection_diagnostics=row.get("selection_diagnostics"),
             )
         )
     return predictions
 
 
 ABLATION_SETTINGS = {
-    "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
-    "full_oracle_evidence":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True},
-    "without_graph":              {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False},
-    "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True},
-    "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False},
-    "without_event_chain_prompt":  {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": False},
-    "without_event_chain_ranking": {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True},
+    "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "method_version": "legacy"},
+    "full_soe":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True,  "selector_mode": "chain_aware", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "full_oracle_evidence":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
+    "oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "direct_llm":                 {"use_graph": False, "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True,  "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "direct_llm"},
+    "without_soe_graph":          {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "without_chain_aware_selection": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "quality_topk_selector":      {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True,  "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "bm25_selector":              {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True,  "selector_mode": "bm25_keyword", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "random_selector":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True,  "selector_mode": "random", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "without_decomposed_verifier": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "selector_mode": "chain_aware", "verifier_mode": "id_only", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "without_graph":              {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed"},
+    "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed"},
+    "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware"},
+    "without_event_chain_prompt":  {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed"},
+    "without_event_chain_ranking": {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed"},
 }
 
 
@@ -403,7 +467,7 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
             gold_count=len(gold),
             flags=flags,
         )
-        _write_prompt_manifest(setting_dir, config)
+        _write_prompt_manifest(setting_dir, config, flags)
 
         print(f"  [RUN] {setting} → {setting_dir}")
         verified, _retrieval_metrics, _verifier_metrics = _run_core_pipeline(

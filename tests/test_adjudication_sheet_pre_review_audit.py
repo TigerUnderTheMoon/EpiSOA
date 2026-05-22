@@ -8,6 +8,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+PRIORITY_FIELDS = [
+    "adjudication_priority_score",
+    "priority_bucket",
+    "priority_reason",
+]
+
 TUPLE_FIELDS = [
     "event_id",
     "tuple_id",
@@ -19,6 +25,7 @@ TUPLE_FIELDS = [
     "evidence_ids",
     "evidence_texts",
     "evidence_source_types",
+    *PRIORITY_FIELDS,
     "review_decision",
     "revised_stakeholder",
     "revised_opinion",
@@ -37,6 +44,7 @@ CHAIN_FIELDS = [
     "evidence_ids",
     "evidence_texts",
     "evidence_source_types",
+    *PRIORITY_FIELDS,
     "review_decision",
     "revised_event_chain",
     "revised_evidence_ids",
@@ -83,6 +91,9 @@ def tuple_row(**overrides) -> dict:
         "evidence_ids": "ev1",
         "evidence_texts": "support text",
         "evidence_source_types": "news",
+        "adjudication_priority_score": "0.250",
+        "priority_bucket": "medium",
+        "priority_reason": "few_evidence",
         "review_decision": "uncertain",
         "revised_stakeholder": "",
         "revised_opinion": "",
@@ -105,6 +116,9 @@ def chain_row(**overrides) -> dict:
         "evidence_ids": "ev1",
         "evidence_texts": "support text",
         "evidence_source_types": "news",
+        "adjudication_priority_score": "0.250",
+        "priority_bucket": "medium",
+        "priority_reason": "few_evidence",
         "review_decision": "uncertain",
         "revised_event_chain": "",
         "revised_evidence_ids": "",
@@ -222,3 +236,27 @@ def test_pre_review_audit_requires_default_uncertain(tmp_path):
     assert result.returncode == 1
     report = read_report(tmp_path)
     assert report["error_counts"]["tuple_review_decision_default_uncertain"] == 1
+
+
+def test_pre_review_audit_rejects_missing_priority_field(tmp_path):
+    fields = [field for field in TUPLE_FIELDS if field != "adjudication_priority_score"]
+    result = run_audit(tmp_path, tuple_rows=[tuple_row()], chain_rows=[chain_row()], tuple_fields=fields, check=False)
+
+    assert result.returncode == 1
+    report = read_report(tmp_path)
+    assert report["error_counts"]["tuple_required_field_present"] == 1
+
+
+def test_pre_review_audit_rejects_invalid_priority_values(tmp_path):
+    result = run_audit(
+        tmp_path,
+        tuple_rows=[tuple_row(adjudication_priority_score="1.500", priority_bucket="urgent", priority_reason="")],
+        chain_rows=[chain_row()],
+        check=False,
+    )
+
+    assert result.returncode == 1
+    report = read_report(tmp_path)
+    assert report["error_counts"]["tuple_priority_score_valid"] == 1
+    assert report["error_counts"]["tuple_priority_bucket_valid"] == 1
+    assert report["error_counts"]["tuple_priority_reason_nonempty"] == 1

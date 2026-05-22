@@ -329,7 +329,7 @@ def audit_delta(args: argparse.Namespace) -> int:
         },
         "note": (
             f"Audited against canonical evidence: {evidence_path}. "
-            "Do NOT use evidence_filtered.jsonl."
+            "Do not audit against any legacy filtered-evidence export."
         ),
     }
 

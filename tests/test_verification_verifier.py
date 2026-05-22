@@ -197,12 +197,21 @@ def test_parse_valid_response():
         "unsupported_claims": [],
         "evidence_quotes": ["安全检查报告指出存在卫生问题"],
         "issue_flags": [],
+        "stakeholder_support": True,
+        "opinion_support": "supported",
+        "sentiment_support": True,
+        "rationale_support": "partial",
+        "evidence_same_event": True,
+        "temporal_stage_consistency": True,
+        "over_inference": False,
     }
     result = parse_verifier_response(FakeLLMResponse(json.dumps(payload)), candidate=candidate_row(), model_name="fake")
     assert result.parse_success
     assert result.row is not None
     assert result.row["verification_label"] == "supported"
     assert result.row["verification_score"] == 0.9
+    assert result.row["verification_diagnosis"]["opinion_support"] == "supported"
+    assert result.row["verification_diagnosis"]["over_inference"] is False
 
 
 @pytest.mark.unit
@@ -519,6 +528,7 @@ def test_fallback_verification_row():
     )
     assert row["verification_label"] == "unsupported"
     assert "missing_evidence" in row["issue_flags"]
+    assert row["verification_diagnosis"]["support_score"] == 0.0
 
 
 # ---------------------------------------------------------------------------

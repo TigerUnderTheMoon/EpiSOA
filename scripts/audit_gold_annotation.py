@@ -13,7 +13,7 @@ Checks:
   - missing_source_type (tuples and chains must have source_type)
 
 IMPORTANT: Uses evidence_v3_repaired_plus_low37.jsonl as canonical evidence.
-Do NOT use evidence_filtered.jsonl to audit gold annotation.
+Do not audit gold annotation against legacy filtered-evidence exports.
 """
 
 from __future__ import annotations
@@ -346,7 +346,7 @@ def _build_report(
         "ready_for_final_gold": ready,
         "note": (
             f"Audited against canonical evidence: {evidence_path}. "
-            "Do NOT use evidence_filtered.jsonl for gold annotation audit."
+            "Do not audit against legacy filtered-evidence exports."
         ),
     }
 

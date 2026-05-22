@@ -177,6 +177,22 @@ def test_invalid_support_label_validation_is_hard_error(tmp_path):
     assert any(err["check"] == "support_label_valid" for err in report["hard_errors"])
 
 
+def test_auto_reviewer_is_rejected_for_final_gold(tmp_path):
+    evidence_path = write_jsonl_file(tmp_path / "evidence.jsonl", evidence_rows())
+    events_path = write_jsonl_file(tmp_path / "events.jsonl", events())
+    gold_tuples = tmp_path / "gold_tuples.jsonl"
+    gold_chains = tmp_path / "gold_event_chains.jsonl"
+    row = gold_tuple("G_E012_001")
+    row["annotation_provenance"]["annotator_id"] = "auto_reviewer"
+    write_jsonl(gold_tuples, [row])
+    write_jsonl(gold_chains, [{"event_id": "E012", "event_chain": ["node"], "evidence_ids": ["ev-1"]}])
+
+    report = validate_gold_dataset(gold_tuples, gold_chains, evidence_path, events_path)
+
+    assert any(err["check"] == "human_reviewer_not_auto" for err in report["hard_errors"])
+    assert report["human_review"]["auto_reviewer_rows"] == 1
+
+
 def test_gold_event_chains_group_by_event_and_stage():
     rows = [
         gold_tuple("G_E012_001", stage="conflict", evidence_ids=["ev-1"]),

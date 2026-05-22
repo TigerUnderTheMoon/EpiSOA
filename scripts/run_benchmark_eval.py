@@ -60,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
-    model_name = args.model_name or cfg.model.get("model_name") or cfg.model.get("llm_model", "deepseek-v4-flash")
+    model_name = args.model_name or cfg.model.get("model_name") or cfg.model.get("llm_model", "gpt-5.5")
 
     benchmark_dir = Path(args.benchmark_dir)
     output_dir = Path(args.output_dir) if args.output_dir else Path(f"outputs/benchmark_runs/{cfg.run_id}_{model_name}")

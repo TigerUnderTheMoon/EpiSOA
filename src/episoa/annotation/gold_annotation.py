@@ -44,6 +44,8 @@ TUPLE_REVIEW_FIELDS = [
     "verification_label",
     "verification_score",
     "verification_rationale",
+    "verification_diagnosis",
+    "review_priority_score",
     "issue_flags",
     "evidence_quotes",
     "evidence_texts",
@@ -903,6 +905,8 @@ TUPLE_REVIEW_FIELDS = [
     "verification_label",
     "verification_score",
     "verification_rationale",
+    "verification_diagnosis",
+    "review_priority_score",
     "issue_flags",
     "evidence_quotes",
     "evidence_texts",
@@ -1091,6 +1095,8 @@ def build_review_rows(
             "verification_label": label,
             "verification_score": candidate.get("verification_score", ""),
             "verification_rationale": candidate.get("verification_rationale", ""),
+            "verification_diagnosis": candidate.get("verification_diagnosis", {}),
+            "review_priority_score": review_priority_score(candidate, label),
             "issue_flags": parse_json_or_cell(candidate.get("issue_flags")),
             "evidence_quotes": parse_json_or_cell(candidate.get("evidence_quotes")),
             "evidence_texts": evidence_texts,
@@ -1105,7 +1111,30 @@ def build_review_rows(
         if not verified_rows:
             row["source_type"] = "blank_template"
         rows.append(row)
+    rows.sort(key=lambda item: float(item.get("review_priority_score") or 0), reverse=True)
     return rows
+
+
+def review_priority_score(candidate: dict[str, Any], label: str) -> float:
+    score = 0.0
+    verification_score = 0.0
+    try:
+        verification_score = float(candidate.get("verification_score", 0) or 0)
+    except (TypeError, ValueError):
+        verification_score = 0.0
+    if label in {"unsupported", "insufficient_evidence", "unclear"}:
+        score += 0.45
+    elif label == "partially_supported":
+        score += 0.30
+    score += max(0.0, 0.25 * (1.0 - verification_score))
+    issue_flags = [flag for flag in parse_json_or_cell(candidate.get("issue_flags")) if flag != "no_issue"]
+    score += min(0.20, 0.05 * len(issue_flags))
+    diagnosis = candidate.get("verification_diagnosis") if isinstance(candidate.get("verification_diagnosis"), dict) else {}
+    if diagnosis.get("over_inference") is True:
+        score += 0.10
+    if diagnosis.get("evidence_same_event") is False:
+        score += 0.10
+    return round(min(1.0, score), 4)
 
 
 def blank_tuple_rows_for_events(events: list[dict[str, Any]], event_ids: list[str] | None = None) -> list[dict[str, Any]]:
@@ -1546,6 +1575,8 @@ def validate_gold_dataset(
     event_ids = set(load_event_index(events))
     evidence_event = {str(row.get("evidence_id")): str(row.get("event_id")) for row in evidence if row.get("evidence_id")}
     seen: set[tuple[str, str, str, str, tuple[str, ...]]] = set()
+    reviewer_counts: Counter[str] = Counter()
+    rows_with_evidence_spans = 0
 
     for index, row in enumerate(gold_rows, start=1):
         prefix = f"gold_tuple:{index}:{row.get('gold_tuple_id', '')}"
@@ -1567,6 +1598,17 @@ def validate_gold_dataset(
         for field in ("stakeholder", "opinion", "rationale"):
             if not str(row.get(field, "")).strip():
                 hard_errors.append({"check": f"{field}_nonempty", "row": prefix, "message": "empty"})
+        if isinstance(row.get("evidence_spans"), list) and row.get("evidence_spans"):
+            rows_with_evidence_spans += 1
+        else:
+            warnings.append({"check": "evidence_spans_present", "row": prefix, "message": "missing; required for final SOE v2 paper gold"})
+        provenance = row.get("annotation_provenance") if isinstance(row.get("annotation_provenance"), dict) else {}
+        reviewer_id = str(provenance.get("reviewer_id") or provenance.get("annotator_id") or "").strip()
+        reviewer_counts[reviewer_id or "missing"] += 1
+        if not reviewer_id:
+            hard_errors.append({"check": "human_reviewer_present", "row": prefix, "message": "missing reviewer_id/annotator_id"})
+        if reviewer_id == "auto_reviewer":
+            hard_errors.append({"check": "human_reviewer_not_auto", "row": prefix, "message": "auto_reviewer is not allowed in final gold"})
         key = tuple_dedupe_key(row)
         if key in seen:
             hard_errors.append({"check": "duplicate_tuple", "row": prefix, "message": "|".join(key[:4])})
@@ -1591,11 +1633,20 @@ def validate_gold_dataset(
 
     schema_valid = not hard_errors
     nonempty_gold = bool(gold_rows and chain_rows)
+    iaa = infer_iaa_summary(gold_rows)
     report = {
         "valid": schema_valid,
         "schema_valid": schema_valid,
         "nonempty_gold": nonempty_gold,
         "ready_for_paper": schema_valid and nonempty_gold,
+        "paper_grade_ready": schema_valid and nonempty_gold and iaa["meets_minimum"] and rows_with_evidence_spans == len(gold_rows),
+        "human_review": {
+            "reviewer_distribution": dict(reviewer_counts),
+            "auto_reviewer_rows": reviewer_counts.get("auto_reviewer", 0),
+            "rows_with_evidence_spans": rows_with_evidence_spans,
+            "rows_without_evidence_spans": len(gold_rows) - rows_with_evidence_spans,
+        },
+        "iaa": iaa,
         "hard_error_count": len(hard_errors),
         "warning_count": len(warnings),
         "hard_errors": hard_errors,
@@ -1609,6 +1660,28 @@ def validate_gold_dataset(
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / "gold_validation_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
+
+
+def infer_iaa_summary(gold_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    kappas: list[float] = []
+    for row in gold_rows:
+        provenance = row.get("annotation_provenance") if isinstance(row.get("annotation_provenance"), dict) else {}
+        quality = provenance.get("annotation_quality") if isinstance(provenance.get("annotation_quality"), dict) else {}
+        for key in ("cohen_kappa", "tuple_cohen_kappa", "support_label_cohen_kappa"):
+            try:
+                if quality.get(key) is not None:
+                    kappas.append(float(quality[key]))
+            except (TypeError, ValueError):
+                continue
+    min_kappa = min(kappas) if kappas else None
+    return {
+        "cohen_kappa_values": kappas,
+        "min_cohen_kappa": round(min_kappa, 4) if min_kappa is not None else None,
+        "target": 0.75,
+        "minimum": 0.70,
+        "meets_target": bool(kappas and min_kappa is not None and min_kappa >= 0.75),
+        "meets_minimum": bool(kappas and min_kappa is not None and min_kappa >= 0.70),
+    }
 
 
 def inspect_gold_samples(

@@ -9,6 +9,70 @@ from pathlib import Path
 from typing import Any
 
 from episoa.llm.client import OpenAICompatibleClient
+from episoa.llm.client import json_schema_response_format
+
+
+TUPLE_IDENTIFICATION_RESPONSE_FORMAT = json_schema_response_format(
+    "benchmark_tuple_identification_response",
+    {
+        "type": "object",
+        "properties": {
+            "tuples": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "stakeholder": {"type": "string"},
+                        "opinion": {"type": "string"},
+                        "sentiment": {"type": "string", "enum": ["positive", "negative", "neutral", "mixed", "unknown"]},
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                        "rationale": {"type": "string"},
+                    },
+                    "required": ["stakeholder", "opinion", "sentiment", "evidence_ids", "rationale"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["tuples"],
+        "additionalProperties": False,
+    },
+)
+
+EVIDENCE_SUPPORT_RESPONSE_FORMAT = json_schema_response_format(
+    "benchmark_evidence_support_response",
+    {
+        "type": "object",
+        "properties": {
+            "support_label": {"type": "string", "enum": ["supported", "partially_supported", "not_enough_info"]},
+            "reason": {"type": "string"},
+        },
+        "required": ["support_label", "reason"],
+        "additionalProperties": False,
+    },
+)
+
+CHAIN_CONSTRUCTION_RESPONSE_FORMAT = json_schema_response_format(
+    "benchmark_chain_construction_response",
+    {
+        "type": "object",
+        "properties": {
+            "chains": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                        "event_chain": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["evidence_ids", "event_chain"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["chains"],
+        "additionalProperties": False,
+    },
+)
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +233,7 @@ def run_tuple_identification(
             resp = client.chat(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
+                response_format=TUPLE_IDENTIFICATION_RESPONSE_FORMAT,
             )
             parsed = _extract_json(resp.content)
         except Exception as exc:
@@ -219,6 +284,7 @@ def run_evidence_support(
             resp = client.chat(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
+                response_format=EVIDENCE_SUPPORT_RESPONSE_FORMAT,
             )
             parsed = _extract_json(resp.content)
         except Exception as exc:
@@ -268,6 +334,7 @@ def run_chain_construction(
             resp = client.chat(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
+                response_format=CHAIN_CONSTRUCTION_RESPONSE_FORMAT,
             )
             parsed = _extract_json(resp.content)
         except Exception as exc:

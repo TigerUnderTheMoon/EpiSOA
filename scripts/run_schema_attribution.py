@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run LLM schema-constrained EpiSOA attribution.")
     parser.add_argument("--config", default="configs/paper.yaml")
     parser.add_argument("--events", default="data/pubevent_soa_lite/events.jsonl")
-    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_filtered.jsonl")
+    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
     parser.add_argument("--chains", default="outputs/runs/event_chain_retrieval/event_chain_candidates.jsonl")
     parser.add_argument("--graph-dir", default="data/pubevent_soa_lite/graph")
     parser.add_argument("--output-dir", default="outputs/runs/schema_attribution")

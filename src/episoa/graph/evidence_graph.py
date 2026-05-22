@@ -209,6 +209,136 @@ def build_stakeholder_event_evidence_graph(events: list[dict[str, Any]], evidenc
     return EvidenceGraph(nodes=list(nodes.values()), edges=list(edges.values()), summary=summary)
 
 
+def build_event_soa_graph(
+    events: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+    tuples: list[dict[str, Any]] | None = None,
+) -> EvidenceGraph:
+    """Build the Event-SOA graph used by the SOE v2 method.
+
+    This extends the rule-derived evidence graph with structured stakeholder,
+    opinion, sentiment, stage, and evidence-span nodes from extracted or gold SOA
+    tuples. It does not infer new tuples; it only materializes supplied records.
+    """
+    base = build_stakeholder_event_evidence_graph(events, evidence)
+    nodes: dict[str, GraphNode] = {node.node_id: node for node in base.nodes}
+    edges: dict[tuple[str, str, str], GraphEdge] = {
+        (edge.source_node_id, edge.target_node_id, edge.edge_type): edge
+        for edge in base.edges
+    }
+    evidence_by_id = {str(item.get("evidence_id", "")): item for item in evidence if item.get("evidence_id")}
+    tuple_rows = tuples or []
+
+    for index, row in enumerate(tuple_rows, start=1):
+        event_id = str(row.get("event_id", ""))
+        if not event_id:
+            continue
+        tuple_id = str(row.get("tuple_id") or row.get("gold_tuple_id") or f"{event_id}_SOA_{index:03d}")
+        stakeholder = str(row.get("stakeholder", "")).strip()
+        opinion = str(row.get("opinion", "")).strip()
+        sentiment = str(row.get("sentiment", "")).strip() or "unknown"
+        stage = str(row.get("event_chain_stage") or "unknown").strip() or "unknown"
+        event_node_id = f"event:{event_id}"
+        stage_node_id = str(row.get("stage_id") or f"stage:{event_id}:{normalize_node_token(stage)}")
+        stakeholder_node_id = str(row.get("stakeholder_id") or f"stakeholder_entity:{event_id}:{normalize_node_token(stakeholder)}")
+        opinion_node_id = str(row.get("opinion_id") or f"opinion:{event_id}:{index:04d}")
+        sentiment_node_id = f"sentiment:{event_id}:{normalize_node_token(sentiment)}"
+
+        nodes.setdefault(
+            stage_node_id,
+            GraphNode(stage_node_id, "event_stage", stage, {"event_id": event_id, "stage": stage}),
+        )
+        if stakeholder:
+            nodes.setdefault(
+                stakeholder_node_id,
+                GraphNode(stakeholder_node_id, "stakeholder", stakeholder, {"event_id": event_id, "stakeholder": stakeholder}),
+            )
+            add_edge(edges, event_node_id, stakeholder_node_id, "has_stakeholder", attributes={"tuple_id": tuple_id})
+        if opinion:
+            nodes.setdefault(
+                opinion_node_id,
+                GraphNode(
+                    opinion_node_id,
+                    "opinion",
+                    opinion,
+                    {
+                        "event_id": event_id,
+                        "tuple_id": tuple_id,
+                        "opinion": opinion,
+                        "rationale": row.get("rationale", ""),
+                        "confidence": row.get("confidence", row.get("support_score", "")),
+                    },
+                ),
+            )
+            if stakeholder:
+                add_edge(edges, stakeholder_node_id, opinion_node_id, "expresses", attributes={"tuple_id": tuple_id})
+            add_edge(edges, opinion_node_id, stage_node_id, "occurs_at_stage", attributes={"tuple_id": tuple_id})
+        nodes.setdefault(
+            sentiment_node_id,
+            GraphNode(sentiment_node_id, "sentiment", sentiment, {"event_id": event_id, "sentiment": sentiment}),
+        )
+        if opinion:
+            add_edge(edges, opinion_node_id, sentiment_node_id, "has_sentiment", attributes={"tuple_id": tuple_id})
+        add_edge(edges, event_node_id, stage_node_id, "has_stage", attributes={"tuple_id": tuple_id})
+
+        spans = row.get("evidence_spans") if isinstance(row.get("evidence_spans"), list) else []
+        if not spans:
+            spans = [
+                {
+                    "evidence_id": evidence_id,
+                    "char_start": 0,
+                    "char_end": min(len(str(evidence_by_id.get(str(evidence_id), {}).get("text", ""))), 500),
+                    "text": str(evidence_by_id.get(str(evidence_id), {}).get("text", ""))[:500],
+                }
+                for evidence_id in row.get("evidence_ids", []) or []
+            ]
+        for span_idx, span in enumerate(spans, start=1):
+            if not isinstance(span, dict):
+                continue
+            evidence_id = str(span.get("evidence_id") or "")
+            if not evidence_id:
+                continue
+            span_node_id = f"evidence_span:{tuple_id}:{evidence_id}:{span_idx}"
+            nodes.setdefault(
+                span_node_id,
+                GraphNode(
+                    span_node_id,
+                    "evidence_span",
+                    evidence_id,
+                    {
+                        "event_id": event_id,
+                        "tuple_id": tuple_id,
+                        "evidence_id": evidence_id,
+                        "char_start": span.get("char_start", 0),
+                        "char_end": span.get("char_end", 0),
+                        "text": span.get("text", ""),
+                    },
+                ),
+            )
+            if opinion:
+                add_edge(edges, opinion_node_id, span_node_id, "supported_by", evidence_id=evidence_id, attributes={"tuple_id": tuple_id})
+            add_edge(edges, span_node_id, f"evidence:{evidence_id}", "quotes_evidence", evidence_id=evidence_id)
+
+    node_types = Counter(node.node_type for node in nodes.values())
+    edge_types = Counter(edge.edge_type for edge in edges.values())
+    summary = dict(base.summary)
+    summary.update(
+        {
+            "graph_type": "event_soa_graph",
+            "num_soa_tuples": len(tuple_rows),
+            "num_stakeholders": node_types.get("stakeholder", 0),
+            "num_opinions": node_types.get("opinion", 0),
+            "num_sentiments": node_types.get("sentiment", 0),
+            "num_event_stages": node_types.get("event_stage", 0),
+            "num_evidence_spans": node_types.get("evidence_span", 0),
+            "num_nodes": len(nodes),
+            "num_edges": len(edges),
+            "edge_type_distribution": dict(edge_types),
+        }
+    )
+    return EvidenceGraph(nodes=list(nodes.values()), edges=list(edges.values()), summary=summary)
+
+
 def extract_stakeholder_candidates(text: str, stakeholder_hints: list[str] | None = None) -> list[str]:
     candidates: list[str] = []
     for normalized, keywords in STAKEHOLDER_RULES:
@@ -261,7 +391,8 @@ def domain_from_url(url: str, platform: str = "") -> str:
 
 
 def normalize_node_token(value: str) -> str:
-    return re.sub(r"\s+", "_", value.strip())
+    token = re.sub(r"\W+", "_", value.strip().lower(), flags=re.UNICODE).strip("_")
+    return token or "unknown"
 
 
 def as_list(value: Any) -> list[str]:

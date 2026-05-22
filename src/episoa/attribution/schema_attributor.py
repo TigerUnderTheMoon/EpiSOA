@@ -13,16 +13,58 @@ from pathlib import Path
 from typing import Any
 
 from episoa.data.loader import read_jsonl, write_jsonl
+from episoa.llm.client import json_schema_response_format
+from episoa.retrieval.evidence_selector import SELECTOR_MODES, select_evidence_for_prompt
 
 
 PROMPT_VERSION = "schema_attribution_v2_json"
-MAX_TUPLES_PER_EVENT = 4
+METHOD_VERSION = "soe_v2"
+MAX_TUPLES_PER_EVENT = 8
 MAX_OPINION_CHARS = 40
 MAX_RATIONALE_CHARS = 60
 ALLOWED_SENTIMENT = {"positive", "negative", "neutral"}
 ALLOWED_STAGE = {"trigger", "diffusion", "conflict", "response", "resolution", "follow_up", "mixed", "unknown"}
 ALLOWED_SUPPORT = {"candidate_supported", "candidate_partially_supported", "candidate_unclear"}
 STAGE_PRIORITY = ["conflict", "response", "resolution", "trigger", "diffusion", "follow_up"]
+
+SCHEMA_ATTRIBUTION_RESPONSE_FORMAT = json_schema_response_format(
+    "schema_attribution_response",
+    {
+        "type": "object",
+        "properties": {
+            "event_id": {"type": "string"},
+            "tuples": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "stakeholder": {"type": "string"},
+                        "opinion": {"type": "string"},
+                        "sentiment": {"type": "string", "enum": sorted(ALLOWED_SENTIMENT)},
+                        "rationale": {"type": "string"},
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                        "event_chain_stage": {"type": "string", "enum": sorted(ALLOWED_STAGE)},
+                        "support_status": {"type": "string", "enum": sorted(ALLOWED_SUPPORT)},
+                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    },
+                    "required": [
+                        "stakeholder",
+                        "opinion",
+                        "sentiment",
+                        "rationale",
+                        "evidence_ids",
+                        "event_chain_stage",
+                        "support_status",
+                        "confidence",
+                    ],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["event_id", "tuples"],
+        "additionalProperties": False,
+    },
+)
 
 SYSTEM_PROMPT = """You are an information extraction system for evidence-grounded stakeholder opinion attribution in public events.
 You must extract stakeholder-opinion-sentiment-rationale tuples only from the provided evidence.
@@ -193,11 +235,13 @@ class SchemaAttributor:
         model_name: str,
         prompt_version: str = PROMPT_VERSION,
         max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
+        method_version: str = METHOD_VERSION,
     ):
         self.llm_client = llm_client
         self.model_name = model_name
         self.prompt_version = prompt_version
         self.max_tuples_per_event = max_tuples_per_event
+        self.method_version = method_version
 
     def build_prompt(
         self,
@@ -222,6 +266,7 @@ class SchemaAttributor:
                 stage_evidence_blocks=stage_evidence_blocks,
                 stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
             )
+            user_prompt += self.method_constraint_text(stakeholder_candidates)
             return SYSTEM_PROMPT, user_prompt
         chain_confidence = chain.get("chain_confidence", 0)
         missing_stages = json.dumps(chain.get("missing_stages", []), ensure_ascii=False)
@@ -236,7 +281,18 @@ class SchemaAttributor:
             stage_evidence_blocks=stage_evidence_blocks,
             stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
         )
+        user_prompt += self.method_constraint_text(stakeholder_candidates)
         return SYSTEM_PROMPT, user_prompt
+
+    def method_constraint_text(self, stakeholder_candidates: list[str]) -> str:
+        return (
+            "\n\nMethod constraints:\n"
+            f"- method_version: {self.method_version}\n"
+            f"- max_tuples_per_event: {self.max_tuples_per_event}\n"
+            "- Use only evidence_id values shown above.\n"
+            "- Prefer stakeholder names from the stakeholder_candidates list when present.\n"
+            f"- stakeholder_candidate_count: {len(stakeholder_candidates)}\n"
+        )
 
     def build_retry_prompt(
         self,
@@ -273,6 +329,7 @@ class SchemaAttributor:
         dry_run: bool = False,
         hide_chain_in_prompt: bool = False,
         skip_chain_ranking: bool = False,
+        enforce_candidate_constraints: bool = False,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         system_prompt, user_prompt = self.build_prompt(
             event=event,
@@ -284,6 +341,7 @@ class SchemaAttributor:
         event_id = str(event.get("event_id", ""))
         selected_eids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
         request_summary = {
+            "method_version": self.method_version,
             "num_evidence": len(evidence_items),
             "chain_confidence": chain.get("chain_confidence", 0),
             "prompt_chars": len(system_prompt) + len(user_prompt),
@@ -311,13 +369,20 @@ class SchemaAttributor:
             raise RuntimeError("llm_client is required unless dry_run=True")
 
         allowed_evidence_ids = {str(item["evidence_id"]) for item in evidence_items if item.get("evidence_id")}
+        evidence_context_by_id = {str(item["evidence_id"]): item for item in evidence_items if item.get("evidence_id")}
         response = self.llm_client.chat(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            response_format={"type": "json_object"},
+            response_format=SCHEMA_ATTRIBUTION_RESPONSE_FORMAT,
         )
         request_summary["api_calls_made"] = 1
-        parsed = self._parse_llm_response(response, event_id, allowed_evidence_ids)
+        parsed = self._parse_llm_response(
+            response,
+            event_id,
+            allowed_evidence_ids,
+            stakeholder_candidates=stakeholder_candidates if enforce_candidate_constraints else [],
+            evidence_context_by_id=evidence_context_by_id,
+        )
         raw_response_text = normalize_raw_response(response)
         raw_response_id = getattr(response, "response_id", "")
 
@@ -331,14 +396,20 @@ class SchemaAttributor:
             retry_response = self.llm_client.chat(
                 system_prompt=retry_system_prompt,
                 user_prompt=retry_user_prompt,
-                response_format={"type": "json_object"},
+                response_format=SCHEMA_ATTRIBUTION_RESPONSE_FORMAT,
             )
             request_summary["api_calls_made"] = 2
             if parsed.parse_error == "empty_llm_content":
                 request_summary["retried_after_empty_content"] = True
             else:
                 request_summary["retried_after_malformed_json"] = True
-            parsed = self._parse_llm_response(retry_response, event_id, allowed_evidence_ids)
+            parsed = self._parse_llm_response(
+                retry_response,
+                event_id,
+                allowed_evidence_ids,
+                stakeholder_candidates=stakeholder_candidates if enforce_candidate_constraints else [],
+                evidence_context_by_id=evidence_context_by_id,
+            )
             raw_response_text = normalize_raw_response(retry_response)
             raw_response_id = getattr(retry_response, "response_id", "")
 
@@ -351,11 +422,21 @@ class SchemaAttributor:
             parse_error=parsed.parse_error,
         )
 
-    def _parse_llm_response(self, response: Any, event_id: str, allowed_evidence_ids: set[str]) -> ParseResult:
+    def _parse_llm_response(
+        self,
+        response: Any,
+        event_id: str,
+        allowed_evidence_ids: set[str],
+        *,
+        stakeholder_candidates: list[str],
+        evidence_context_by_id: dict[str, dict[str, Any]],
+    ) -> ParseResult:
         return parse_response(
             response,
             event_id=event_id,
             allowed_evidence_ids=allowed_evidence_ids,
+            allowed_stakeholders=stakeholder_candidates,
+            evidence_context_by_id=evidence_context_by_id,
             model_name=self.model_name,
             prompt_version=self.prompt_version,
             raw_response_id=getattr(response, "response_id", ""),
@@ -379,6 +460,11 @@ def run_schema_attribution(
     dry_run: bool = False,
     hide_chain_in_prompt: bool = False,
     skip_chain_ranking: bool = False,
+    selector_mode: str = "chain_aware",
+    method_version: str = METHOD_VERSION,
+    max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
+    seed: int = 42,
+    enforce_candidate_constraints: bool | None = None,
 ) -> dict[str, Any]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -386,7 +472,16 @@ def run_schema_attribution(
     chains_by_event = {str(chain.get("event_id", "")): chain for chain in chains}
     evidence_by_event = group_by_event(evidence_rows)
     stakeholders_by_event = stakeholder_candidates_by_event(graph_nodes)
-    attributor = SchemaAttributor(llm_client=llm_client, model_name=model_name)
+    if selector_mode not in SELECTOR_MODES:
+        raise ValueError(f"unknown evidence selector mode: {selector_mode}")
+    if enforce_candidate_constraints is None:
+        enforce_candidate_constraints = method_version == METHOD_VERSION
+    attributor = SchemaAttributor(
+        llm_client=llm_client,
+        model_name=model_name,
+        max_tuples_per_event=max_tuples_per_event,
+        method_version=method_version,
+    )
 
     tuples: list[dict[str, Any]] = []
     raw_records: list[dict[str, Any]] = []
@@ -406,32 +501,24 @@ def run_schema_attribution(
             no_chain_context_events.append(event_id)
         stakeholder_candidates = stakeholders_by_event.get(event_id) or stakeholders_by_event.get("__global__", [])
         oracle_evidence_ids = (oracle_evidence_ids_by_event or {}).get(event_id)
-        selection_metadata: dict[str, Any] | None = None
-        if oracle_evidence_ids is not None:
-            evidence_items = select_oracle_prompt_evidence(
-                event=event,
-                chain=chain,
-                evidence_rows=evidence_by_event.get(event_id, []),
-                oracle_evidence_ids=oracle_evidence_ids,
-                max_evidence=max_evidence_per_event,
-                skip_chain_ranking=skip_chain_ranking,
-            )
-            selected_ids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
-            selection_metadata = {
-                "oracle_evidence": True,
-                "oracle_gold_evidence_ids": oracle_evidence_ids,
-                "oracle_gold_evidence_in_prompt": [eid for eid in oracle_evidence_ids if eid in set(selected_ids)],
-                "oracle_gold_evidence_missing": [eid for eid in oracle_evidence_ids if eid not in set(selected_ids)],
-                "oracle_gold_evidence_truncated": len([eid for eid in oracle_evidence_ids if eid not in set(selected_ids)]) > 0,
-            }
-        else:
-            evidence_items = select_prompt_evidence(
-                event=event,
-                chain=chain,
-                evidence_rows=evidence_by_event.get(event_id, []),
-                max_evidence=max_evidence_per_event,
-                skip_chain_ranking=skip_chain_ranking,
-            )
+        effective_selector_mode = "oracle" if oracle_evidence_ids is not None else selector_mode
+        selection = select_evidence_for_prompt(
+            event=event,
+            chain=chain,
+            evidence_rows=evidence_by_event.get(event_id, []),
+            max_evidence=max_evidence_per_event,
+            mode=effective_selector_mode,
+            oracle_evidence_ids=oracle_evidence_ids,
+            seed=seed,
+        )
+        evidence_items = selection.evidence
+        selection_metadata = {
+            "method_version": method_version,
+            "selector_mode": effective_selector_mode,
+            "enforce_candidate_constraints": enforce_candidate_constraints,
+            "selection_diagnostics": selection.diagnostics,
+        }
+        selection_metadata.update(selection.diagnostics)
         if not evidence_items:
             no_chain_context_events.append(event_id)
             continue
@@ -445,6 +532,7 @@ def run_schema_attribution(
                 dry_run=dry_run,
                 hide_chain_in_prompt=hide_chain_in_prompt,
                 skip_chain_ranking=skip_chain_ranking,
+                enforce_candidate_constraints=enforce_candidate_constraints,
             )
             raw_records.append(record)
             api_calls += int(record.get("request_summary", {}).get("api_calls_made", 0) or 0)
@@ -452,6 +540,8 @@ def run_schema_attribution(
                 parse_failed_events.append(event_id)
             if not event_tuples:
                 empty_tuple_events.append(event_id)
+            for row in event_tuples:
+                row["selection_diagnostics"] = selection.diagnostics
             tuples.extend(event_tuples)
         except Exception as exc:
             api_failures += 1
@@ -462,6 +552,7 @@ def run_schema_attribution(
                     request_summary={
                         "num_evidence": len(evidence_items),
                         "api_calls_made": 0,
+                        "method_version": method_version,
                         "chain_confidence": chain.get("chain_confidence", 0),
                         "prompt_chars": 0,
                         "selected_evidence_ids": [
@@ -471,6 +562,8 @@ def run_schema_attribution(
                         ],
                         "hide_chain_in_prompt": hide_chain_in_prompt,
                         "skip_chain_ranking": skip_chain_ranking,
+                        "selector_mode": effective_selector_mode,
+                        "selection_diagnostics": selection.diagnostics,
                     },
                     raw_response="",
                     parse_success=False,
@@ -497,6 +590,9 @@ def run_schema_attribution(
         parse_failed_events=parse_failed_events,
         model_name=model_name,
         output_path=str(candidates_path),
+        method_version=method_version,
+        selector_mode=selector_mode,
+        max_tuples_per_event=max_tuples_per_event,
     )
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
@@ -507,6 +603,8 @@ def parse_response(
     *,
     event_id: str,
     allowed_evidence_ids: set[str],
+    allowed_stakeholders: list[str] | None = None,
+    evidence_context_by_id: dict[str, dict[str, Any]] | None = None,
     model_name: str,
     prompt_version: str = PROMPT_VERSION,
     raw_response_id: str = "",
@@ -554,16 +652,27 @@ def parse_response(
         rationale = truncate_text(row.get("rationale", ""), MAX_RATIONALE_CHARS)
         if not stakeholder or not opinion or not rationale:
             continue
+        stakeholder_match = best_stakeholder_match(stakeholder, allowed_stakeholders or [])
+        if allowed_stakeholders and stakeholder_match is None:
+            continue
+        stakeholder_id = make_stakeholder_id(event_id, stakeholder_match or stakeholder)
+        opinion_id = make_opinion_id(event_id, opinion)
+        stage_id = f"stage:{event_id}:{stage}"
+        spans = evidence_spans_for_tuple(evidence_ids, evidence_context_by_id or {})
         output.append(
             {
                 "event_id": event_id,
                 "tuple_id": f"{event_id}_SOA_{len(output) + 1:03d}",
                 "stakeholder": stakeholder,
+                "stakeholder_id": stakeholder_id,
                 "opinion": opinion,
+                "opinion_id": opinion_id,
                 "sentiment": sentiment,
                 "rationale": rationale,
                 "evidence_ids": evidence_ids,
+                "evidence_spans": spans,
                 "event_chain_stage": stage,
+                "stage_id": stage_id,
                 "support_status": support,
                 "confidence": clamp_float(row.get("confidence", 0.0)),
                 "model_name": model_name,
@@ -595,46 +704,14 @@ def select_prompt_evidence(
     max_evidence: int,
     skip_chain_ranking: bool = False,
 ) -> list[dict[str, Any]]:
-    if skip_chain_ranking:
-        return _select_evidence_by_non_chain_baseline(
-            event=event, chain=chain, evidence_rows=evidence_rows, max_evidence=max_evidence,
-        )
-
-    evidence_by_id = {str(row.get("evidence_id", "")): row for row in evidence_rows}
-    selected: list[dict[str, Any]] = []
-    seen: set[str] = set()
-
-    stage_blocks = {stage.get("stage"): stage for stage in chain.get("stages", []) if isinstance(stage, dict)}
-    for stage_name in STAGE_PRIORITY:
-        stage = stage_blocks.get(stage_name, {})
-        ranked = sorted(
-            stage.get("evidence", []),
-            key=lambda item: (
-                float(item.get("final_stage_score", item.get("score", 0)) or 0),
-                float(item.get("event_relevance_score", 0) or 0),
-            ),
-            reverse=True,
-        )[:2]
-        for item in ranked:
-            evidence_id = str(item.get("evidence_id", ""))
-            if not evidence_id or evidence_id in seen:
-                continue
-            row = evidence_by_id.get(evidence_id, {})
-            selected.append(normalize_prompt_evidence(item, row, stage_name))
-            seen.add(evidence_id)
-            if len(selected) >= max_evidence:
-                return selected
-
-    fallback = sorted(evidence_rows, key=lambda row: float(row.get("quality_score", 0) or 0), reverse=True)
-    for row in fallback:
-        evidence_id = str(row.get("evidence_id", ""))
-        if not evidence_id or evidence_id in seen:
-            continue
-        selected.append(normalize_prompt_evidence({"evidence_id": evidence_id, "stage": "unknown"}, row, "unknown"))
-        seen.add(evidence_id)
-        if len(selected) >= max_evidence:
-            break
-    return selected
+    mode = "quality_topk" if skip_chain_ranking else "chain_aware"
+    return select_evidence_for_prompt(
+        event=event,
+        chain=chain,
+        evidence_rows=evidence_rows,
+        max_evidence=max_evidence,
+        mode=mode,
+    ).evidence
 
 
 def select_oracle_prompt_evidence(
@@ -646,57 +723,16 @@ def select_oracle_prompt_evidence(
     max_evidence: int,
     skip_chain_ranking: bool = False,
 ) -> list[dict[str, Any]]:
-    """Select prompt evidence while forcing gold-support evidence first.
-
-    The caller is responsible for passing only evidence IDs, not gold tuple text.
-    Remaining slots are filled with the normal full-selection strategy.
-    """
-    evidence_by_id = {str(row.get("evidence_id", "")): row for row in evidence_rows if row.get("evidence_id")}
-    chain_scores = chain_metadata_by_evidence(chain)
-    selected: list[dict[str, Any]] = []
-    seen: set[str] = set()
-
-    for evidence_id in dedupe([str(eid) for eid in oracle_evidence_ids if str(eid).strip()]):
-        if len(selected) >= max_evidence:
-            break
-        row = evidence_by_id.get(evidence_id)
-        if not row or evidence_id in seen:
-            continue
-        metadata = chain_scores.get(evidence_id, {})
-        stage_name = str(metadata.get("stage") or row.get("temporal_stage") or "oracle_gold")
-        selected.append(
-            normalize_prompt_evidence(
-                {
-                    "evidence_id": evidence_id,
-                    "stage": stage_name,
-                    "final_stage_score": metadata.get("final_stage_score", "oracle"),
-                    "event_relevance_score": metadata.get("event_relevance_score", "oracle"),
-                },
-                row,
-                stage_name,
-            )
-        )
-        seen.add(evidence_id)
-
-    if len(selected) >= max_evidence:
-        return selected
-
-    baseline = select_prompt_evidence(
+    """Select prompt evidence while forcing gold-support evidence IDs first."""
+    mode = "oracle"
+    return select_evidence_for_prompt(
         event=event,
         chain=chain,
         evidence_rows=evidence_rows,
+        oracle_evidence_ids=oracle_evidence_ids,
         max_evidence=max_evidence,
-        skip_chain_ranking=skip_chain_ranking,
-    )
-    for item in baseline:
-        if len(selected) >= max_evidence:
-            break
-        evidence_id = str(item.get("evidence_id", ""))
-        if not evidence_id or evidence_id in seen:
-            continue
-        selected.append(item)
-        seen.add(evidence_id)
-    return selected
+        mode=mode,
+    ).evidence
 
 
 def _select_evidence_by_non_chain_baseline(
@@ -797,6 +833,75 @@ def evidence_stakeholder_signal(row: dict[str, Any], event: dict[str, Any]) -> f
     return min(1.0, hits / 3)
 
 
+def best_stakeholder_match(stakeholder: str, candidates: list[str]) -> str | None:
+    if not candidates:
+        return None
+    scored: list[tuple[float, str]] = []
+    for candidate in candidates:
+        candidate = str(candidate).strip()
+        if not candidate:
+            continue
+        if stakeholder == candidate or stakeholder in candidate or candidate in stakeholder:
+            scored.append((1.0, candidate))
+        else:
+            scored.append((char_overlap(stakeholder, candidate), candidate))
+    if not scored:
+        return None
+    score, candidate = max(scored, key=lambda item: item[0])
+    return candidate if score >= 0.35 else None
+
+
+def char_overlap(left: str, right: str) -> float:
+    left_set = set(str(left or ""))
+    right_set = set(str(right or ""))
+    if not left_set or not right_set:
+        return 0.0
+    return len(left_set & right_set) / len(left_set | right_set)
+
+
+def make_stakeholder_id(event_id: str, stakeholder: str) -> str:
+    return f"stakeholder_entity:{event_id}:{normalize_token(stakeholder)}"
+
+
+def make_opinion_id(event_id: str, opinion: str) -> str:
+    return f"opinion:{event_id}:{normalize_token(opinion)[:32]}"
+
+
+def evidence_spans_for_tuple(evidence_ids: list[str], evidence_context_by_id: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    spans: list[dict[str, Any]] = []
+    for evidence_id in evidence_ids:
+        item = evidence_context_by_id.get(evidence_id, {})
+        span_rows = item.get("evidence_spans") if isinstance(item.get("evidence_spans"), list) else []
+        if span_rows:
+            for span in span_rows:
+                if not isinstance(span, dict):
+                    continue
+                spans.append(
+                    {
+                        "evidence_id": str(span.get("evidence_id") or evidence_id),
+                        "char_start": int(span.get("char_start", 0) or 0),
+                        "char_end": int(span.get("char_end", 0) or 0),
+                        "text": truncate_text(span.get("text", ""), 500),
+                    }
+                )
+            continue
+        text = str(item.get("text_excerpt") or item.get("text") or "")
+        spans.append(
+            {
+                "evidence_id": evidence_id,
+                "char_start": 0,
+                "char_end": min(len(text), 500),
+                "text": text[:500],
+            }
+        )
+    return spans
+
+
+def normalize_token(value: str) -> str:
+    token = re.sub(r"\W+", "_", str(value or "").strip().lower(), flags=re.UNICODE).strip("_")
+    return token or "unknown"
+
+
 def normalize_prompt_evidence(chain_item: dict[str, Any], row: dict[str, Any], stage: str) -> dict[str, Any]:
     text = str(row.get("text") or chain_item.get("text_excerpt") or "")
     return {
@@ -836,6 +941,7 @@ def format_stage_evidence_blocks(
             parts.extend([
                 f"  final_stage_score: {item.get('final_stage_score')}",
                 f"  event_relevance_score: {item.get('event_relevance_score')}",
+                f"  selection_score: {item.get('selection_score', '')}",
             ])
         parts.append(f"  text_excerpt: {truncate_text(item.get('text_excerpt', ''), max_excerpt_chars)}")
         lines.append("\n".join(parts))
@@ -885,6 +991,9 @@ def build_summary(
     parse_failed_events: list[str],
     model_name: str,
     output_path: str,
+    method_version: str = METHOD_VERSION,
+    selector_mode: str = "chain_aware",
+    max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
 ) -> dict[str, Any]:
     confidences = [float(row.get("confidence", 0) or 0) for row in tuples]
     return {
@@ -903,6 +1012,9 @@ def build_summary(
         "output_path": output_path,
         "model_name": model_name,
         "prompt_version": PROMPT_VERSION,
+        "method_version": method_version,
+        "selector_mode": selector_mode,
+        "max_tuples_per_event": max_tuples_per_event,
     }
 
 
@@ -913,13 +1025,18 @@ def write_tuple_table(path: str | Path, tuples: list[dict[str, Any]]) -> None:
         "event_id",
         "tuple_id",
         "stakeholder",
+        "stakeholder_id",
         "opinion",
+        "opinion_id",
         "sentiment",
         "rationale",
         "evidence_ids",
+        "evidence_spans",
         "event_chain_stage",
+        "stage_id",
         "support_status",
         "confidence",
+        "selection_diagnostics",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
@@ -927,6 +1044,8 @@ def write_tuple_table(path: str | Path, tuples: list[dict[str, Any]]) -> None:
         for row in tuples:
             flat = dict(row)
             flat["evidence_ids"] = "|".join(row.get("evidence_ids", []))
+            flat["evidence_spans"] = json.dumps(row.get("evidence_spans", []), ensure_ascii=False)
+            flat["selection_diagnostics"] = json.dumps(row.get("selection_diagnostics", {}), ensure_ascii=False)
             writer.writerow(flat)
 
 

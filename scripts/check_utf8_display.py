@@ -15,7 +15,7 @@ from typing import Any
 
 DEFAULT_SAMPLE_FILES = [
     Path("data/pubevent_soa_lite/events.jsonl"),
-    Path("data/pubevent_soa_lite/evidence_filtered.jsonl"),
+    Path("data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl"),
     Path("outputs/runs/paper_materials/results_tables.md"),
     Path("outputs/runs/paper_materials/case_studies.md"),
 ]

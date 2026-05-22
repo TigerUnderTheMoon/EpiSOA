@@ -62,7 +62,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run EpiSOA evidence faithfulness verification.")
     parser.add_argument("--config", default="configs/paper.yaml")
     parser.add_argument("--candidates", default="outputs/runs/schema_attribution/candidate_soa_tuples.jsonl")
-    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_filtered.jsonl")
+    parser.add_argument("--evidence", default="data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
     parser.add_argument("--chains", default="outputs/runs/event_chain_retrieval/event_chain_candidates.jsonl")
     parser.add_argument("--output-dir", default="outputs/runs/faithfulness_verification")
     parser.add_argument("--tuple-ids", default="")
