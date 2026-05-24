@@ -1,0 +1,71 @@
+{
+  "event_id": "E011",
+  "tuples": [
+    {
+      "stakeholder": "江西省联合调查组",
+      "opinion": "经现场勘察、调取监控、查阅采购清单和询问相关人员后，认定涉事饭菜中的异物是老鼠类啮齿动物头部。",
+      "sentiment": "neutral",
+      "rationale": "多条证据显示，6月17日由省教育厅、省公安厅、省国资委、省市场监督管理局等组成的联合调查组公布调查结果，确认异物为鼠头。",
+      "evidence_ids": [
+        "ev-00243",
+        "ev-01572",
+        "ev-01576"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "江西工业职业技术学院食堂",
+      "opinion": "在学生就餐发现异物后，食堂当即解释该异物是鸭脖子。",
+      "sentiment": "negative",
+      "rationale": "证据明确提到学生就餐时发现疑似鼠头异物，食堂随即给出的解释是“鸭脖子”，后续联合调查结果与该说法相反。",
+      "evidence_ids": [
+        "ev-00242",
+        "ev-01571"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "当地市场监督管理局",
+      "opinion": "事件早期曾经反复检验并得出异物是鸭脖子的结论。",
+      "sentiment": "negative",
+      "rationale": "证据称当地市场监督管理局在早期给出反复检验结论，认为异物是鸭脖子；该结论后来被联合调查组认定为鼠头的结果推翻。",
+      "evidence_ids": [
+        "ev-00242",
+        "ev-00249"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "网友和社会公众",
+      "opinion": "公众不接受早期官方通报，认为通报没有解决对异物外观特征等问题的质疑，并使事件演化为更大舆情。",
+      "sentiment": "negative",
+      "rationale": "证据显示网友认为所谓鸭脖说法挑战视觉神经，且报道评论称大家根本不买账，通报没有解决大家对“毛发”“牙齿”等细节的质疑。",
+      "evidence_ids": [
+        "ev-00242",
+        "ev-00248"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "南昌市市场监督管理局",
+      "opinion": "依据食品安全相关法律法规，对涉事企业作出处罚，包括吊销许可或顶格处罚。",
+      "sentiment": "negative",
+      "rationale": "证据称在联合调查确认异物为鼠头后，南昌市市场监督管理局依据《食品安全法》及实施条例吊销相关许可，另有新闻称对涉事企业顶格处罚。",
+      "evidence_ids": [
+        "ev-00245",
+        "ev-00249"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "发声律师",
+      "opinion": "认为涉事学生可以就食品安全问题主张十倍赔偿。",
+      "sentiment": "negative",
+      "rationale": "证据提到官方调查确认异物为鼠头后，有律师发言称学生可以十倍索赔，但未提供该律师姓名和完整法律论证。",
+      "evidence_ids": [
+        "ev-00246"
+      ],
+      "support_label": "partially_supported"
+    }
+  ]
+}

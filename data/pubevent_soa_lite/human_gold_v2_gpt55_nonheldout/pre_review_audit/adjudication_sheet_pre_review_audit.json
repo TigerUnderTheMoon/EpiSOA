@@ -1,0 +1,22 @@
+{
+  "ready_for_human_review": true,
+  "total_errors": 0,
+  "total_warnings": 0,
+  "error_counts": {},
+  "warning_counts": {},
+  "errors": [],
+  "warnings": [],
+  "counts": {
+    "tuple_rows": 240,
+    "chain_rows": 0,
+    "canonical_evidence_records": 1767,
+    "events": 50
+  },
+  "inputs": {
+    "tuple_sheet": "data\\pubevent_soa_lite\\human_gold_v2_gpt55_nonheldout\\human_tuple_adjudication_sheet.csv",
+    "chain_sheet": "data\\pubevent_soa_lite\\human_gold_v2_gpt55_nonheldout\\human_chain_adjudication_sheet.csv",
+    "canonical_evidence": "data\\pubevent_soa_lite\\evidence_v3_repaired_plus_low37.jsonl",
+    "events": "data\\pubevent_soa_lite\\events.jsonl"
+  },
+  "audited_at": "2026-05-24T13:16:58.938280+00:00"
+}

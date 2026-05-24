@@ -1,0 +1,73 @@
+{
+  "event_id": "E002",
+  "tuples": [
+    {
+      "stakeholder": "浦东新区人民政府",
+      "opinion": "同意《唐镇小湾村暮二村等地块“城中村”改造项目实施方案》，推动项目进入实施阶段。",
+      "sentiment": "positive",
+      "rationale": "官方批复明确区政府同意该城中村改造项目实施方案。",
+      "evidence_ids": [
+        "ev-00049"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "唐镇政府",
+      "opinion": "为项目地块四、五、八被征地人员申请并公告就业和社会保障方案，回应征地后就业社保安排问题。",
+      "sentiment": "neutral",
+      "rationale": "多份唐镇发布的公告确认涉及不同地块被征地人员就业和社会保障方案。",
+      "evidence_ids": [
+        "ev-00046",
+        "ev-00047",
+        "ev-00048"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "小湾村、暮二村等地块被征收居民",
+      "opinion": "848产、1000多户居民完成100%签约，体现对征收改造方案的实际配合；报道称村民住上新房的愿望得以实现。",
+      "sentiment": "positive",
+      "rationale": "新闻报道显示最后一户签约完成、100%签约清盘，并称村民住上新房愿望全部得以实现。",
+      "evidence_ids": [
+        "ev-00041",
+        "ev-00042",
+        "ev-00044"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "城中村改造项目实施方",
+      "opinion": "在集中签约后推进安置房建设，首批征收安置房地块启动建设并计划提供2500余套安置房源。",
+      "sentiment": "positive",
+      "rationale": "报道提到项目提前实现100%居民征收签约，同时首批征收安置房地块启动建设、将提供2500余套房源。",
+      "evidence_ids": [
+        "ev-00042",
+        "ev-00044"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "浦东官方宣传口径",
+      "opinion": "将小湾村改造定位为浦东“产城融合”新地标，并强调其区别于一般以商品房或保障房为主的城市动迁项目。",
+      "sentiment": "positive",
+      "rationale": "官方信息称该老旧村落将成为浦东“产城融合”的新地标，并解释项目特点；其他报道也称小湾村将变身高新产业园区。",
+      "evidence_ids": [
+        "ev-01416",
+        "ev-00042"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "管线搬迁项目相关招标与承建单位",
+      "opinion": "围绕小湾村区域通信、上水等管线搬迁开展招标和中标公示，配合城中村改造的基础设施迁改。",
+      "sentiment": "neutral",
+      "rationale": "招标公告和中标公示均指向唐镇小湾村暮二村等地块城中村改造项目的小湾村区域管线搬迁事项。",
+      "evidence_ids": [
+        "ev-00039",
+        "ev-01412",
+        "ev-01413"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

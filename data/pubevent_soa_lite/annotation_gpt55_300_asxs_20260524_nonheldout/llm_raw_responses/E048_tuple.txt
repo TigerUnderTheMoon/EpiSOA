@@ -1,0 +1,74 @@
+{
+  "event_id": "E048",
+  "tuples": [
+    {
+      "stakeholder": "江苏省通信管理局",
+      "opinion": "通报2025年第1批侵害用户权益行为App，显示其将App用户权益保护作为监管重点。",
+      "sentiment": "positive",
+      "rationale": "多条报道称记者从江苏省通信管理局官网获悉，该局通报2025年第1批侵害用户权益行为App，并称其高度重视用户权益保护工作。",
+      "evidence_ids": [
+        "ev-01198",
+        "ev-01199",
+        "ev-01200",
+        "ev-01201"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "江苏省通信管理局",
+      "opinion": "依据《个人信息保护法》《网络安全法》等法律法规，对App侵害用户权益行为开展监管整治。",
+      "sentiment": "positive",
+      "rationale": "证据显示江苏省通信管理局依据相关法律法规开展用户权益保护和App违规行为整治。",
+      "evidence_ids": [
+        "ev-01198",
+        "ev-01200",
+        "ev-01206"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "被通报的20款App及其运营者",
+      "opinion": "被监管部门认定存在侵害用户权益行为，面临公开通报和整改压力。",
+      "sentiment": "negative",
+      "rationale": "证据明确提到江苏省通信管理局通报2025年第1批侵害用户权益行为App；事件信息说明本批涉及20款App。",
+      "evidence_ids": [
+        "ev-01198",
+        "ev-01199",
+        "ev-01201"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "新闻媒体记者",
+      "opinion": "通过报道转述江苏省通信管理局官网通报，向公众传播App侵害用户权益治理信息。",
+      "sentiment": "neutral",
+      "rationale": "腾讯新闻、扬子晚报相关转载均以“记者从江苏省通信管理局官网获悉”方式报道该通报。",
+      "evidence_ids": [
+        "ev-01198",
+        "ev-01201"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "App用户和人民群众",
+      "opinion": "对App非法获取、超范围收集、过度索权等侵害个人信息问题反映强烈。",
+      "sentiment": "negative",
+      "rationale": "相关治理报道提到，针对人民群众反映强烈的App非法获取、超范围收集、过度索权等问题开展治理；该证据与本事件同属江苏App个人信息治理背景，但未直接点名2025年第1批通报。",
+      "evidence_ids": [
+        "ev-01203"
+      ],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "江苏省委网信办、省公安厅、省市场监督管理局、省通信管理局",
+      "opinion": "针对App违法违规收集使用个人信息问题，依据网络安全和个人信息保护相关规定开展联合治理。",
+      "sentiment": "positive",
+      "rationale": "证据显示江苏多部门曾针对群众反映强烈的App个人信息问题依法开展治理，能够反映本事件的监管协同背景，但不是2025年第1批通报的直接证据。",
+      "evidence_ids": [
+        "ev-01203",
+        "ev-02125"
+      ],
+      "support_label": "partially_supported"
+    }
+  ]
+}

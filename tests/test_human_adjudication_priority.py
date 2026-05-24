@@ -65,6 +65,9 @@ def test_build_human_adjudication_sheet_scores_and_sorts_priority(tmp_path):
                 "rationale": "no",
                 "evidence_ids": ["ev1"],
                 "support_label": "partially_supported",
+                "independent_source_count": 1,
+                "confidence_route": "low_confidence",
+                "required_action": "human_review_required",
             },
         ],
     )
@@ -115,5 +118,8 @@ def test_build_human_adjudication_sheet_scores_and_sorts_priority(tmp_path):
     assert float(tuple_rows[0]["adjudication_priority_score"]) > float(tuple_rows[1]["adjudication_priority_score"])
     assert float(chain_rows[0]["adjudication_priority_score"]) > float(chain_rows[1]["adjudication_priority_score"])
     assert "weak_support_label" in tuple_rows[0]["priority_reason"]
+    assert tuple_rows[0]["confidence_route"] == "low_confidence"
+    assert tuple_rows[0]["required_action"] == "human_review_required"
+    assert "low_confidence_cross_source" in tuple_rows[0]["priority_reason"]
     assert "short_chain" in chain_rows[0]["priority_reason"]
     assert summary["priority_bucket_distribution"]["tuples"]["high"] == 1

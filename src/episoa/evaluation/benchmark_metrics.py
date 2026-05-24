@@ -6,6 +6,7 @@ Shared between run_benchmark_eval.py and run_benchmark_baselines.py.
 from __future__ import annotations
 
 import json
+import math
 import time
 from pathlib import Path
 
@@ -206,6 +207,7 @@ def eval_tuple_identification(predictions: list[dict]) -> dict:
     total_tp_soft = 0
     sentiment_correct = 0
     sentiment_total = 0
+    event_f1_soft_values: list[float] = []
 
     for p in predictions:
         gold_tuples = p["output"]["gold_tuples"]
@@ -215,6 +217,7 @@ def eval_tuple_identification(predictions: list[dict]) -> dict:
         total_gold += len(gold_tuples)
         total_pred += len(pred_tuples)
 
+        event_tp_soft = 0
         for gt in gold_tuples:
             sentiment_total += 1
             best_soft = 0.0
@@ -236,6 +239,13 @@ def eval_tuple_identification(predictions: list[dict]) -> dict:
                     best_soft = combined
             if best_soft >= 0.5:
                 total_tp_soft += 1
+                event_tp_soft += 1
+        event_precision_soft = event_tp_soft / len(pred_tuples) if pred_tuples else 0
+        event_recall_soft = event_tp_soft / len(gold_tuples) if gold_tuples else 0
+        event_f1_soft_values.append(
+            2 * event_precision_soft * event_recall_soft / (event_precision_soft + event_recall_soft)
+            if (event_precision_soft + event_recall_soft) > 0 else 0
+        )
 
     precision = total_tp / total_pred if total_pred > 0 else 0
     recall = total_tp / total_gold if total_gold > 0 else 0
@@ -257,6 +267,7 @@ def eval_tuple_identification(predictions: list[dict]) -> dict:
         "recall": round(recall, 4),
         "stakeholder_opinion_f1": round(f1, 4),
         "stakeholder_opinion_f1_soft": round(f1_soft, 4),
+        "stakeholder_opinion_f1_soft_ci95": mean_ci95(event_f1_soft_values),
         "sentiment_accuracy": round(sentiment_acc, 4),
     }
 
@@ -292,6 +303,7 @@ def eval_evidence_support(predictions: list[dict]) -> dict:
         "task": "evidence_support_classification",
         "total": total,
         "accuracy": round(correct / total, 4) if total > 0 else 0,
+        "accuracy_ci95": proportion_ci95(correct, total),
         "positive_accuracy": round(positive_correct / len(positive_rows), 4) if positive_rows else 0,
         "per_class": per_class,
         "confusion": confusion,
@@ -348,4 +360,35 @@ def eval_chain_construction(predictions: list[dict]) -> dict:
         "evidence_precision": round(ev_prec, 4),
         "evidence_recall": round(ev_rec, 4),
         "evidence_f1": round(ev_f1, 4),
+        "events_with_chain_match_ci95": proportion_ci95(events_with_chain_match, total_events),
+    }
+
+
+def proportion_ci95(successes: int, total: int) -> dict:
+    if total <= 0:
+        return {"low": None, "high": None, "method": "wilson"}
+    z = 1.96
+    p = successes / total
+    denom = 1 + z * z / total
+    center = (p + z * z / (2 * total)) / denom
+    margin = z * math.sqrt((p * (1 - p) + z * z / (4 * total)) / total) / denom
+    return {
+        "low": round(max(0, center - margin), 4),
+        "high": round(min(1, center + margin), 4),
+        "method": "wilson",
+    }
+
+
+def mean_ci95(values: list[float]) -> dict:
+    if not values:
+        return {"low": None, "high": None, "method": "normal"}
+    mean = sum(values) / len(values)
+    if len(values) == 1:
+        return {"low": round(mean, 4), "high": round(mean, 4), "method": "normal"}
+    variance = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
+    margin = 1.96 * math.sqrt(variance) / math.sqrt(len(values))
+    return {
+        "low": round(max(0, mean - margin), 4),
+        "high": round(min(1, mean + margin), 4),
+        "method": "normal",
     }

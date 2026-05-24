@@ -11,6 +11,7 @@ Sentiment = Literal["positive", "negative", "neutral", "mixed", "unknown"]
 SupportLabel = Literal["supported", "partially_supported", "unsupported", "insufficient_evidence"]
 Domain = Literal["urban_renewal", "education", "healthcare", "public_safety", "urban_mobility", "digital_governance"]
 EventType = Literal["concrete_event", "issue_evolution"]
+DatasetSplit = Literal["train", "dev", "test"]
 AnchorEntityValue = str | list[str]
 
 
@@ -32,6 +33,10 @@ class EventRecord(BaseModel):
     stakeholder_hints: list[str] = Field(..., min_length=1)
     stance_hints: list[str] = Field(..., min_length=1)
     temporal_stages: list[str] = Field(..., min_length=1)
+    split: DatasetSplit | None = None
+    held_out: bool = False
+    registry_version: str | None = None
+    registered_at: str | None = None
 
     @property
     def text(self) -> str:

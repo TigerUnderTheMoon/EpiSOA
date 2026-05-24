@@ -1,0 +1,72 @@
+{
+  "event_id": "E016",
+  "tuples": [
+    {
+      "stakeholder": "方城县消防救援大队",
+      "opinion": "接警后组织救援力量迅速到达英才学校宿舍火灾现场，并于23时38分扑灭明火",
+      "sentiment": "neutral",
+      "rationale": "证据描述方城县119指挥中心23时接警，消防救援大队迅速到场，23时38分明火被扑灭。",
+      "evidence_ids": [
+        "ev-00364",
+        "ev-00382"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "河南省消防救援总队",
+      "opinion": "公布方城县英才学校“1·19”重大火灾事故调查报告全文",
+      "sentiment": "neutral",
+      "rationale": "证据明确称河南省消防救援总队于12月17日在官网公布事故调查报告全文。",
+      "evidence_ids": [
+        "ev-00368"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "河南省事故调查报告发布方",
+      "opinion": "认定事故起因是一名小学生在宿舍内使用打火机，引燃衣物、床铺等物品并迅速蔓延",
+      "sentiment": "neutral",
+      "rationale": "多条新闻均援引河南省发布的调查报告，称起火原因为小学生在宿舍内使用打火机引燃物品。",
+      "evidence_ids": [
+        "ev-00366",
+        "ev-00367",
+        "ev-00369"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "河南省相关部门",
+      "opinion": "对方城英才学校重大火灾事故中的25名责任人员作出处理处分",
+      "sentiment": "negative",
+      "rationale": "新华社相关报道标题和摘要显示，河南对外发布调查报告并称25名责任人员被处理处分。",
+      "evidence_ids": [
+        "ev-00380"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "英才学校重大火灾事故被害人代理律师",
+      "opinion": "向外界披露该案一审于12月19日上午在方城县人民法院开庭审理",
+      "sentiment": "neutral",
+      "rationale": "界面新闻、澎湃新闻转载和中华网均称，据被害人代理律师处消息，该案一审在方城县人民法院开庭审理。",
+      "evidence_ids": [
+        "ev-00361",
+        "ev-00362",
+        "ev-00370"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众及学校社区",
+      "opinion": "对英才学校火灾造成13人遇难表示悲痛，并对校园住宿安全感到担忧",
+      "sentiment": "negative",
+      "rationale": "社交媒体文章称火灾夺走13个无辜生命、让社区陷入悲痛；另有评论称学校防火安全十分重要，体现对校园安全的担忧。",
+      "evidence_ids": [
+        "ev-00381",
+        "ev-00382",
+        "ev-00384"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

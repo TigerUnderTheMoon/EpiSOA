@@ -20,6 +20,7 @@ DEFAULT_EVENTS = Path("data/pubevent_soa_lite/events.jsonl")
 VALID_DECISIONS = {"accept", "revise", "drop", "add_missing", "uncertain"}
 VALID_SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
 VALID_SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "insufficient_evidence", ""}
+FINAL_ADJUDICATION_STATUS = "adjudicated_final"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -148,6 +149,9 @@ def convert_tuple_rows(
         event_id = row.get("event_id", "")
         if decision not in VALID_DECISIONS:
             raise ValueError(f"invalid review_decision for tuple {record_id}: {decision}")
+        if normalize_status(row.get("adjudication_status")) != FINAL_ADJUDICATION_STATUS:
+            log.append(log_row("tuple", event_id, record_id, decision, "excluded_by_not_adjudicated_final", row))
+            continue
         if decision in {"drop", "uncertain"}:
             log.append(log_row("tuple", event_id, record_id, decision, f"excluded_by_{decision}", row))
             continue
@@ -212,6 +216,9 @@ def convert_chain_rows(
         event_id = row.get("event_id", "")
         if decision not in VALID_DECISIONS:
             raise ValueError(f"invalid review_decision for chain {chain_id}: {decision}")
+        if normalize_status(row.get("adjudication_status")) != FINAL_ADJUDICATION_STATUS:
+            log.append(log_row("chain", event_id, chain_id, decision, "excluded_by_not_adjudicated_final", row))
+            continue
         if decision in {"drop", "uncertain"}:
             log.append(log_row("chain", event_id, chain_id, decision, f"excluded_by_{decision}", row))
             continue
@@ -346,6 +353,10 @@ def backup_existing(path: Path) -> None:
 
 def normalize_decision(value: Any) -> str:
     return str(value or "").strip()
+
+
+def normalize_status(value: Any) -> str:
+    return str(value or "").strip().lower()
 
 
 def parse_ids(value: Any) -> list[str]:

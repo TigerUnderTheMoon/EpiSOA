@@ -1,0 +1,74 @@
+{
+  "event_id": "E032",
+  "tuples": [
+    {
+      "stakeholder": "应急管理部部长王祥喜/应急管理部",
+      "opinion": "要求指导帮助地方加快搜救、科学安全救援、全力救治伤员，并最大程度减少人员伤亡、查清原因",
+      "sentiment": "negative",
+      "rationale": "多条报道提到事故接报后应急管理部立即部署，重点是搜救、救治和原因调查，体现对灾害后果的紧急应对。",
+      "evidence_ids": [
+        "ev-00758",
+        "ev-01881",
+        "ev-01883"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广东省委省政府及梅州市相关部门",
+      "opinion": "高度重视事故并全力开展救援，成立事故救援现场指挥部，组织公安、应急、消防、卫健、交通等500多人投入处置",
+      "sentiment": "neutral",
+      "rationale": "地方公开信息明确说明省委省政府高度重视，省、市启动现场指挥和多部门救援力量。",
+      "evidence_ids": [
+        "ev-00756"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广东省政府调查评估组/广东省应急管理厅",
+      "opinion": "发布梅大高速茶阳路段“5·1”塌方灾害调查评估报告，查明灾害原因并认定为特别重大人员伤亡的塌方灾害",
+      "sentiment": "neutral",
+      "rationale": "官方报告及新华社转述均显示调查评估报告已公布，并说明查明原因、作出灾害性质认定。",
+      "evidence_ids": [
+        "ev-01876",
+        "ev-01882",
+        "ev-00752"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广东梅大高速涉灾路段工程建设和运营养护相关责任单位及人员",
+      "opinion": "因涉灾路段工程建设和运营养护问题被纳入追责问责通报",
+      "sentiment": "negative",
+      "rationale": "追责问责情况通报明确聚焦涉灾路段工程建设和运营养护问题，另有舆论报道提及问责名单及事故严重后果。",
+      "evidence_ids": [
+        "ev-01871",
+        "ev-01875"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "受影响家庭和当地社区",
+      "opinion": "灾害给受影响家庭造成巨大悲痛，并对整个社区产生深远影响",
+      "sentiment": "negative",
+      "rationale": "公共社交平台文章将事件描述为令人痛心，并强调其对家庭和社区的伤害；但该表述属于概括性社会评价而非直接当事人引语。",
+      "evidence_ids": [
+        "ev-00757"
+      ],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "央视新闻及多家新闻媒体",
+      "opinion": "持续报道调查评估报告发布及灾害伤亡情况，强调事故造成23辆车掉落、52人死亡、30人受伤的严重后果",
+      "sentiment": "negative",
+      "rationale": "多家媒体转载或报道央视消息，集中披露事故时间、地点、车辆坠落和伤亡规模，形成对灾害严重性的媒体呈现。",
+      "evidence_ids": [
+        "ev-00751",
+        "ev-00752",
+        "ev-00754",
+        "ev-01872",
+        "ev-01873"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

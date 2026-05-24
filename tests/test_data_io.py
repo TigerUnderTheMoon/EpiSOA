@@ -119,6 +119,10 @@ EVENT_MINIMAL = {
     "stakeholder_hints": ["Residents", "Government"],
     "stance_hints": ["concern", "response"],
     "temporal_stages": ["trigger", "response"],
+    "split": "train",
+    "held_out": False,
+    "registry_version": "test-v1",
+    "registered_at": "2026-05-24T00:00:00+08:00",
 }
 
 
@@ -158,6 +162,24 @@ def test_event_social_media_in_source_scope():
     bad["source_scope"] = ["social_media", "news"]
     errors = validate_formal_event_record(bad)
     assert any("social_media" in e for e in errors)
+
+
+@pytest.mark.unit
+def test_event_test_split_requires_held_out():
+    bad = dict(EVENT_MINIMAL)
+    bad["split"] = "test"
+    bad["held_out"] = False
+    errors = validate_formal_event_record(bad)
+    assert any("held_out=true" in e for e in errors)
+
+
+@pytest.mark.unit
+def test_event_held_out_reserved_for_test():
+    bad = dict(EVENT_MINIMAL)
+    bad["split"] = "train"
+    bad["held_out"] = True
+    errors = validate_formal_event_record(bad)
+    assert any("reserved for test" in e for e in errors)
 
 
 @pytest.mark.unit

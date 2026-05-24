@@ -103,11 +103,19 @@ def audit_human_gold(
             "evidence_records": len(evidence),
             "events": len(events),
         },
+        "audit_appendix": {
+            "error_type_distribution": dict(Counter(issue["check"] for issue in issues)),
+            "warning_type_distribution": dict(Counter(warning["check"] for warning in warnings)),
+            "typical_issue_cases": issues[:10],
+            "typical_warning_cases": warnings[:10],
+        },
         "audited_at": datetime.now(timezone.utc).isoformat(),
     }
     output_dir.mkdir(parents=True, exist_ok=True)
     write_json(output_dir / f"{report_prefix}_audit.json", report)
     write_text(output_dir / f"{report_prefix}_audit.md", render_markdown(report))
+    write_json(output_dir / f"{report_prefix}_audit_report.json", report)
+    write_text(output_dir / f"{report_prefix}_audit_report.md", render_appendix_markdown(report))
     update_manifest(manifest_path, report, output_dir / f"{report_prefix}_audit.json")
     return report
 
@@ -167,6 +175,13 @@ def audit_tuples(
             issues.append(issue("duplicate_tuple_content", prefix, "|".join(key[:4])))
         seen_keys.add(key)
         referenced_chain_ids = tuple_chain_ids(row)
+        provenance = row.get("annotation_provenance") if isinstance(row.get("annotation_provenance"), dict) else {}
+        if str(provenance.get("adjudication_status") or "").strip() != "adjudicated_final":
+            issues.append(issue("tuple_adjudicated_final", prefix, "annotation_provenance.adjudication_status must be adjudicated_final"))
+        if not str(provenance.get("reviewer_id") or "").strip():
+            issues.append(issue("tuple_human_reviewer_present", prefix, "missing reviewer_id in annotation_provenance"))
+        if str(provenance.get("reviewer_id") or "").strip() == "auto_reviewer":
+            issues.append(issue("tuple_human_reviewer_not_auto", prefix, "auto_reviewer is not allowed in human gold"))
         for chain_id in referenced_chain_ids:
             if chain_id not in chain_ids:
                 issues.append(issue("tuple_chain_id_exists", prefix, f"unknown chain_id {chain_id}"))
@@ -216,6 +231,13 @@ def audit_chains(
                 issues.append(issue("chain_evidence_id_exists", prefix, str(evidence_id)))
             elif str(evidence.get("event_id")) != event_id:
                 issues.append(issue("chain_evidence_same_event", prefix, str(evidence_id)))
+        provenance = row.get("annotation_provenance") if isinstance(row.get("annotation_provenance"), dict) else {}
+        if str(provenance.get("adjudication_status") or "").strip() != "adjudicated_final":
+            issues.append(issue("chain_adjudicated_final", prefix, "annotation_provenance.adjudication_status must be adjudicated_final"))
+        if not str(provenance.get("reviewer_id") or "").strip():
+            issues.append(issue("chain_human_reviewer_present", prefix, "missing reviewer_id in annotation_provenance"))
+        if str(provenance.get("reviewer_id") or "").strip() == "auto_reviewer":
+            issues.append(issue("chain_human_reviewer_not_auto", prefix, "auto_reviewer is not allowed in human gold"))
 
 
 def issue(check: str, row: str, message: str) -> dict[str, str]:
@@ -297,6 +319,35 @@ def render_markdown(report: dict[str, Any]) -> str:
     else:
         for item in report["warnings"][:200]:
             lines.append(f"- {item['check']} / {item['row']}: {item['message']}")
+    return "\n".join(lines)
+
+
+def render_appendix_markdown(report: dict[str, Any]) -> str:
+    lines = [
+        "# Human Gold Audit Report",
+        "",
+        "## Summary",
+        f"- ready_for_main_experiment: {report['ready_for_main_experiment']}",
+        f"- total_issues: {report['total_issues']}",
+        f"- total_warnings: {report['total_warnings']}",
+        f"- counts: {report['counts']}",
+        "",
+        "## Error Type Distribution",
+    ]
+    for key, count in sorted(report["audit_appendix"]["error_type_distribution"].items()):
+        lines.append(f"- {key}: {count}")
+    if not report["audit_appendix"]["error_type_distribution"]:
+        lines.append("- No errors.")
+    lines.extend(["", "## Warning Type Distribution"])
+    for key, count in sorted(report["audit_appendix"]["warning_type_distribution"].items()):
+        lines.append(f"- {key}: {count}")
+    if not report["audit_appendix"]["warning_type_distribution"]:
+        lines.append("- No warnings.")
+    lines.extend(["", "## Typical Issue Cases"])
+    for item in report["audit_appendix"]["typical_issue_cases"]:
+        lines.append(f"- {item.get('check', '')} / {item.get('row', 'dataset')}: {item.get('message', '')}")
+    if not report["audit_appendix"]["typical_issue_cases"]:
+        lines.append("- No issue cases.")
     return "\n".join(lines)
 
 

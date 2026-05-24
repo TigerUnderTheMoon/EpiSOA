@@ -157,7 +157,7 @@ def test_convert_and_audit_pilot_mode_use_only_pilot_outputs(tmp_path):
         "review_decision": "accept",
         "reviewer_id": "R1",
         "reviewer_note": "",
-        "adjudication_status": "pilot_done",
+        "adjudication_status": "adjudicated_final",
     }])
     write_csv(chain_sheet, [{
         "event_id": "E1",
@@ -167,7 +167,7 @@ def test_convert_and_audit_pilot_mode_use_only_pilot_outputs(tmp_path):
         "review_decision": "accept",
         "reviewer_id": "R1",
         "reviewer_note": "",
-        "adjudication_status": "pilot_done",
+        "adjudication_status": "adjudicated_final",
     }])
 
     subprocess.run(

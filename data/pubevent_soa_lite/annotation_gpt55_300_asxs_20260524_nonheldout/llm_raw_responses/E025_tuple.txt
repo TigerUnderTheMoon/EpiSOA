@@ -1,0 +1,75 @@
+{
+  "event_id": "E025",
+  "tuples": [
+    {
+      "stakeholder": "上海市东方医院",
+      "opinion": "针对孙某新医生被网传“泄露患者隐私”的问题，医院决定立即暂停其医疗工作，并配合医院和相关部门调查。",
+      "sentiment": "neutral",
+      "rationale": "多条证据均显示东方医院发布说明或通报，采取暂停涉事医生医疗工作、配合调查的措施。",
+      "evidence_ids": [
+        "ev-00604",
+        "ev-00605",
+        "ev-01772",
+        "ev-01782"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "上海市东方医院",
+      "opinion": "医院表示将以严肃认真、客观公正的态度，依法依规严肃处理该舆情事件，并强调维护患者权益。",
+      "sentiment": "positive",
+      "rationale": "证据显示院方承诺彻查、维护患者权益，并称将依法依规严肃处理。",
+      "evidence_ids": [
+        "ev-00603",
+        "ev-00605",
+        "ev-01782"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "实名举报者余女士",
+      "opinion": "余女士举报称孙某新私下传播女性患者麻醉状态下的裸照、视频及大量手术信息，认为其存在泄露患者隐私行为。",
+      "sentiment": "negative",
+      "rationale": "证据明确提到实名举报者余女士及其举报内容，包括私密照片、视频和180份手术信息等。",
+      "evidence_ids": [
+        "ev-00606",
+        "ev-01777",
+        "ev-00609"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "被涉及的患者群体",
+      "opinion": "患者群体的隐私权可能受到严重侵犯，尤其是女性患者麻醉状态下的照片和手术信息被传播引发担忧。",
+      "sentiment": "negative",
+      "rationale": "多条证据称被举报内容涉及女性患者麻醉时裸照、隐私照片和手术信息，报道将其描述为严重侵犯患者隐私权。",
+      "evidence_ids": [
+        "ev-00606",
+        "ev-00608",
+        "ev-00610"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "新闻媒体和评论文章",
+      "opinion": "媒体评论认为该事件触碰医患关系中的隐私红线，挑战公众对医院和医生的信任。",
+      "sentiment": "negative",
+      "rationale": "证据中有评论将事件概括为“重塑信任：医患关系的隐私红线”，并称事件引发广泛关注和深思；另有报道称行为挑战医患信任。",
+      "evidence_ids": [
+        "ev-00611",
+        "ev-00608"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "法律评论者",
+      "opinion": "法律评论指出，医疗机构及医务人员应对患者隐私和个人信息保密，泄露隐私或未经同意公开病历资料应承担侵权责任。",
+      "sentiment": "negative",
+      "rationale": "证据引用相关规定，强调医务人员的保密义务及泄露患者隐私、个人信息的侵权责任。",
+      "evidence_ids": [
+        "ev-00607"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

@@ -401,8 +401,20 @@ def build_chain_construction(events_by_id, evidence_by_event, chains_by_event, m
     return rows
 
 
-def build_event_split(event_ids, train_ratio, dev_ratio, seed):
-    ids = list(event_ids)
+def build_event_split(event_rows, train_ratio, dev_ratio, seed, *, allow_random_splits=False):
+    if not allow_random_splits:
+        registry_split = build_registry_split(event_rows)
+        if registry_split is not None:
+            return registry_split, {
+                "strategy": "event_registry",
+                "held_out_policy": "only split=test may have held_out=true",
+            }
+        raise ValueError(
+            "events are missing split/held_out metadata; benchmark splits must be frozen in Stage 1. "
+            "Use --allow-random-splits only for legacy non-paper diagnostics."
+        )
+
+    ids = [get_event_id(row) for row in event_rows]
     rng = random.Random(seed)
     rng.shuffle(ids)
 
@@ -421,7 +433,34 @@ def build_event_split(event_ids, train_ratio, dev_ratio, seed):
         "train": sorted(train, key=natural_event_sort_key),
         "dev": sorted(dev, key=natural_event_sort_key),
         "test": sorted(test, key=natural_event_sort_key),
-    }
+    }, {"strategy": "legacy_random", "seed": seed, "train_ratio": train_ratio, "dev_ratio": dev_ratio}
+
+
+def build_registry_split(event_rows):
+    splits = {"train": [], "dev": [], "test": []}
+    saw_split = False
+    for event in event_rows:
+        event_id = get_event_id(event)
+        split = event.get("split")
+        held_out = bool(event.get("held_out", False))
+        if split is None:
+            continue
+        saw_split = True
+        if split not in splits:
+            raise ValueError(f"invalid split for {event_id}: {split}")
+        if split == "test" and not held_out:
+            raise ValueError(f"test event {event_id} must have held_out=true")
+        if held_out and split != "test":
+            raise ValueError(f"held_out event {event_id} must be assigned to split=test")
+        splits[split].append(event_id)
+    if not saw_split:
+        return None
+    missing = [get_event_id(event) for event in event_rows if not event.get("split")]
+    if missing:
+        raise ValueError(f"events missing split metadata: {missing[:10]}")
+    if not splits["test"]:
+        raise ValueError("registry split has no held-out test events")
+    return {name: sorted(ids, key=natural_event_sort_key) for name, ids in splits.items()}
 
 
 def write_splits(output_dir, filename_prefix, rows, split, backup_existing=False):
@@ -457,6 +496,7 @@ def main():
     parser.add_argument("--make-splits", action="store_true")
     parser.add_argument("--train-ratio", type=float, default=0.8)
     parser.add_argument("--dev-ratio", type=float, default=0.1)
+    parser.add_argument("--allow-random-splits", action="store_true", help="Legacy diagnostic mode only; paper benchmark splits must come from events.jsonl.")
     parser.add_argument("--backup-existing", action="store_true")
     args = parser.parse_args()
 
@@ -509,7 +549,13 @@ def main():
     split_row_counts = None
 
     if args.make_splits:
-        split_info = build_event_split(event_ids, args.train_ratio, args.dev_ratio, args.seed)
+        split_info, split_policy = build_event_split(
+            events,
+            args.train_ratio,
+            args.dev_ratio,
+            args.seed,
+            allow_random_splits=args.allow_random_splits,
+        )
         split_row_counts = {
             "tuple_identification": write_splits(
                 output_dir, "tuple_identification", tuple_identification_rows, split_info, args.backup_existing
@@ -547,6 +593,12 @@ def main():
             "seed": args.seed,
             "strategy": "same-event evidence not listed in tuple.evidence_ids",
         },
+        "held_out_policy": {
+            "stage": "Stage 1 event registry",
+            "test_events_must_have_held_out_true": True,
+            "llm_preannotation_and_development_must_not_read_test_split": True,
+            "split_policy": split_policy if args.make_splits else None,
+        },
         "validation": {
             "missing_tuple_evidence_refs_count": len(validation["missing_tuple_evidence_refs"]),
             "missing_chain_evidence_refs_count": len(validation["missing_chain_evidence_refs"]),
@@ -574,6 +626,7 @@ def main():
         "notes": [
             "Tuple identification and chain construction are event-level tasks.",
             "Evidence support classification contains gold positive tuple-evidence pairs and optional same-event negative samples.",
+            "Paper benchmark test splits are derived from Stage 1 event registry metadata, not post-hoc random assignment.",
             "Source files are not modified by this script.",
         ],
     }

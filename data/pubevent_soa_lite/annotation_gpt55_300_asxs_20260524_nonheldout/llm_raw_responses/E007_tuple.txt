@@ -1,0 +1,65 @@
+{
+  "event_id": "E007",
+  "tuples": [
+    {
+      "stakeholder": "蓝色康园小区业主",
+      "opinion": "反映小区物业疑似占用公共空间作为员工宿舍。",
+      "sentiment": "negative",
+      "rationale": "新闻证据称业主向记者反映物业疑似占用公共空间做宿舍。",
+      "evidence_ids": [
+        "ev-00137"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "蓝色康园小区业主",
+      "opinion": "反映物业在公共区域堆放杂物，影响公共区域使用。",
+      "sentiment": "negative",
+      "rationale": "证据明确提到业主反映物业在公共区域堆放杂物。",
+      "evidence_ids": [
+        "ev-00137"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "蓝色康园小区业主",
+      "opinion": "质疑公共区域产生的水电费没有公示。",
+      "sentiment": "negative",
+      "rationale": "证据称业主认为相关水电费并没有公示。",
+      "evidence_ids": [
+        "ev-00137"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "蓝色康园小区业主",
+      "opinion": "怀疑公共区域相关水电费被均摊为公摊费用并向全体业主收费。",
+      "sentiment": "negative",
+      "rationale": "证据称业主怀疑这些费用被均算，作为公摊费用向所有业主收费。",
+      "evidence_ids": [
+        "ev-00137"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "蓝色康园小区业主",
+      "opinion": "质疑物业费从每平方米一块多涨到两块多且看不到新合同，怀疑物业偷偷涨价。",
+      "sentiment": "negative",
+      "rationale": "证据称业主反映物业费上涨、看不到新合同，并怀疑物业偷偷涨价。",
+      "evidence_ids": [
+        "ev-00139"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广州市物业管理行业协会",
+      "opinion": "正在督促蓝色康园小区物业方尽快整改业主反映的问题。",
+      "sentiment": "neutral",
+      "rationale": "证据标题明确称市物管协会正在督促该小区物业方尽快整改。",
+      "evidence_ids": [
+        "ev-00139"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

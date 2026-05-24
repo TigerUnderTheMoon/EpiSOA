@@ -406,6 +406,26 @@ ABLATION_SETTINGS = {
     "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware"},
     "without_event_chain_prompt":  {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed"},
     "without_event_chain_ranking": {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed"},
+    "without_evidence_retrieval":  {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "ablation_component": "evidence_retrieval"},
+    "without_normalization":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "raw_or_un-normalized_evidence"},
+    "without_llm_preannotation":   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "random_initialized_annotation_seed"},
+    "silver_only":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "silver_v1_gold_paths"},
+    "reduced_gold_50":             {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "50_percent_human_gold_subset"},
+}
+
+PIPELINE_FLAG_KEYS = {
+    "use_graph",
+    "use_event_chain",
+    "use_verifier",
+    "hide_chain_in_prompt",
+    "skip_chain_ranking",
+    "oracle_evidence",
+    "use_soe_graph",
+    "selector_mode",
+    "verifier_mode",
+    "method_version",
+    "max_tuples_per_event",
+    "enforce_candidate_constraints",
 }
 
 
@@ -472,7 +492,7 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
         print(f"  [RUN] {setting} → {setting_dir}")
         verified, _retrieval_metrics, _verifier_metrics = _run_core_pipeline(
             events, evidence, gold, gold_chains, config, setting_dir, llm_client,
-            **flags,
+            **{key: value for key, value in flags.items() if key in PIPELINE_FLAG_KEYS},
         )
 
         metrics = evaluate_ablation(gold, verified, verifier_enabled=bool(flags["use_verifier"]))

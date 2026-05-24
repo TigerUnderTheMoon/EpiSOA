@@ -1,0 +1,68 @@
+{
+  "event_id": "E019",
+  "tuples": [
+    {
+      "stakeholder": "北京多家美吉姆门店受影响家长",
+      "opinion": "认为门店关停后孩子无法正常上课，预付的上万元剩余课时费无处可退，要求解决退费问题。",
+      "sentiment": "negative",
+      "rationale": "报道称北京多家分店关店停业，家长上万元课时费无处可退；另有不少家长表示预付长期课程费用多在上万元，关停后无法正常上课且剩余费用难退。",
+      "evidence_ids": [
+        "ev-00458",
+        "ev-01680"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "北京美吉姆西直门中心投诉家长",
+      "opinion": "指称西直门中心撤店跑路，高额学费无人处理，要求处理其已缴纳课程费用。",
+      "sentiment": "negative",
+      "rationale": "投诉标题明确称“北京美吉姆西直门中心撤店跑路，高额学费无人处理”，并说明家长为孩子报名56节早教课程、缴费金额约10800元。",
+      "evidence_ids": [
+        "ev-00461"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "黑猫投诉平台上的美吉姆消费者",
+      "opinion": "投诉美吉姆存在退款问题、霸王条款等，要求退款或解除合约。",
+      "sentiment": "negative",
+      "rationale": "两条投诉记录均涉及退款问题，其中一条还列出诱导消费、虚假宣传、霸王条款、费用和发票问题并要求退款，另一条要求退款和解除合约。",
+      "evidence_ids": [
+        "ev-01677",
+        "ev-01678"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "美吉姆（中国）总部",
+      "opinion": "回应称仍在积极寻求措施支持加盟中心继续经营，并督促闭店、并店中心处理后续问题。",
+      "sentiment": "neutral",
+      "rationale": "2023年12月31日，美吉姆（中国）总部发布声明称仍积极寻求各种措施支持加盟中心继续经营，并督促闭店、并店的美吉姆中心采取相关处理。",
+      "evidence_ids": [
+        "ev-00458"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "美吉姆常营华联中心",
+      "opinion": "称因经营困难向上市公司美吉姆提出借款周转救助需求，但多次沟通无果且被拒绝，门店已无力支付房租和员工薪酬社保。",
+      "sentiment": "negative",
+      "rationale": "常营华联中心表示其经营遇到诸多问题，曾向上市公司美吉姆提出借钱周转救助需求，但被以无法扶持为由拒绝，导致无以为继。",
+      "evidence_ids": [
+        "ev-01676"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "爆料网友和收到闭店信息的家长",
+      "opinion": "质疑北京美吉姆线下多家门店突然关闭甚至“跑路”，并不满门店缺乏正式沟通。",
+      "sentiment": "negative",
+      "rationale": "网友爆称北京美吉姆早教机构要跑路，多家线下门店已关闭；另有内容称不少网友爆料多家门店突然关闭，家长纷纷收到闭店信息。",
+      "evidence_ids": [
+        "ev-00460",
+        "ev-01682"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "event_id": "E001",
+  "tuples": [
+    {
+      "stakeholder": "广州市白云区政府",
+      "opinion": "印发三元里村城中村改造项目土地及房屋征收补偿安置方案，明确符合条件并选择安置的村民住宅按“拆一补一”原则核定安置面积。",
+      "sentiment": "neutral",
+      "rationale": "多条官方和新闻证据均提到白云区政府印发补偿安置方案，并说明集体土地村民住宅符合“一户一宅”等条件且选择安置的，按“拆一补一”核定安置面积。",
+      "evidence_ids": [
+        "ev-00001",
+        "ev-00008",
+        "ev-00015"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广州市白云区政府",
+      "opinion": "承诺村民安置房全部回迁在改造范围内，即三元里街辖内。",
+      "sentiment": "positive",
+      "rationale": "官方及多家媒体均报道，根据已批复方案，村民安置房全部回迁在三元里村改造范围内、三元里街辖内。",
+      "evidence_ids": [
+        "ev-00001",
+        "ev-00002",
+        "ev-00007"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "三元里村居民",
+      "opinion": "对三元里村旧城改造项目在长期停滞后取得实质性进展感到振奋，并有人主动咨询征收事宜。",
+      "sentiment": "positive",
+      "rationale": "搜狐报道提到项目经过长达十年停滞后迎来实质性进展，居民对变化感到振奋，已有多人主动前往工作组咨询征收。",
+      "evidence_ids": [
+        "ev-00010"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "白云区征收工作组",
+      "opinion": "进驻三元里村并正式启动征拆工作。",
+      "sentiment": "neutral",
+      "rationale": "新闻证据称白云区已成立13个征收工作组进驻三元里村，正式启动征拆工作。",
+      "evidence_ids": [
+        "ev-00010"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "三元里村城中村改造项目相关实施方",
+      "opinion": "推出签约激励政策，5月10日前签约的村民可享受奖励金额1万元、50年车位使用权和优先选房权等三重奖励。",
+      "sentiment": "positive",
+      "rationale": "新闻报道称“三元里村城中村改造项目激励政策”出炉，5月10日前签约村民可享受三重奖励，包括1万元、50年车位使用权和优先选房权。",
+      "evidence_ids": [
+        "ev-00022"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "三元里城中村居民",
+      "opinion": "居民对城中村改造本身的同意率较高，但对拆迁补偿方案的支持率明显较低。",
+      "sentiment": "mixed",
+      "rationale": "公共网页称截至5月30日，三元里城中村居民同意城中村改造比率超过80%，但拆迁补偿方案支持比率为33.62%，显示对改造与补偿方案态度存在差异。",
+      "evidence_ids": [
+        "ev-00023"
+      ],
+      "support_label": "partially_supported"
+    }
+  ]
+}

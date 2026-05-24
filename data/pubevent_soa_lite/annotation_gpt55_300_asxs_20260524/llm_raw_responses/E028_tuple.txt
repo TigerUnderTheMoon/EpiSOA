@@ -1,0 +1,77 @@
+{
+  "event_id": "E028",
+  "tuples": [
+    {
+      "stakeholder": "福州疾控",
+      "opinion": "上线“紧缺疫苗排队预约”系统，并首批推出HPV疫苗排队预约服务。",
+      "sentiment": "positive",
+      "rationale": "多条报道明确称“福州疾控”微信公众号上线紧缺疫苗排队预约系统，目前已推出HPV疫苗排队预约。",
+      "evidence_ids": [
+        "ev-00664",
+        "ev-00668",
+        "ev-00669",
+        "ev-00685"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "福州市民",
+      "opinion": "反映福州四价、九价HPV疫苗一针难求，预约人数多且排队等待时间长。",
+      "sentiment": "negative",
+      "rationale": "证据显示不少福州市民反映HPV疫苗预约数量达数万人、排队注射需等一年，存在明显供需紧张和预约困难。",
+      "evidence_ids": [
+        "ev-01257",
+        "ev-01258",
+        "ev-01259"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "福州疾控中心工作人员",
+      "opinion": "表示升级后的紧缺疫苗排队预约新系统将统一预约福州市紧缺疫苗，且全程可查。",
+      "sentiment": "positive",
+      "rationale": "工作人员告诉媒体，新系统已上线，今后福州市紧缺疫苗都将在该平台统一预约并全程可查。",
+      "evidence_ids": [
+        "ev-00667",
+        "ev-00670"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "紧缺疫苗排队预约系统",
+      "opinion": "根据库存和预约人数自动匹配预约资格：库存充足时即排即约，库存不足时每日发放预约资格。",
+      "sentiment": "neutral",
+      "rationale": "证据说明升级后系统在库存数大于预约人数时自动即排即约，库存数小于预约人数时每日发放一次预约资格。",
+      "evidence_ids": [
+        "ev-00670",
+        "ev-00687",
+        "ev-00690"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "福州市卫健委",
+      "opinion": "公布全市200家HPV疫苗接种单位名单及地址、联系方式、门诊时间等信息。",
+      "sentiment": "positive",
+      "rationale": "证据显示福州市卫健委在“福州卫生健康”微信公众号公布200家HPV疫苗接种单位名单和相关信息，便利公众查询接种资源。",
+      "evidence_ids": [
+        "ev-00683",
+        "ev-00688"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "本地生活信息平台",
+      "opinion": "提醒公众不同区、不同接种机构预约方式不一致，线上排队登记成功并不等于预约成功，仍需等待接种通知。",
+      "sentiment": "neutral",
+      "rationale": "本地宝等信息页面提示福州各区和各接种点预约流程不同，并说明部分接种点线上排队登记只是加入等候队列，不代表预约成功。",
+      "evidence_ids": [
+        "ev-00662",
+        "ev-00663",
+        "ev-00685",
+        "ev-00686"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

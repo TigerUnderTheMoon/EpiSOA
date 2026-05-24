@@ -1,0 +1,81 @@
+{
+  "event_id": "E004",
+  "tuples": [
+    {
+      "stakeholder": "横沙社区",
+      "opinion": "通过投票决议，向黄埔区政府申请对改造范围内留守户房屋拆迁补偿安置争议进行行政处理。",
+      "sentiment": "neutral",
+      "rationale": "多条报道均称横沙社区近期以投票方式通过决议，申请政府行政处理留守户房屋拆迁补偿安置争议。",
+      "evidence_ids": [
+        "ev-00077",
+        "ev-00081",
+        "ev-00082",
+        "ev-00083",
+        "ev-01455"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "黄埔区政府",
+      "opinion": "曾发布横沙旧村改造项目剩余地块改造通告，将改造推进建立在房屋权属人同意拆迁安置补偿方案的基础上。",
+      "sentiment": "neutral",
+      "rationale": "官方通告标题和正文显示，黄埔区政府就横沙旧村改造剩余地块发布通告，并提及房屋权属人同意《横沙“城中村”拆迁安置补偿方案》。",
+      "evidence_ids": [
+        "ev-00080",
+        "ev-00086",
+        "ev-00087"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "横沙旧村改造范围内房屋权属人",
+      "opinion": "同意《横沙“城中村”拆迁安置补偿方案》。",
+      "sentiment": "positive",
+      "rationale": "黄埔区政府官方通告文本直接表述改造范围内房屋权属人同意相关拆迁安置补偿方案。",
+      "evidence_ids": [
+        "ev-00080",
+        "ev-00086",
+        "ev-00087"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "横沙旧改留守户或未签约房屋业主",
+      "opinion": "其房屋尚未拆除或未签约，并成为拆迁补偿安置争议行政处理申请的对象。",
+      "sentiment": "negative",
+      "rationale": "报道提到香秀路旁存在未拆除村民房屋，社区决议申请行政处理改造范围内留守户房屋拆迁补偿安置争议；但证据未直接呈现留守户本人表态。",
+      "evidence_ids": [
+        "ev-00081",
+        "ev-00082",
+        "ev-00083",
+        "ev-00084"
+      ],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "现场村民",
+      "opinion": "担心拆迁作业未做好安全围蔽，可能危及相邻未签约房屋。",
+      "sentiment": "negative",
+      "rationale": "现场报道称有村民指出相邻还有未签约房屋，认为安全围蔽不足，并担心危及未签房屋。",
+      "evidence_ids": [
+        "ev-00084"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "时代财经及转载媒体",
+      "opinion": "将横沙社区申请行政处理事件置于广州城市更新提速的背景下进行报道。",
+      "sentiment": "neutral",
+      "rationale": "时代财经及多个转载来源均以“广州城市更新正在提速”开篇，并报道横沙社区通过决议申请行政处理留守户争议。",
+      "evidence_ids": [
+        "ev-00077",
+        "ev-00081",
+        "ev-00082",
+        "ev-00083",
+        "ev-00085",
+        "ev-01455"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

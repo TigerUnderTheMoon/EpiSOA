@@ -1,0 +1,72 @@
+{
+  "event_id": "E045",
+  "tuples": [
+    {
+      "stakeholder": "武汉东湖风景区城管执法局",
+      "opinion": "对多次忽视潮汐点位预警、未及时清理车辆并造成通行受阻的共享单车运营企业依法处以2000元罚款",
+      "sentiment": "negative",
+      "rationale": "官方信息明确称，因运营企业多次忽视预警、未及时清理车辆造成通行受阻，东湖风景区城管执法局依法罚款2000元。",
+      "evidence_ids": [
+        "ev-02051",
+        "ev-01139"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "某共享单车运营企业",
+      "opinion": "在东湖风景区潮汐点位车辆淤积治理中被认定未及时清理车辆、管理不到位",
+      "sentiment": "negative",
+      "rationale": "证据指出该企业多次忽视潮汐点位预警，未及时清理车辆，导致通行受阻并受到处罚。",
+      "evidence_ids": [
+        "ev-02051",
+        "ev-01139"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "东湖风景区城管部门",
+      "opinion": "通过“半阈值报警”智慧监管系统和智能平台强化共享单车停放秩序监管、精准治理单车乱象",
+      "sentiment": "positive",
+      "rationale": "官方报道称该处罚是运用“半阈值报警”智慧监管系统精准治理单车乱象的首起典型案例，并提到通过智能平台强化停放秩序监管。",
+      "evidence_ids": [
+        "ev-02051",
+        "ev-01139"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "武汉市东湖风景区城管执法局",
+      "opinion": "在东湖绿道三期开放前组织单车工作调度会，协调部署东湖南路沿线共享单车，以营造良好骑行环境",
+      "sentiment": "positive",
+      "rationale": "交通部门信息显示，东湖绿道三期开放前，城管执法局组织召开单车工作调度会，目标是给市民游客营造良好的骑行环境。",
+      "evidence_ids": [
+        "ev-02053"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "共享单车用户",
+      "opinion": "在东湖风景区应按规定停放共享单车，否则可能无法锁车、持续计费，甚至被列入禁骑名单",
+      "sentiment": "neutral",
+      "rationale": "早期治理措施显示，东湖风景区划定共享单车停放处，并试点电子围栏；随意停放可能导致无法锁车、继续计费或被列入禁骑名单。",
+      "evidence_ids": [
+        "ev-01137",
+        "ev-01138",
+        "ev-01140"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "市民游客",
+      "opinion": "共享单车和共享电动车为东湖游览、骑行打卡提供便利，但车辆淤积和乱停会影响景区通行秩序",
+      "sentiment": "mixed",
+      "rationale": "证据一方面提到东湖绿道开放吸引市民游客打卡、共享电动车方便快捷且较打车优惠；另一方面官方处罚依据是车辆未及时清理造成通行受阻。",
+      "evidence_ids": [
+        "ev-02053",
+        "ev-02062",
+        "ev-02051"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import time
@@ -15,7 +16,7 @@ from episoa.data.loader import read_jsonl, write_jsonl
 from episoa.llm.client import build_llm_client, json_schema_response_format
 
 
-SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "unclear"}
+SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "unclear", "insufficient_evidence"}
 SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
 
 TUPLE_PREANNOTATION_RESPONSE_FORMAT = json_schema_response_format(
@@ -91,12 +92,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--start-index", type=int, default=0, help="Zero-based start offset after event-id filtering.")
     parser.add_argument("--all-events", action="store_true", help="Run preannotation for every event.")
     parser.add_argument("--retry-failed", action="store_true", help="Only rerun events/tasks that failed in the previous audit file.")
+    parser.add_argument("--tasks", default="tuple,chain", help="Comma-separated tasks to run: tuple,chain")
+    parser.add_argument("--reuse-raw-responses", action="store_true", help="Parse existing non-empty raw response files before calling the API.")
+    parser.add_argument("--parse-raw-only", action="store_true", help="Only parse existing raw response files; skip API calls for missing raw files.")
     parser.add_argument("--merge-existing", action="store_true", default=True, help="Merge this batch into existing outputs. Enabled by default.")
     parser.add_argument("--overwrite-output", action="store_true", help="Rewrite outputs with only the current batch results.")
     parser.add_argument("--audit-file", default="data/pubevent_soa_lite/annotation/llm_preannotation_audit.jsonl")
     parser.add_argument("--max-evidence", type=int, default=8)
     parser.add_argument("--max-evidence-chars", type=int, default=500)
     parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--dry-run", action="store_true")
@@ -117,6 +122,16 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
     raw_dir.mkdir(parents=True, exist_ok=True)
     tuple_prompt = Path(args.tuple_prompt).read_text(encoding="utf-8")
     chain_prompt = Path(args.chain_prompt).read_text(encoding="utf-8")
+    seed = int(getattr(args, "seed", 42))
+    max_tokens = config_max_tokens(args.config)
+    prompt_manifest = write_prompt_manifest(
+        output_dir,
+        tuple_prompt_path=Path(args.tuple_prompt),
+        tuple_prompt=tuple_prompt,
+        chain_prompt_path=Path(args.chain_prompt),
+        chain_prompt=chain_prompt,
+        seed=seed,
+    )
     retry_tasks = load_retry_tasks(args.audit_file) if args.retry_failed else None
     if retry_tasks is not None:
         events = [event for event in events if str(event.get("event_id") or "") in retry_tasks]
@@ -170,12 +185,75 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                     raw_response_path="",
                     evidence_count=0,
                     evidence_truncated=False,
+                    temperature=args.temperature,
+                    max_tokens=max_tokens,
+                    seed=seed,
                 )
             )
             continue
         context = build_event_context(event, evidence_items)
-        for task, prompt_template in (("tuple", tuple_prompt), ("chain", chain_prompt)):
+        for task, prompt_template in selected_tasks(getattr(args, "tasks", "tuple,chain"), tuple_prompt, chain_prompt):
             if retry_tasks is not None and task not in retry_tasks.get(event_id, set()):
+                continue
+            raw_path = raw_response_path(raw_dir, event_id, task)
+            should_parse_raw = getattr(args, "reuse_raw_responses", False) or getattr(args, "parse_raw_only", False)
+            if should_parse_raw and raw_path.exists() and raw_path.stat().st_size > 0:
+                raw_content = raw_path.read_text(encoding="utf-8")
+                parsed, parse_error = parse_payload(
+                    raw_content,
+                    event_id,
+                    {str(item.get("evidence_id")) for item in evidence_items},
+                    task,
+                )
+                parse_status = "failed" if parse_error else "parsed"
+                audit_records.append(
+                    audit_record(
+                        event_id=event_id,
+                        task_type=task,
+                        model_name=model_name,
+                        request_status="ok",
+                        parse_status=parse_status,
+                        num_candidates=len(parsed),
+                        error_type=classify_parse_error(parse_error) if parse_error else "",
+                        error_message=parse_error,
+                        raw_response_path=str(raw_path),
+                        evidence_count=len(evidence_items),
+                        evidence_truncated=bool(pack_warning),
+                        response_id="reused_raw",
+                        warning=("reused_existing_raw_response; " + pack_warning).strip("; "),
+                        temperature=args.temperature,
+                        max_tokens=max_tokens,
+                        seed=seed,
+                        prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
+                    )
+                )
+                if not parse_error:
+                    if task == "tuple":
+                        batch_tuples.extend(parsed)
+                    else:
+                        batch_chains.extend(parsed)
+                continue
+            if getattr(args, "parse_raw_only", False):
+                audit_records.append(
+                    audit_record(
+                        event_id=event_id,
+                        task_type=task,
+                        model_name=model_name,
+                        request_status="skipped",
+                        parse_status="not_run",
+                        num_candidates=0,
+                        error_type="raw_response_missing",
+                        error_message="No non-empty raw response found and parse-raw-only was set.",
+                        raw_response_path=str(raw_path),
+                        evidence_count=len(evidence_items),
+                        evidence_truncated=bool(pack_warning),
+                        warning=pack_warning,
+                        temperature=args.temperature,
+                        max_tokens=max_tokens,
+                        seed=seed,
+                        prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
+                    )
+                )
                 continue
             prompt = prompt_template.replace("{{EVENT_CONTEXT_JSON}}", context)
             if args.dry_run or client is None:
@@ -193,6 +271,10 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                         evidence_count=len(evidence_items),
                         evidence_truncated=bool(pack_warning),
                         warning=pack_warning,
+                        temperature=args.temperature,
+                        max_tokens=max_tokens,
+                        seed=seed,
+                        prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
                     )
                 )
                 continue
@@ -203,7 +285,6 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                 response_format=response_format_for_task(task),
                 max_attempts=max(1, int(args.max_retries) + 1),
             )
-            raw_path = raw_response_path(raw_dir, event_id, task)
             if request_error:
                 write_raw_response(raw_path, "")
                 audit_records.append(
@@ -220,6 +301,10 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                         evidence_count=len(evidence_items),
                         evidence_truncated=bool(pack_warning),
                         warning=pack_warning,
+                        temperature=args.temperature,
+                        max_tokens=max_tokens,
+                        seed=seed,
+                        prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
                     )
                 )
                 continue
@@ -249,6 +334,10 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                     evidence_truncated=bool(pack_warning),
                     response_id=response.response_id,
                     warning=pack_warning,
+                    temperature=args.temperature,
+                    max_tokens=max_tokens,
+                    seed=seed,
+                    prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
                 )
             )
             if parse_error:
@@ -295,6 +384,9 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
         "parse_failures": sum(1 for row in audit_records if row["parse_status"] == "failed"),
         "model_name": model_name,
         "temperature": args.temperature,
+        "max_tokens": max_tokens,
+        "seed": seed,
+        "prompt_manifest": str(output_dir / "llm_preannotation_prompt_manifest.json"),
         "max_evidence": args.max_evidence,
         "max_evidence_chars": args.max_evidence_chars,
         "start_index": args.start_index,
@@ -308,6 +400,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
             "llm_gold_event_chains": str(output_dir / "llm_gold_event_chains.jsonl"),
             "llm_preannotation_report": str(output_dir / "llm_preannotation_report.json"),
             "llm_preannotation_audit": str(output_dir / "llm_preannotation_audit.jsonl"),
+            "llm_preannotation_prompt_manifest": str(output_dir / "llm_preannotation_prompt_manifest.json"),
             "raw_response_dir": str(raw_dir),
         },
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -332,6 +425,68 @@ def select_events(
     if start_index > 0:
         rows = rows[start_index:]
     return rows[:max_events] if max_events is not None else rows
+
+
+def selected_tasks(tasks_arg: str, tuple_prompt: str, chain_prompt: str) -> list[tuple[str, str]]:
+    prompts = {"tuple": tuple_prompt, "chain": chain_prompt}
+    tasks = []
+    for raw in str(tasks_arg or "").split(","):
+        task = raw.strip().lower()
+        if not task:
+            continue
+        if task not in prompts:
+            raise ValueError(f"unsupported preannotation task: {task}")
+        tasks.append((task, prompts[task]))
+    return tasks or [("tuple", tuple_prompt), ("chain", chain_prompt)]
+
+
+def config_max_tokens(config_path: str) -> int | None:
+    try:
+        config = load_config(config_path)
+    except Exception:
+        return None
+    value = config.model.get("max_tokens")
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def write_prompt_manifest(
+    output_dir: Path,
+    *,
+    tuple_prompt_path: Path,
+    tuple_prompt: str,
+    chain_prompt_path: Path,
+    chain_prompt: str,
+    seed: int,
+) -> dict[str, Any]:
+    manifest = {
+        "tuple_prompt_path": str(tuple_prompt_path),
+        "tuple_prompt_sha256": file_sha256(tuple_prompt_path),
+        "tuple_prompt_template": tuple_prompt,
+        "chain_prompt_path": str(chain_prompt_path),
+        "chain_prompt_sha256": file_sha256(chain_prompt_path),
+        "chain_prompt_template": chain_prompt,
+        "system_prompt": "You are a careful PubEvent-SOA gold annotation assistant. Return JSON only.",
+        "seed": seed,
+        "confidence_policy": {
+            "silver_only": True,
+            "confidence_is_routing_signal_not_gold_judgment": True,
+            "top_logprob_threshold": 0.85,
+            "fallback_when_logprobs_unavailable": "structured self-confidence plus verifier/coverage signals; not interpreted as calibrated probability",
+        },
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    (output_dir / "llm_preannotation_prompt_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return manifest
+
+
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def group_by_event(evidence: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -642,6 +797,10 @@ def audit_record(
     evidence_truncated: bool,
     response_id: str = "",
     warning: str = "",
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+    seed: int | None = None,
+    prompt_template_sha256: str = "",
 ) -> dict[str, Any]:
     return {
         "event_id": event_id,
@@ -656,6 +815,11 @@ def audit_record(
         "evidence_truncated": evidence_truncated,
         "warning": warning,
         "model_name": model_name,
+        "model_date_label": model_name,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "seed": seed,
+        "prompt_template_sha256": prompt_template_sha256,
         "response_id": response_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }

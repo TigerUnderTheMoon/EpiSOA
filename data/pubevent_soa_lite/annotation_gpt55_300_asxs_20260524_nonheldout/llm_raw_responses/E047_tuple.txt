@@ -1,0 +1,77 @@
+{
+  "event_id": "E047",
+  "tuples": [
+    {
+      "stakeholder": "中央网信办",
+      "opinion": "组织对App、SDK收集使用个人信息行为进行检测，并通报15款App和16款SDK存在个人信息收集使用问题。",
+      "sentiment": "negative",
+      "rationale": "多条报道称中央网信办发布通报，对App、SDK个人信息收集使用行为进行检测后公布问题名单。",
+      "evidence_ids": [
+        "ev-01177",
+        "ev-01180",
+        "ev-01181"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "中央网信办",
+      "opinion": "要求相关运营者在规定时间内完成整改并上报整改情况，否则将依法依规处置处罚。",
+      "sentiment": "negative",
+      "rationale": "官方转载明确通报要求相关运营者限期整改并上报，未整改将面临处置处罚。",
+      "evidence_ids": [
+        "ev-01183"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "中央网信办、工业和信息化部、公安部、市场监管总局",
+      "opinion": "联合开展2025年个人信息保护系列专项行动，依据网络安全法、个人信息保护法等法律法规推进治理。",
+      "sentiment": "neutral",
+      "rationale": "多条证据提到四部门联合发布专项行动公告，并说明通报依据相关法律法规。",
+      "evidence_ids": [
+        "ev-02091",
+        "ev-02092",
+        "ev-02101"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "中央网信办会同工业和信息化部、公安部、市场监管总局等部门",
+      "opinion": "计划进一步深入治理常用服务产品和常见生活场景中存在的违法违规收集使用个人信息问题。",
+      "sentiment": "negative",
+      "rationale": "专项行动公告相关报道称，2025年中央网信办将会同多部门继续深入治理相关违法违规收集使用个人信息行为。",
+      "evidence_ids": [
+        "ev-02102",
+        "ev-02103",
+        "ev-02104",
+        "ev-02105"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "墨迹天气tv版、医家等15款App运营者",
+      "opinion": "被通报存在未逐一列出收集使用个人信息的SDK、未准确说明个人信息收集使用情况等问题。",
+      "sentiment": "negative",
+      "rationale": "证据点名墨迹天气tv版、医家等15款App，并描述其存在未逐一列出SDK、未准确说明个人信息收集使用情况等问题。",
+      "evidence_ids": [
+        "ev-01177",
+        "ev-01181",
+        "ev-01180"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "被通报的16款SDK相关运营者",
+      "opinion": "被认定存在个人信息收集使用方面的问题，纳入本次通报名单和整改监管范围。",
+      "sentiment": "negative",
+      "rationale": "多条证据均称通报涉及16款SDK个人信息收集使用问题，且官方转载说明相关运营者需整改并上报。",
+      "evidence_ids": [
+        "ev-01177",
+        "ev-01178",
+        "ev-01183",
+        "ev-02093"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "event_id": "E044",
+  "tuples": [
+    {
+      "stakeholder": "牡丹江市城市管理综合执法局",
+      "opinion": "将督促运营企业落实主体责任并持续开展共享单车停放专项整治",
+      "sentiment": "neutral",
+      "rationale": "官方通报称车辆乱停放影响交通秩序和市容环境，城管局将加强管理、督促企业并开展专项整治。",
+      "evidence_ids": ["ev-01117", "ev-02036"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "哈啰单车牡丹江负责人",
+      "opinion": "应接受约谈后规范共享单车停放并改进运营管理",
+      "sentiment": "neutral",
+      "rationale": "市城管局因市民反映乱停放问题约谈哈啰单车牡丹江负责人，要求进一步规范停放秩序。",
+      "evidence_ids": ["ev-01118", "ev-02045"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "牡丹江市市民",
+      "opinion": "认为共享单车乱停放严重影响交通安全和市容市貌，要求治理",
+      "sentiment": "negative",
+      "rationale": "报道明确写到市民反映哈啰单车乱停放，称其严重影响交通安全和市容市貌。",
+      "evidence_ids": ["ev-01118", "ev-01117"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "共享单车使用者",
+      "opinion": "认可共享单车提供“最后一公里”便利，但希望停放更有序",
+      "sentiment": "mixed",
+      "rationale": "新闻指出共享单车解决市民最后一公里出行难题，同时无序停放又带来管理和秩序问题。",
+      "evidence_ids": ["ev-01120", "ev-01123"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "各城区执法人员",
+      "opinion": "应持续加大巡查力度并清理违规停放车辆",
+      "sentiment": "neutral",
+      "rationale": "官方通报要求各城区执法人员持续加大巡查管理力度，并对违规车进行拖离整治。",
+      "evidence_ids": ["ev-01117", "ev-02031"],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "爱民区老科协铁北街道分会",
+      "opinion": "建议加强市区共享单车管理，规范停放秩序",
+      "sentiment": "positive",
+      "rationale": "该分会提交了“关于加强市区共享单车管理的建议”，与规范共享单车停放秩序的治理方向一致。",
+      "evidence_ids": ["ev-01126", "ev-02042"],
+      "support_label": "partially_supported"
+    }
+  ]
+}

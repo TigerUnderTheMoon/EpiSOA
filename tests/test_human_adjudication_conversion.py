@@ -71,7 +71,7 @@ def test_convert_handles_accept_revise_drop_add_missing_and_uncertain(tmp_path):
         row("", "add_missing", revised_stakeholder="added", revised_opinion="missing tuple", revised_sentiment="mixed", revised_rationale="added rationale", revised_evidence_ids="ev1"),
     ]
     chain_rows = [
-        {"event_id": "E1", "chain_id": "C1", "event_chain": "start -> end", "evidence_ids": "ev1", "review_decision": "accept"}
+        {"event_id": "E1", "chain_id": "C1", "event_chain": "start -> end", "evidence_ids": "ev1", "review_decision": "accept", "adjudication_status": "adjudicated_final"}
     ]
 
     run_convert(tmp_path, tuple_rows, chain_rows)
@@ -92,12 +92,24 @@ def test_convert_handles_accept_revise_drop_add_missing_and_uncertain(tmp_path):
 
 def test_invalid_evidence_id_fails_conversion(tmp_path):
     tuple_rows = [row("T_bad", "accept", stakeholder="x", opinion="y", sentiment="neutral", evidence_ids="missing")]
-    chain_rows = [{"event_id": "E1", "chain_id": "C1", "event_chain": "start", "evidence_ids": "ev1", "review_decision": "accept"}]
+    chain_rows = [{"event_id": "E1", "chain_id": "C1", "event_chain": "start", "evidence_ids": "ev1", "review_decision": "accept", "adjudication_status": "adjudicated_final"}]
 
     result = run_convert(tmp_path, tuple_rows, chain_rows, check=False)
 
     assert result.returncode != 0
     assert "unknown evidence_id missing" in (result.stderr + result.stdout)
+
+
+def test_non_final_rows_are_excluded_from_human_gold(tmp_path):
+    tuple_rows = [row("T1", "accept", stakeholder="x", opinion="y", sentiment="neutral", evidence_ids="ev1")]
+    tuple_rows[0]["adjudication_status"] = "independent_review"
+    chain_rows = [{"event_id": "E1", "chain_id": "C1", "event_chain": "start", "evidence_ids": "ev1", "review_decision": "accept", "adjudication_status": "independent_review"}]
+
+    run_convert(tmp_path, tuple_rows, chain_rows)
+
+    assert read_jsonl(tmp_path / "human_gold" / "human_gold_tuples_v1.jsonl") == []
+    log_text = (tmp_path / "human_gold" / "rejected_or_uncertain_log.csv").read_text(encoding="utf-8-sig")
+    assert "excluded_by_not_adjudicated_final" in log_text
 
 
 def row(tuple_id: str, decision: str, **kwargs) -> dict:
@@ -110,6 +122,7 @@ def row(tuple_id: str, decision: str, **kwargs) -> dict:
         "rationale": kwargs.pop("rationale", "rationale"),
         "evidence_ids": kwargs.pop("evidence_ids", ""),
         "review_decision": decision,
+        "adjudication_status": "adjudicated_final",
         "revised_stakeholder": "",
         "revised_opinion": "",
         "revised_sentiment": "",

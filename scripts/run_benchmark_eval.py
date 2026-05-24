@@ -57,6 +57,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="Print prompts without calling LLM")
     parser.add_argument("--resume", action="store_true", help="Skip already-processed task_ids in existing predictions")
     parser.add_argument("--prompt-dir", default="prompts", help="Directory with benchmark prompt .md files (default: prompts/)")
+    parser.add_argument("--cost-per-sample", type=float, default=0.0, help="Optional externally estimated API cost per task row.")
+    parser.add_argument("--human-effort-ratio", type=float, default=0.0, help="Optional human minutes / total minutes ratio for reporting.")
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -120,7 +122,13 @@ def main(argv: list[str] | None = None) -> int:
             t0 = time.time()
             predictions = existing_predictions[:]
             for i, row in enumerate(pending_rows):
+                row_start = time.time()
                 new_preds, _ = tc["runner"](client, [row], model_name, prompt_dir=args.prompt_dir)
+                latency = time.time() - row_start
+                for pred in new_preds:
+                    pred.setdefault("runtime", {})
+                    pred["runtime"]["latency_seconds"] = round(latency, 4)
+                    pred["runtime"]["estimated_cost"] = args.cost_per_sample
                 predictions.extend(new_preds)
                 if (i + 1) % 5 == 0 or i == len(pending_rows) - 1:
                     write_jsonl(pred_file, predictions)
@@ -135,6 +143,10 @@ def main(argv: list[str] | None = None) -> int:
 
         metrics["model_name"] = model_name
         metrics["rows_processed"] = len(predictions)
+        metrics["latency"] = latency_summary(predictions)
+        metrics["cost_per_sample"] = args.cost_per_sample
+        metrics["estimated_total_cost"] = round(args.cost_per_sample * len(predictions), 6)
+        metrics["human_effort_ratio"] = args.human_effort_ratio
         all_metrics[task_name] = metrics
 
         for k, v in metrics.items():
@@ -178,6 +190,32 @@ def _recompute_metrics(task_name: str, predictions: list[dict]) -> dict:
     elif task_name == "chain_construction":
         return eval_chain_construction(predictions)
     return {"error": f"unknown task: {task_name}"}
+
+
+def latency_summary(predictions: list[dict]) -> dict:
+    values = sorted(
+        float(pred.get("runtime", {}).get("latency_seconds", 0) or 0)
+        for pred in predictions
+        if pred.get("runtime", {}).get("latency_seconds") is not None
+    )
+    values = [value for value in values if value > 0]
+    if not values:
+        return {"p50_seconds": None, "p95_seconds": None, "mean_seconds": None}
+    return {
+        "p50_seconds": round(percentile(values, 0.50), 4),
+        "p95_seconds": round(percentile(values, 0.95), 4),
+        "mean_seconds": round(sum(values) / len(values), 4),
+    }
+
+
+def percentile(values: list[float], q: float) -> float:
+    if len(values) == 1:
+        return values[0]
+    index = (len(values) - 1) * q
+    lower = int(index)
+    upper = min(lower + 1, len(values) - 1)
+    weight = index - lower
+    return values[lower] * (1 - weight) + values[upper] * weight
 
 
 if __name__ == "__main__":

@@ -1,0 +1,72 @@
+{
+  "event_id": "E039",
+  "tuples": [
+    {
+      "stakeholder": "三河市应急管理局",
+      "opinion": "通报称燕郊镇一商户发生疑似燃气泄漏引发的燃爆事故，造成7人死亡、27人受伤，现场清理基本完成，伤者已送医救治。",
+      "sentiment": "mixed",
+      "rationale": "多条证据引用三河市应急管理局通报，说明事故原因初判、伤亡情况以及救援处置进展。",
+      "evidence_ids": [
+        "ev-00951",
+        "ev-00954",
+        "ev-00952"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "河北省应急管理厅调查评估和统计处",
+      "opinion": "发布调查报告，认定燕郊地铁施工项目盾构施工过程中造成地埋天然气管道破损泄漏，引发较大燃气爆燃事故。",
+      "sentiment": "negative",
+      "rationale": "证据明确称河北省应急管理厅相关处室发布事故调查报告，并将事故与地铁盾构施工损坏燃气管道相联系。",
+      "evidence_ids": [
+        "ev-00948",
+        "ev-00949"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "事故调查专家组组长刘福来",
+      "opinion": "介绍事故原因初步判断为燃气管道泄漏，且不是用户燃气，而是输送中的管道泄漏导致。",
+      "sentiment": "neutral",
+      "rationale": "证据提到刘福来披露初步原因，另有新闻补充说明并非用户端燃气而是输送管道泄漏。",
+      "evidence_ids": [
+        "ev-00947",
+        "ev-00970",
+        "ev-00977"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "事发地附近旅客和早起送孩子的居民",
+      "opinion": "称事故发生前在事发地附近闻到浓烈或类似燃气味道，反映现场此前已存在明显异常气味。",
+      "sentiment": "negative",
+      "rationale": "新京报报道中，一名住在爆炸点所在招待所的旅客和一名早起送孩子的居民均表示事发前闻到燃气味。",
+      "evidence_ids": [
+        "ev-00965"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "消防救援人员",
+      "opinion": "事故发生后在现场持续开展救援，应对现场冒白烟等风险情况。",
+      "sentiment": "positive",
+      "rationale": "新京报现场报道提到事故现场又冒起白烟，消防救援人员正持续进行救援；其他证据也称救援紧张进行。",
+      "evidence_ids": [
+        "ev-00953",
+        "ev-00975"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "社会公众和舆论",
+      "opinion": "事故造成严重伤亡后引发社会各界高度关注、震惊，并引发对事故原因的广泛猜测。",
+      "sentiment": "negative",
+      "rationale": "证据称事故造成7死27伤，社会各界为之震惊，并对事故原因产生广泛猜测；另有证据称事故引起高度关注。",
+      "evidence_ids": [
+        "ev-00971",
+        "ev-00967"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

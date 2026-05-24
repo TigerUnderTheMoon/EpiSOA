@@ -22,6 +22,11 @@ PRIORITY_FIELDS = [
     "priority_bucket",
     "priority_reason",
 ]
+CROSS_SOURCE_FIELDS = [
+    "independent_source_count",
+    "confidence_route",
+    "required_action",
+]
 
 TUPLE_FIELDS = [
     "event_id",
@@ -37,6 +42,7 @@ TUPLE_FIELDS = [
     "evidence_urls",
     "evidence_titles",
     "evidence_dates",
+    *CROSS_SOURCE_FIELDS,
     *PRIORITY_FIELDS,
     "review_decision",
     "revised_stakeholder",
@@ -59,6 +65,7 @@ CHAIN_FIELDS = [
     "evidence_urls",
     "evidence_titles",
     "evidence_dates",
+    *CROSS_SOURCE_FIELDS,
     *PRIORITY_FIELDS,
     "review_decision",
     "revised_event_chain",
@@ -166,6 +173,7 @@ def tuple_sheet_row(
         "evidence_urls": join_blocks([str(ev.get("url") or "") for ev in evidence_pack]),
         "evidence_titles": join_blocks([str(ev.get("title") or "") for ev in evidence_pack]),
         "evidence_dates": join_blocks([str(ev.get("publish_time") or "") for ev in evidence_pack]),
+        **cross_source_fields(row),
         **priority,
         "review_decision": "uncertain",
         "revised_stakeholder": "",
@@ -194,6 +202,7 @@ def chain_sheet_row(row: dict[str, Any], evidence_by_id: dict[str, dict[str, Any
         "evidence_urls": join_blocks([str(ev.get("url") or "") for ev in evidence_pack]),
         "evidence_titles": join_blocks([str(ev.get("title") or "") for ev in evidence_pack]),
         "evidence_dates": join_blocks([str(ev.get("publish_time") or "") for ev in evidence_pack]),
+        **cross_source_fields(row),
         **priority,
         "review_decision": "uncertain",
         "revised_event_chain": "",
@@ -216,6 +225,9 @@ def tuple_priority(
     if support_label and support_label != "supported":
         score += 0.30
         reasons.append("weak_support_label")
+    if str(row.get("confidence_route") or "").strip() == "low_confidence":
+        score += 0.35
+        reasons.append("low_confidence_cross_source")
     if len(evidence_ids) < 2:
         score += 0.20
         reasons.append("few_evidence")
@@ -277,6 +289,14 @@ def priority_fields(score: float, reasons: list[str]) -> dict[str, str]:
         "adjudication_priority_score": f"{score:.3f}",
         "priority_bucket": bucket,
         "priority_reason": ";".join(dict.fromkeys(reasons)) or "low_risk",
+    }
+
+
+def cross_source_fields(row: dict[str, Any]) -> dict[str, str]:
+    return {
+        "independent_source_count": str(row.get("independent_source_count") or ""),
+        "confidence_route": str(row.get("confidence_route") or ""),
+        "required_action": str(row.get("required_action") or ""),
     }
 
 

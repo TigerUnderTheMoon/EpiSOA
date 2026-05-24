@@ -1,0 +1,76 @@
+{
+  "event_id": "E050",
+  "tuples": [
+    {
+      "stakeholder": "滴滴出行",
+      "opinion": "回应抽成质疑称高抽成并非普遍现象，抽成高于30%的订单占总订单2.7%，并承认部分司机收入占比较低的订单确实给司机造成困扰。",
+      "sentiment": "mixed",
+      "rationale": "多条证据显示滴滴承认存在部分司机收入占比较低、高于30%抽成订单，但强调占比为2.7%、不是普遍现象。",
+      "evidence_ids": [
+        "ev-01239",
+        "ev-01243",
+        "ev-01242"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "滴滴出行",
+      "opinion": "表示将虚心接受批评，并持续推进平台抽成规则公开透明、改进相关问题。",
+      "sentiment": "positive",
+      "rationale": "证据明确提到滴滴回应称“虚心接受批评，持续推进公开透明”，另有证据称其官方回应“不透明”问题并表示会改进。",
+      "evidence_ids": [
+        "ev-01239",
+        "ev-02131"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "网约车司机",
+      "opinion": "质疑平台抽成比例过高、收入被压低，认为抽成直接影响收入并希望降低抽成比例。",
+      "sentiment": "negative",
+      "rationale": "证据显示司机和媒体对平台抽成提出质疑，司机抱怨抽成太高不划算、希望降低抽成；滴滴也承认部分订单给司机造成困扰。",
+      "evidence_ids": [
+        "ev-02136",
+        "ev-01246",
+        "ev-01239"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "乘客",
+      "opinion": "感到打车费用越来越贵，并关注司机端与乘客端价格比例差距过大、定价计算不透明。",
+      "sentiment": "negative",
+      "rationale": "证据提到乘客表示打车越来越贵，且司机端和乘客端价格比例相差过大；另有证据指出乘客和司机对抽成比例、计算方式不知情。",
+      "evidence_ids": [
+        "ev-02131",
+        "ev-01237",
+        "ev-02136"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "新华社等媒体",
+      "opinion": "调查并披露网约车平台存在高额抽成、收费和定价计算方式不透明等问题。",
+      "sentiment": "negative",
+      "rationale": "多条证据提到新华社调查或揭露部分网约车平台抽成超过20%、有时高达50%，并指出收费不透明、定价计算方式不透明。",
+      "evidence_ids": [
+        "ev-02134",
+        "ev-02135",
+        "ev-02137"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公众舆论和自媒体",
+      "opinion": "通过账单对比、司机采访等方式持续关注并质疑滴滴抽成过高及规则透明度问题。",
+      "sentiment": "negative",
+      "rationale": "证据显示司机、媒体、自媒体通过个别账单对比和司机采访关注报道滴滴抽成问题，知乎讨论也质疑滴滴公布抽成与实际是否相符。",
+      "evidence_ids": [
+        "ev-01241",
+        "ev-01238",
+        "ev-01237"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

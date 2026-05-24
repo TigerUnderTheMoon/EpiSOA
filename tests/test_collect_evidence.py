@@ -29,7 +29,8 @@ def test_collect_evidence_planned_only_when_search_api_missing(tmp_path):
         '"anchor_urls":["https://source.test/event"],"query_seeds":["transit plan"],'
         '"source_scope":["news"],"domain":"urban_mobility","event_type":"concrete_event",'
         '"stakeholder_hints":["residents"],"stance_hints":["concern"],'
-        '"temporal_stages":["trigger","conflict","response"]}\n',
+        '"temporal_stages":["trigger","conflict","response"],"split":"train","held_out":false,'
+        '"registry_version":"test-v1","registered_at":"2026-05-24T00:00:00+08:00"}\n',
         encoding="utf-8",
     )
     config.write_text(
@@ -1157,4 +1158,8 @@ def _formal_event(event_id: str, seed: str) -> dict[str, object]:
         "stakeholder_hints": ["residents"],
         "stance_hints": ["concern"],
         "temporal_stages": ["trigger"],
+        "split": "train",
+        "held_out": False,
+        "registry_version": "test-v1",
+        "registered_at": "2026-05-24T00:00:00+08:00",
     }

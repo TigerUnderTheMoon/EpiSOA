@@ -1,0 +1,74 @@
+{
+  "event_id": "E022",
+  "tuples": [
+    {
+      "stakeholder": "武当山特区卫生健康局、市场监督管理局、公安局",
+      "opinion": "对“药王谷抗癌中心调查”事件表示高度重视，并称前期已依法立案、正在开展全面调查。",
+      "sentiment": "neutral",
+      "rationale": "多条通报转载均显示三部门联合称高度重视该事件，已依法立案并开展全面调查。",
+      "evidence_ids": [
+        "ev-00517",
+        "ev-00518",
+        "ev-00519",
+        "ev-01733"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "武当山特区卫生健康局、市场监督管理局、公安局",
+      "opinion": "承诺调查和处置结果将及时向社会通报。",
+      "sentiment": "neutral",
+      "rationale": "官方通报明确表示调查和处置结果将及时向社会通报。",
+      "evidence_ids": [
+        "ev-00519",
+        "ev-00526",
+        "ev-00540",
+        "ev-01733"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "广大网友",
+      "opinion": "对“药王谷抗癌中心调查”事件保持关注，促使官方在通报中回应社会关切。",
+      "sentiment": "negative",
+      "rationale": "官方通报开头感谢广大网友对该事件的关注，说明事件已引发网民关注和舆论关切。",
+      "evidence_ids": [
+        "ev-00517",
+        "ev-00519",
+        "ev-00523",
+        "ev-00526"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "媒体",
+      "opinion": "曝光药王谷中医馆从事所谓“抗癌治疗”，并宣称抗癌治愈率超过80%。",
+      "sentiment": "negative",
+      "rationale": "报道称近日有媒体曝出药王谷中医馆从事抗癌治疗、号称抗癌治愈率超80%。",
+      "evidence_ids": [
+        "ev-01732"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "多名受害者",
+      "opinion": "实名举报或反映药王谷“抗癌中心”相关问题。",
+      "sentiment": "negative",
+      "rationale": "十堰论坛转载的南都记者报道摘要称，多名受害者实名举证/举报相关问题，但摘录文本不完整。",
+      "evidence_ids": [
+        "ev-00538"
+      ],
+      "support_label": "partially_supported"
+    },
+    {
+      "stakeholder": "药王谷中医馆",
+      "opinion": "以“抗癌治疗”和“抗癌治愈率超80%”进行对外宣传或经营活动。",
+      "sentiment": "positive",
+      "rationale": "媒体曝光称该中医馆从事抗癌治疗，并号称抗癌治愈率超80%，属于其对自身疗效的正面宣传表述。",
+      "evidence_ids": [
+        "ev-01732"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}

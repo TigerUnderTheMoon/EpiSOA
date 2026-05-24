@@ -192,6 +192,9 @@ def validate_formal_event_record(event: dict[str, Any], label: str = "event") ->
             "stakeholder_hints",
             "stance_hints",
             "temporal_stages",
+            "split",
+            "registry_version",
+            "registered_at",
         ],
         label,
         errors,
@@ -206,6 +209,14 @@ def validate_formal_event_record(event: dict[str, Any], label: str = "event") ->
     for key in ("query_seeds", "stakeholder_hints", "stance_hints", "temporal_stages"):
         if not _non_empty_string_list(event.get(key)):
             errors.append(f"{label} {key} must be a non-empty list of non-empty strings")
+    split = str(event.get("split") or "")
+    held_out = bool(event.get("held_out", False))
+    if split not in {"train", "dev", "test"}:
+        errors.append(f"{label} split must be one of train/dev/test")
+    if split == "test" and not held_out:
+        errors.append(f"{label} test split must have held_out=true")
+    if held_out and split != "test":
+        errors.append(f"{label} held_out=true is reserved for test split")
     if "social_media" in [str(item) for item in event.get("source_scope", []) if isinstance(event.get("source_scope"), list)]:
         errors.append(f"{label} source_scope uses social_media; use public_social")
     return errors

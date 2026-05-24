@@ -18,6 +18,10 @@ def test_paper_schema_accepts_required_records() -> None:
         stakeholder_hints=["Test agency", "Residents"],
         stance_hints=["support", "concern"],
         temporal_stages=["trigger", "response"],
+        split="train",
+        held_out=False,
+        registry_version="test-v1",
+        registered_at="2026-05-24T00:00:00+08:00",
     )
     EvidenceRecord(evidence_id="ev-1", event_id="evt-1", text="Evidence", platform="News", url="https://source.test")
     GoldTuple(

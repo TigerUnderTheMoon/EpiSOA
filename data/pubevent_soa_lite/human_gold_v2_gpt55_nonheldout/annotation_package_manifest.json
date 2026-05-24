@@ -1,0 +1,56 @@
+{
+  "dataset_name": "human_gold_v2_gpt55_nonheldout_annotation_package",
+  "status": "ready_for_independent_annotation",
+  "human_gold_created": false,
+  "source_preannotation": "data/pubevent_soa_lite/annotation_gpt55_300_asxs_20260524_nonheldout",
+  "tuple_rows": 240,
+  "chain_rows": 0,
+  "annotators": [
+    "annotator_A",
+    "annotator_B",
+    "annotator_C"
+  ],
+  "annotator_tuple_rows": {
+    "annotator_A": 240,
+    "annotator_B": 240,
+    "annotator_C": 240
+  },
+  "held_out_events_excluded": [
+    "E002",
+    "E008",
+    "E016",
+    "E018",
+    "E041"
+  ],
+  "held_out_rows_present": 0,
+  "confidence_route_counts": {
+    "low_confidence": 91,
+    "silver_candidate": 149
+  },
+  "priority_bucket_counts": {
+    "high": 74,
+    "medium": 27,
+    "low": 139
+  },
+  "required_fields_present": {
+    "independent_source_count": true,
+    "confidence_route": true,
+    "required_action": true,
+    "review_decision": true,
+    "reviewer_id": true,
+    "adjudication_status": true
+  },
+  "qualification_required": {
+    "test_items": 20,
+    "minimum_accuracy": 0.85
+  },
+  "next_step": "Annotators A/B/C independently complete review_decision/revised_* fields; then run independent annotation audit for IAA and conflict sheet.",
+  "created_at": "2026-05-24T13:16:58.987658+00:00",
+  "files": {
+    "tuple_sheet": "data\\pubevent_soa_lite\\human_gold_v2_gpt55_nonheldout\\human_tuple_adjudication_sheet.csv",
+    "chain_sheet": "data\\pubevent_soa_lite\\human_gold_v2_gpt55_nonheldout\\human_chain_adjudication_sheet.csv",
+    "independent_dir": "data\\pubevent_soa_lite\\human_gold_v2_gpt55_nonheldout\\independent",
+    "benchmark_isolation_manifest": "data/pubevent_soa_lite/annotation_gpt55_300_asxs_20260524_nonheldout/benchmark_isolation_manifest.json",
+    "cross_source_audit": "data/pubevent_soa_lite/annotation_gpt55_300_asxs_20260524_nonheldout/cross_source_audit/cross_source_support_audit.json"
+  }
+}

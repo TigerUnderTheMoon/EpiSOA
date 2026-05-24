@@ -28,12 +28,14 @@ def test_human_gold_audit_marks_ready_only_when_no_issues(tmp_path):
         "sentiment": "neutral",
         "rationale": "rationale",
         "evidence_ids": ["ev1"],
+        "annotation_provenance": {"reviewer_id": "human_1", "adjudication_status": "adjudicated_final"},
     }])
     write_jsonl(chains, [{
         "chain_id": "C1",
         "event_id": "E1",
         "event_chain": ["start", "end"],
         "evidence_ids": ["ev1"],
+        "annotation_provenance": {"reviewer_id": "human_1", "adjudication_status": "adjudicated_final"},
     }])
     manifest.write_text(json.dumps({"dataset_level": "human_gold", "ready_for_main_experiment": False}), encoding="utf-8")
 
@@ -84,12 +86,14 @@ def test_human_gold_audit_reports_invalid_reference(tmp_path):
         "sentiment": "neutral",
         "rationale": "rationale",
         "evidence_ids": ["missing"],
+        "annotation_provenance": {"reviewer_id": "human_1", "adjudication_status": "adjudicated_final"},
     }])
     write_jsonl(chains, [{
         "chain_id": "C1",
         "event_id": "E1",
         "event_chain": ["start"],
         "evidence_ids": ["ev1"],
+        "annotation_provenance": {"reviewer_id": "human_1", "adjudication_status": "adjudicated_final"},
     }])
     manifest.write_text(json.dumps({"dataset_level": "human_gold", "ready_for_main_experiment": True}), encoding="utf-8")
 

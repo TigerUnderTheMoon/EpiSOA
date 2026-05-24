@@ -1,0 +1,75 @@
+{
+  "event_id": "E014",
+  "tuples": [
+    {
+      "stakeholder": "南宁市公安局良庆分局",
+      "opinion": "接到报警后立即开展调查处理，并依法对涉案8人作出行政拘留等处罚。",
+      "sentiment": "neutral",
+      "rationale": "警方通报明确称4月18日一名初中女生被多人欺负殴打，接警后良庆分局立即调查处理并处罚涉案8人。",
+      "evidence_ids": [
+        "ev-00309",
+        "ev-01640"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "记者及央视新闻等媒体",
+      "opinion": "对网传疑似校园欺凌视频进行多方采访核实，确认内容为南宁三中初中部五象校区学生4月18日在校外遭遇欺凌。",
+      "sentiment": "neutral",
+      "rationale": "多条新闻稿均称记者多方采访了解并证实视频内容对应4月18日该校学生校外遭欺凌事件。",
+      "evidence_ids": [
+        "ev-00302",
+        "ev-00303",
+        "ev-00304",
+        "ev-01639"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "公共社交媒体发帖者",
+      "opinion": "将该事件视为严重校园霸凌，认为其残酷并触动社会敏感神经，引发广泛关注和担忧。",
+      "sentiment": "negative",
+      "rationale": "社交平台文本称事件如“黑色风暴”席卷网络、暴露校园暴力残酷，并称在网上引起轩然大波、触动无数人神经。",
+      "evidence_ids": [
+        "ev-00300",
+        "ev-00320",
+        "ev-00323"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "南宁三中初中部五象校区涉事两名学生",
+      "opinion": "以归还手机为由将另一名学生带至校外附近公园，为后续欺凌创造条件。",
+      "sentiment": "negative",
+      "rationale": "多条证据描述两名学生在放学后以还手机为借口，引导或带另一名学生到附近公园。",
+      "evidence_ids": [
+        "ev-00301",
+        "ev-00306",
+        "ev-00307"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "多名参与施暴学生",
+      "opinion": "对受害女生实施围攻、羞辱、殴打等欺凌行为，并录制视频传播。",
+      "sentiment": "negative",
+      "rationale": "证据称女生在公园遭一群同学围攻和羞辱，另有报道描述多人实施殴打、拖拽、踩踏并录制视频。",
+      "evidence_ids": [
+        "ev-00308",
+        "ev-00324",
+        "ev-01640"
+      ],
+      "support_label": "supported"
+    },
+    {
+      "stakeholder": "本地论坛/知乎发帖者",
+      "opinion": "对名校南宁三中发生校园霸凌表达强烈震惊和谴责，并把事件视为近在身边的校园安全风险。",
+      "sentiment": "negative",
+      "rationale": "知乎文本以“地狱空荡荡，恶魔在人间”等强烈措辞评价事件，并提到事发学校是本市百年名校、事件不是远在天边而是近在身边。",
+      "evidence_ids": [
+        "ev-00325"
+      ],
+      "support_label": "supported"
+    }
+  ]
+}
