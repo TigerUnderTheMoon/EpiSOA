@@ -17,7 +17,9 @@ from episoa.llm.client import build_llm_client, json_schema_response_format
 
 
 SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "unclear", "insufficient_evidence"}
+CANONICAL_SUPPORT_LABELS = {"supported", "partially_supported", "unsupported", "insufficient_evidence"}
 SENTIMENTS = {"positive", "negative", "neutral", "mixed", "unknown"}
+TUPLE_MODES = {"standard", "stakeholder_canonical"}
 
 TUPLE_PREANNOTATION_RESPONSE_FORMAT = json_schema_response_format(
     "gold_tuple_preannotation_response",
@@ -36,6 +38,10 @@ TUPLE_PREANNOTATION_RESPONSE_FORMAT = json_schema_response_format(
                         "rationale": {"type": "string"},
                         "evidence_ids": {"type": "array", "items": {"type": "string"}},
                         "support_label": {"type": "string", "enum": sorted(SUPPORT_LABELS)},
+                        "stakeholder_cluster_id": {"type": "string"},
+                        "stakeholder_aliases": {"type": "array", "items": {"type": "string"}},
+                        "canonical_tuple": {"type": "boolean"},
+                        "opinion_split_reason": {"type": "string"},
                     },
                     "required": ["stakeholder", "opinion", "sentiment", "rationale", "evidence_ids", "support_label"],
                     "additionalProperties": False,
@@ -87,6 +93,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", default="data/pubevent_soa_lite/annotation")
     parser.add_argument("--tuple-prompt", default="prompts/gold_tuple_preannotation.md")
     parser.add_argument("--chain-prompt", default="prompts/gold_chain_preannotation.md")
+    parser.add_argument(
+        "--tuple-mode",
+        choices=sorted(TUPLE_MODES),
+        default="standard",
+        help="Tuple preannotation mode. stakeholder_canonical emits one canonical tuple per distinct stakeholder by default.",
+    )
+    parser.add_argument(
+        "--include-held-out",
+        action="store_true",
+        help="Allow held_out=True events in tuple preannotation. Off by default for stakeholder_canonical mode.",
+    )
     parser.add_argument("--event-ids", default="")
     parser.add_argument("--max-events", type=int, default=1, help="Limit events for a smoke run. Use --all-events for a full formal pass.")
     parser.add_argument("--start-index", type=int, default=0, help="Zero-based start offset after event-id filtering.")
@@ -109,13 +126,32 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
+    tuple_mode = str(getattr(args, "tuple_mode", "standard") or "standard")
+    if tuple_mode not in TUPLE_MODES:
+        raise ValueError(f"unsupported tuple mode: {tuple_mode}")
     events = select_events(
         read_jsonl(args.events),
         args.event_ids,
         None if args.all_events else args.max_events,
         start_index=args.start_index,
     )
+    held_out_events_excluded: list[str] = []
+    held_out_event_ids = {
+        str(event.get("event_id") or "")
+        for event in read_jsonl(args.events)
+        if is_held_out_event(event)
+    }
+    if tuple_mode == "stakeholder_canonical" and not bool(getattr(args, "include_held_out", False)):
+        kept_events: list[dict[str, Any]] = []
+        for event in events:
+            event_id = str(event.get("event_id") or "")
+            if event_id in held_out_event_ids:
+                held_out_events_excluded.append(event_id)
+            else:
+                kept_events.append(event)
+        events = kept_events
     evidence_by_event = group_by_event(read_jsonl(args.evidence))
+    max_evidence, max_evidence_chars = effective_evidence_limits(args, tuple_mode)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     raw_dir = output_dir / "llm_raw_responses"
@@ -131,6 +167,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
         chain_prompt_path=Path(args.chain_prompt),
         chain_prompt=chain_prompt,
         seed=seed,
+        tuple_mode=tuple_mode,
     )
     retry_tasks = load_retry_tasks(args.audit_file) if args.retry_failed else None
     if retry_tasks is not None:
@@ -157,6 +194,9 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
     should_merge = bool(args.merge_existing) and not bool(args.overwrite_output)
     existing_tuples = load_existing_candidates(tuples_path) if should_merge else []
     existing_chains = load_existing_candidates(chains_path) if should_merge else []
+    if tuple_mode == "stakeholder_canonical" and not bool(getattr(args, "include_held_out", False)):
+        existing_tuples = filter_out_events(existing_tuples, held_out_event_ids)
+        existing_chains = filter_out_events(existing_chains, held_out_event_ids)
     existing_audit = load_existing_candidates(audit_path) if should_merge else []
     existing_tuple_events_before_run = event_count(existing_tuples)
     existing_chain_events_before_run = event_count(existing_chains)
@@ -168,8 +208,8 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
         event_id = str(event.get("event_id") or "")
         evidence_items, pack_warning = select_evidence_pack(
             evidence_by_event.get(event_id, []),
-            max_evidence=args.max_evidence,
-            max_chars=args.max_evidence_chars,
+            max_evidence=max_evidence,
+            max_chars=max_evidence_chars,
         )
         if not evidence_items:
             audit_records.append(
@@ -188,6 +228,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                     temperature=args.temperature,
                     max_tokens=max_tokens,
                     seed=seed,
+                    tuple_mode=tuple_mode,
                 )
             )
             continue
@@ -204,6 +245,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                     event_id,
                     {str(item.get("evidence_id")) for item in evidence_items},
                     task,
+                    tuple_mode=tuple_mode,
                 )
                 parse_status = "failed" if parse_error else "parsed"
                 audit_records.append(
@@ -225,6 +267,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                         max_tokens=max_tokens,
                         seed=seed,
                         prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
+                        tuple_mode=tuple_mode,
                     )
                 )
                 if not parse_error:
@@ -252,6 +295,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                         max_tokens=max_tokens,
                         seed=seed,
                         prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
+                        tuple_mode=tuple_mode,
                     )
                 )
                 continue
@@ -275,6 +319,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                         max_tokens=max_tokens,
                         seed=seed,
                         prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
+                        tuple_mode=tuple_mode,
                     )
                 )
                 continue
@@ -305,6 +350,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                         max_tokens=max_tokens,
                         seed=seed,
                         prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
+                        tuple_mode=tuple_mode,
                     )
                 )
                 continue
@@ -315,6 +361,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                 event_id,
                 {str(item.get("evidence_id")) for item in evidence_items},
                 task,
+                tuple_mode=tuple_mode,
             )
             parse_status = "failed" if parse_error else "parsed"
             request_status = "ok"
@@ -338,6 +385,7 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
                     max_tokens=max_tokens,
                     seed=seed,
                     prompt_template_sha256=prompt_manifest[f"{task}_prompt_sha256"],
+                    tuple_mode=tuple_mode,
                 )
             )
             if parse_error:
@@ -353,6 +401,10 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
         key_fields=("event_id", "candidate_id"),
         replace_event_ids=successful_event_ids(audit_records, "tuple"),
     )
+    if tuple_mode == "stakeholder_canonical" and not bool(getattr(args, "include_held_out", False)):
+        leaked_event_ids = sorted({str(row.get("event_id") or "") for row in tuples if str(row.get("event_id") or "") in held_out_event_ids})
+        if leaked_event_ids:
+            raise ValueError(f"stakeholder_canonical output contains held-out events: {','.join(leaked_event_ids)}")
     chains = merge_candidates(
         existing_chains,
         batch_chains,
@@ -387,8 +439,14 @@ def run_preannotation(args: argparse.Namespace) -> dict[str, Any]:
         "max_tokens": max_tokens,
         "seed": seed,
         "prompt_manifest": str(output_dir / "llm_preannotation_prompt_manifest.json"),
-        "max_evidence": args.max_evidence,
-        "max_evidence_chars": args.max_evidence_chars,
+        "tuple_mode": tuple_mode,
+        "include_held_out": bool(getattr(args, "include_held_out", False)),
+        "held_out_events_excluded": held_out_events_excluded,
+        "held_out_events_excluded_count": len(held_out_events_excluded),
+        "max_evidence": max_evidence,
+        "max_evidence_chars": max_evidence_chars,
+        "requested_max_evidence": getattr(args, "max_evidence", None),
+        "requested_max_evidence_chars": getattr(args, "max_evidence_chars", None),
         "start_index": args.start_index,
         "retry_failed": bool(args.retry_failed),
         "merge_existing": should_merge,
@@ -427,6 +485,15 @@ def select_events(
     return rows[:max_events] if max_events is not None else rows
 
 
+def is_held_out_event(event: dict[str, Any]) -> bool:
+    split = str(event.get("split") or "").strip().lower()
+    return bool(event.get("held_out")) or split in {"test", "benchmark", "heldout", "held-out"}
+
+
+def filter_out_events(rows: list[dict[str, Any]], event_ids: set[str]) -> list[dict[str, Any]]:
+    return [row for row in rows if str(row.get("event_id") or "") not in event_ids]
+
+
 def selected_tasks(tasks_arg: str, tuple_prompt: str, chain_prompt: str) -> list[tuple[str, str]]:
     prompts = {"tuple": tuple_prompt, "chain": chain_prompt}
     tasks = []
@@ -452,6 +519,17 @@ def config_max_tokens(config_path: str) -> int | None:
         return None
 
 
+def effective_evidence_limits(args: argparse.Namespace, tuple_mode: str) -> tuple[int, int]:
+    max_evidence = int(getattr(args, "max_evidence", 8))
+    max_chars = int(getattr(args, "max_evidence_chars", 500))
+    if tuple_mode == "stakeholder_canonical":
+        if max_evidence == 8:
+            max_evidence = 60
+        if max_chars == 500:
+            max_chars = 450
+    return max_evidence, max_chars
+
+
 def write_prompt_manifest(
     output_dir: Path,
     *,
@@ -460,11 +538,13 @@ def write_prompt_manifest(
     chain_prompt_path: Path,
     chain_prompt: str,
     seed: int,
+    tuple_mode: str = "standard",
 ) -> dict[str, Any]:
     manifest = {
         "tuple_prompt_path": str(tuple_prompt_path),
         "tuple_prompt_sha256": file_sha256(tuple_prompt_path),
         "tuple_prompt_template": tuple_prompt,
+        "tuple_mode": tuple_mode,
         "chain_prompt_path": str(chain_prompt_path),
         "chain_prompt_sha256": file_sha256(chain_prompt_path),
         "chain_prompt_template": chain_prompt,
@@ -546,7 +626,14 @@ def build_event_context(event: dict[str, Any], evidence_items: list[dict[str, An
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
-def parse_payload(text: str, event_id: str, allowed_evidence_ids: set[str], task: str) -> tuple[list[dict[str, Any]], str]:
+def parse_payload(
+    text: str,
+    event_id: str,
+    allowed_evidence_ids: set[str],
+    task: str,
+    *,
+    tuple_mode: str = "standard",
+) -> tuple[list[dict[str, Any]], str]:
     if not text.strip():
         return [], "empty_llm_content"
     try:
@@ -562,6 +649,7 @@ def parse_payload(text: str, event_id: str, allowed_evidence_ids: set[str], task
     if not isinstance(rows, list):
         return [], f"{key}_not_list"
     parsed: list[dict[str, Any]] = []
+    canonical_cluster_rows: dict[str, list[tuple[int, str]]] = defaultdict(list)
     for index, row in enumerate(rows, start=1):
         if not isinstance(row, dict):
             continue
@@ -576,23 +664,46 @@ def parse_payload(text: str, event_id: str, allowed_evidence_ids: set[str], task
         if task == "tuple":
             support = str(row.get("support_label") or "supported")
             sentiment = str(row.get("sentiment") or "unknown")
-            if support not in SUPPORT_LABELS or sentiment not in SENTIMENTS:
+            valid_support_labels = CANONICAL_SUPPORT_LABELS if tuple_mode == "stakeholder_canonical" else SUPPORT_LABELS
+            if support not in valid_support_labels or sentiment not in SENTIMENTS:
                 return [], f"tuple_candidate_{index}_invalid_label"
             if not all(str(row.get(field) or "").strip() for field in ("stakeholder", "opinion", "rationale")):
                 return [], f"tuple_candidate_{index}_missing_required_field"
-            parsed.append(
-                {
-                    "event_id": event_id,
-                    "candidate_id": f"LLM_{event_id}_{index:03d}",
-                    "source_type": "llm_preannotation",
-                    "stakeholder": row["stakeholder"],
-                    "opinion": row["opinion"],
-                    "sentiment": sentiment,
-                    "rationale": row["rationale"],
-                    "evidence_ids": ids,
-                    "support_label": support,
-                }
-            )
+            candidate_id = f"LLM_{event_id}_{index:03d}"
+            parsed_row = {
+                "event_id": event_id,
+                "candidate_id": candidate_id,
+                "source_type": "llm_preannotation",
+                "stakeholder": row["stakeholder"],
+                "opinion": row["opinion"],
+                "sentiment": sentiment,
+                "rationale": row["rationale"],
+                "evidence_ids": ids,
+                "support_label": support,
+            }
+            if tuple_mode == "stakeholder_canonical":
+                cluster_id = str(row.get("stakeholder_cluster_id") or "").strip()
+                if not cluster_id:
+                    return [], f"tuple_candidate_{index}_missing_stakeholder_cluster_id"
+                aliases = row.get("stakeholder_aliases")
+                if not isinstance(aliases, list):
+                    return [], f"tuple_candidate_{index}_stakeholder_aliases_not_list"
+                if not isinstance(row.get("canonical_tuple"), bool):
+                    return [], f"tuple_candidate_{index}_canonical_tuple_not_bool"
+                if row.get("canonical_tuple") is not True:
+                    return [], f"tuple_candidate_{index}_not_canonical_tuple"
+                split_reason = str(row.get("opinion_split_reason") or "").strip()
+                canonical_cluster_rows[cluster_id].append((index, split_reason))
+                parsed_row.update(
+                    {
+                        "candidate_id": f"LLM_CANON_{event_id}_{index:03d}",
+                        "stakeholder_cluster_id": cluster_id,
+                        "stakeholder_aliases": [str(alias).strip() for alias in aliases if str(alias).strip()],
+                        "canonical_tuple": True,
+                        "opinion_split_reason": split_reason,
+                    }
+                )
+            parsed.append(parsed_row)
         else:
             chain = row.get("event_chain") or row.get("chain_nodes") or []
             if isinstance(chain, str):
@@ -608,6 +719,16 @@ def parse_payload(text: str, event_id: str, allowed_evidence_ids: set[str], task
                     "evidence_ids": ids,
                 }
             )
+    if task == "tuple" and tuple_mode == "stakeholder_canonical":
+        for cluster_id, occurrences in canonical_cluster_rows.items():
+            if len(occurrences) <= 1:
+                continue
+            missing_reason_indexes = [str(index) for index, split_reason in occurrences if not split_reason]
+            if missing_reason_indexes:
+                return [], (
+                    "duplicate_stakeholder_cluster_without_split_reason:"
+                    f"{cluster_id}:tuple_candidates_{','.join(missing_reason_indexes)}"
+                )
     return parsed, ""
 
 
@@ -801,10 +922,12 @@ def audit_record(
     max_tokens: int | None = None,
     seed: int | None = None,
     prompt_template_sha256: str = "",
+    tuple_mode: str = "standard",
 ) -> dict[str, Any]:
     return {
         "event_id": event_id,
         "task_type": task_type,
+        "tuple_mode": tuple_mode,
         "request_status": request_status,
         "parse_status": parse_status,
         "num_candidates": num_candidates,

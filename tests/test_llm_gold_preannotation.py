@@ -108,6 +108,138 @@ def test_select_events_respects_event_ids():
     assert [row["event_id"] for row in selected] == ["E001", "E003"]
 
 
+def test_parse_stakeholder_canonical_tuple_keeps_audit_fields():
+    payload = {
+        "event_id": "E001",
+        "tuples": [
+            {
+                "stakeholder_cluster_id": "SC_E001_001",
+                "stakeholder": "三元里村居民",
+                "stakeholder_aliases": ["居民", "村民"],
+                "opinion": "要求说明项目影响并公开回应搬迁安排",
+                "sentiment": "negative",
+                "rationale": "两条证据均描述居民提出公开回应诉求。",
+                "evidence_ids": ["ev-1", "ev-2"],
+                "support_label": "supported",
+                "canonical_tuple": True,
+                "opinion_split_reason": "",
+            }
+        ],
+    }
+
+    parsed, error = script.parse_payload(
+        json.dumps(payload, ensure_ascii=False),
+        "E001",
+        {"ev-1", "ev-2"},
+        "tuple",
+        tuple_mode="stakeholder_canonical",
+    )
+
+    assert error == ""
+    assert parsed[0]["candidate_id"] == "LLM_CANON_E001_001"
+    assert parsed[0]["stakeholder_cluster_id"] == "SC_E001_001"
+    assert parsed[0]["stakeholder_aliases"] == ["居民", "村民"]
+    assert parsed[0]["canonical_tuple"] is True
+
+
+def test_parse_stakeholder_canonical_rejects_duplicate_cluster_without_split_reason():
+    payload = {
+        "event_id": "E001",
+        "tuples": [
+            canonical_tuple("ev-1", opinion="要求公开信息", split_reason=""),
+            canonical_tuple("ev-2", opinion="要求补偿", split_reason=""),
+        ],
+    }
+
+    parsed, error = script.parse_payload(
+        json.dumps(payload, ensure_ascii=False),
+        "E001",
+        {"ev-1", "ev-2"},
+        "tuple",
+        tuple_mode="stakeholder_canonical",
+    )
+
+    assert parsed == []
+    assert error.startswith("duplicate_stakeholder_cluster_without_split_reason:SC_E001_001")
+
+
+def test_parse_stakeholder_canonical_allows_duplicate_cluster_with_split_reason():
+    payload = {
+        "event_id": "E001",
+        "tuples": [
+            canonical_tuple("ev-1", opinion="要求公开信息", split_reason="同一主体的信息公开诉求"),
+            canonical_tuple("ev-2", opinion="要求补偿", split_reason="同一主体的补偿诉求"),
+        ],
+    }
+
+    parsed, error = script.parse_payload(
+        json.dumps(payload, ensure_ascii=False),
+        "E001",
+        {"ev-1", "ev-2"},
+        "tuple",
+        tuple_mode="stakeholder_canonical",
+    )
+
+    assert error == ""
+    assert len(parsed) == 2
+
+
+def test_parse_stakeholder_canonical_rejects_unknown_evidence_id():
+    payload = {"event_id": "E001", "tuples": [canonical_tuple("ev-missing")]}
+
+    parsed, error = script.parse_payload(
+        json.dumps(payload, ensure_ascii=False),
+        "E001",
+        {"ev-1"},
+        "tuple",
+        tuple_mode="stakeholder_canonical",
+    )
+
+    assert parsed == []
+    assert error == "tuple_candidate_1_missing_valid_evidence_ids"
+
+
+def test_stakeholder_canonical_excludes_held_out_events(tmp_path):
+    paths = write_inputs(tmp_path)
+    output_dir = tmp_path / "annotation"
+    output_dir.mkdir()
+    write_jsonl(
+        paths["events"],
+        [
+            {"event_id": "E001", "event_name": "train event", "held_out": False},
+            {"event_id": "E002", "event_name": "test event", "split": "test", "held_out": False},
+        ],
+    )
+    write_jsonl(
+        paths["evidence"],
+        [
+            {"event_id": "E001", "evidence_id": "ev-1", "source": "news", "text": "text 1"},
+            {"event_id": "E002", "evidence_id": "ev-2", "source": "news", "text": "text 2"},
+        ],
+    )
+    write_jsonl(
+        output_dir / "llm_gold_tuples.jsonl",
+        [
+            {"event_id": "E001", "candidate_id": "old-train", "stakeholder": "s", "opinion": "o", "sentiment": "neutral"},
+            {"event_id": "E002", "candidate_id": "old-test", "stakeholder": "s", "opinion": "o", "sentiment": "neutral"},
+        ],
+    )
+    run_args = args(tmp_path, paths)
+    run_args.all_events = True
+    run_args.dry_run = True
+    run_args.tasks = "tuple"
+    run_args.tuple_mode = "stakeholder_canonical"
+
+    report = script.run_preannotation(run_args)
+
+    assert report["num_events"] == 1
+    assert report["held_out_events_excluded"] == ["E002"]
+    assert report["max_evidence"] == 60
+    assert report["max_evidence_chars"] == 450
+    tuples = read_jsonl(output_dir / "llm_gold_tuples.jsonl")
+    assert {row["event_id"] for row in tuples} == {"E001"}
+
+
 def test_empty_gold_schema_valid_but_not_ready(tmp_path):
     events = tmp_path / "events.jsonl"
     evidence = tmp_path / "evidence.jsonl"
@@ -239,6 +371,21 @@ def write_multi_event_inputs(tmp_path: Path):
     return paths
 
 
+def canonical_tuple(evidence_id: str, *, opinion: str = "要求公开信息", split_reason: str = ""):
+    return {
+        "stakeholder_cluster_id": "SC_E001_001",
+        "stakeholder": "居民",
+        "stakeholder_aliases": ["居民"],
+        "opinion": opinion,
+        "sentiment": "negative",
+        "rationale": "证据支持该诉求。",
+        "evidence_ids": [evidence_id],
+        "support_label": "supported",
+        "canonical_tuple": True,
+        "opinion_split_reason": split_reason,
+    }
+
+
 def args(tmp_path: Path, paths: dict[str, Path]) -> Namespace:
     return Namespace(
         config=str(paths["config"]),
@@ -252,6 +399,11 @@ def args(tmp_path: Path, paths: dict[str, Path]) -> Namespace:
         start_index=0,
         all_events=False,
         retry_failed=False,
+        tasks="tuple,chain",
+        reuse_raw_responses=False,
+        parse_raw_only=False,
+        tuple_mode="standard",
+        include_held_out=False,
         merge_existing=True,
         overwrite_output=False,
         audit_file=str(tmp_path / "annotation" / "llm_preannotation_audit.jsonl"),
