@@ -1,0 +1,47 @@
+{
+  "created_at": "2026-05-25T12:43:19.334504+00:00",
+  "model_name": "gpt-5.5",
+  "tuple_mode": "stakeholder_canonical",
+  "temperature": 0.1,
+  "seed": 42,
+  "prompt_path": "prompts/gold_tuple_stakeholder_canonical.md",
+  "prompt_sha256": "ad47ce8af79572f2bedca074b1e749271cdb1bcf3275c6ad1e8c1cf0119fdce5",
+  "output_dir": "data\\pubevent_soa_lite\\annotation_gpt55_stakeholder_canonical_nonheldout",
+  "human_gold_v2_work_dir": "data\\pubevent_soa_lite\\human_gold_v2_stakeholder_canonical",
+  "held_out_policy": "exclude held_out=True and split=test/benchmark events from LLM preannotation",
+  "held_out_events_excluded": [
+    "E002",
+    "E008",
+    "E016",
+    "E018",
+    "E041"
+  ],
+  "nonheldout_event_count": 45,
+  "tuple_count": 209,
+  "events_with_tuples": 45,
+  "missing_nonheldout_events": [],
+  "heldout_rows_in_tuple_output": [],
+  "support_label_counts": {
+    "supported": 192,
+    "partially_supported": 17
+  },
+  "cross_source_confidence_route_counts": {
+    "low_confidence": 61,
+    "silver_candidate": 148
+  },
+  "human_tuple_sheet_rows": 209,
+  "human_tuple_sheet_confidence_route_counts": {
+    "low_confidence": 61,
+    "silver_candidate": 148
+  },
+  "annotators": [
+    "annotator_A",
+    "annotator_B",
+    "annotator_C"
+  ],
+  "notes": [
+    "LLM output is silver preannotation only; not final Human Gold.",
+    "Rows with confidence_route=low_confidence require human review.",
+    "Final gold export must wait for independent annotation, IAA, and adjudication."
+  ]
+}

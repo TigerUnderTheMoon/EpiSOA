@@ -1,0 +1,143 @@
+{
+  "event_id": "E032",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E032_001",
+      "stakeholder": "广东省委省政府及梅州市等地方救援部门",
+      "stakeholder_aliases": [
+        "广东省委省政府",
+        "省、市",
+        "事故救援现场指挥部",
+        "公安、应急、消防、卫健、交通等部门"
+      ],
+      "opinion": "事故发生后高度重视并全力开展救援，成立事故救援现场指挥部，组织公安、应急、消防、卫健、交通等500多人参与处置。",
+      "sentiment": "neutral",
+      "rationale": "证据明确称事发后广东省委省政府高度重视，省、市全力开展救援并成立现场指挥部，多部门投入500多人参与。",
+      "evidence_ids": [
+        "ev-00756"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E032_002",
+      "stakeholder": "应急管理部",
+      "stakeholder_aliases": [
+        "应急管理部",
+        "应急管理部部长王祥喜"
+      ],
+      "opinion": "接报后部署指导帮助地方加快搜救、科学安全救援、全力救治伤员，最大程度减少人员伤亡，并要求查清原因、汲取教训。",
+      "sentiment": "neutral",
+      "rationale": "多条证据称应急管理部或部长王祥喜接报后立即部署，要求加快搜救、科学救援、救治伤员、减少伤亡，并查清原因、汲取教训。",
+      "evidence_ids": [
+        "ev-00758",
+        "ev-01881",
+        "ev-01883",
+        "ev-01884",
+        "ev-01886",
+        "ev-01887"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E032_003",
+      "stakeholder": "广东省政府调查评估组",
+      "stakeholder_aliases": [
+        "梅大高速茶阳路段“5·1”塌方灾害广东省政府调查评估组",
+        "调查评估工作组",
+        "梅大高速茶阳路段“5·1”塌方灾害调查评估报告"
+      ],
+      "opinion": "发布调查评估报告，查明灾害原因，并认定该事件为长时间持续性降水与多种因素叠加耦合作用导致的特别重大人员伤亡塌方灾害。",
+      "sentiment": "neutral",
+      "rationale": "证据显示调查评估报告发布，工作组查明原因；报道还概述认定结论为持续降水与多因素叠加导致的特别重大人员伤亡塌方灾害。",
+      "evidence_ids": [
+        "ev-00752",
+        "ev-00753",
+        "ev-00754",
+        "ev-00755",
+        "ev-01872",
+        "ev-01873",
+        "ev-01876",
+        "ev-01882",
+        "ev-01888"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E032_004",
+      "stakeholder": "广东省应急管理厅",
+      "stakeholder_aliases": [
+        "广东省应急管理厅"
+      ],
+      "opinion": "对外公布《梅大高速茶阳路段“5·1”塌方灾害调查评估报告》。",
+      "sentiment": "neutral",
+      "rationale": "证据称广东省应急管理厅日前公布该调查评估报告。",
+      "evidence_ids": [
+        "ev-01882"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E032_005",
+      "stakeholder": "广东省有关问责部门",
+      "stakeholder_aliases": [
+        "广东2024年梅大高速公路“5·1”塌方灾害追责问责情况通报",
+        "央视新闻客户端公布的问责名单"
+      ],
+      "opinion": "围绕涉灾路段工程建设和运营养护问题通报追责问责情况，并公布相关问责名单。",
+      "sentiment": "neutral",
+      "rationale": "证据提到广东梅大高速公路“5·1”塌方灾害涉灾路段工程建设和运营养护问题追责问责情况通报，以及央视新闻客户端公布问责名单。",
+      "evidence_ids": [
+        "ev-01871",
+        "ev-01875"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E032_006",
+      "stakeholder": "公众和社交媒体评论者",
+      "stakeholder_aliases": [
+        "头条文章作者",
+        "公众舆论",
+        "社交媒体评论者"
+      ],
+      "opinion": "认为梅大高速塌方灾害令人痛心，给受影响家庭造成巨大悲痛，也对社区产生深远影响，并在事后持续关注调查评估报告和问责名单。",
+      "sentiment": "negative",
+      "rationale": "社交媒体证据称该事件令人痛心、给受影响家庭造成巨大悲痛并影响社区；后续证据显示评估报告和问责名单受到关注。",
+      "evidence_ids": [
+        "ev-00757",
+        "ev-01874",
+        "ev-01875"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E032_007",
+      "stakeholder": "广东梅大高速茶阳路段塌方救援新闻发布会相关负责人",
+      "stakeholder_aliases": [
+        "相关负责人",
+        "新闻发布会相关负责人"
+      ],
+      "opinion": "在救援新闻发布会上介绍医学救援和医疗救助情况。",
+      "sentiment": "neutral",
+      "rationale": "证据称5月2日广东梅大高速茶阳路段塌方救援新闻发布会上，相关负责人介绍医学救援和医疗救助情况。",
+      "evidence_ids": [
+        "ev-00759"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "event_id": "E010",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E010_001",
+      "stakeholder": "百家坊未来社区项目",
+      "stakeholder_aliases": [
+        "百家坊未来社区",
+        "百家坊未来社区安置小区",
+        "百家坊未来社区项目"
+      ],
+      "opinion": "百家坊未来社区项目被报道为位于智慧新城百家坊片区的全拆重建类安置小区项目，已纳入浙江省第三批未来社区试点名单，并于2022年3月开工建设。",
+      "sentiment": "neutral",
+      "rationale": "证据仅说明百家坊未来社区项目的区位、安置小区属性、试点身份和开工时间，未直接支持延期交付、选房交房延期或补偿承诺等事件核心内容。",
+      "evidence_ids": [
+        "ev-01562",
+        "ev-01563"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

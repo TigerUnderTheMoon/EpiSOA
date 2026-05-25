@@ -1,0 +1,132 @@
+{
+  "event_id": "E043",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E043_001",
+      "stakeholder": "武汉市城管执法委员会及相关交通管理部门",
+      "stakeholder_aliases": [
+        "武汉市城管执法委员会",
+        "武汉市城管执法委",
+        "市交通运输局",
+        "市公安局交通管理局",
+        "武汉市相关职能部门"
+      ],
+      "opinion": "针对共享单车超量投放和乱停乱放问题开展协同治理，召开专题调度会并督促哈啰、美团、青桔等企业回收违规超量投放车辆。",
+      "sentiment": "neutral",
+      "rationale": "证据显示武汉市城管执法委员会联合交通运输、公安交管部门召开共享单车专题调度会，并通报近一个月督促三家企业回收违规超量投放车辆10万余辆；相关文本还说明共享单车超量投放和乱停乱放对交通秩序、市容市貌造成不良影响。",
+      "evidence_ids": [
+        "ev-01069",
+        "ev-01072",
+        "ev-01091",
+        "ev-01090"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E043_002",
+      "stakeholder": "共享单车经营企业",
+      "stakeholder_aliases": [
+        "共享单车平台",
+        "共享单车企业",
+        "部分企业",
+        "哈啰",
+        "美团",
+        "青桔",
+        "单车公司"
+      ],
+      "opinion": "部分共享单车企业因运维管理不到位被指造成超量投放和车辆乱停乱放，并在监管督促或街道联系下参与回收、清理违规车辆。",
+      "sentiment": "mixed",
+      "rationale": "多条证据指出部分企业运维管理不到位导致超量投放、乱停乱放，影响交通秩序和市容；另有证据显示监管部门督促哈啰、美团、青桔回收违规超量投放车辆，街道也联系单车公司进行清理。",
+      "evidence_ids": [
+        "ev-01068",
+        "ev-01069",
+        "ev-01072",
+        "ev-01091",
+        "ev-01089",
+        "ev-01096"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E043_003",
+      "stakeholder": "武汉市民和居民",
+      "stakeholder_aliases": [
+        "市民",
+        "居民",
+        "周边居民",
+        "武汉市民",
+        "网友",
+        "诉求人",
+        "打工人"
+      ],
+      "opinion": "认可共享单车作为绿色出行方式，为市民短途出行和日常通勤提供便利。",
+      "sentiment": "positive",
+      "rationale": "证据称共享单车作为绿色出行方式为市民出行提供便利，也有报道提到共享单车给市民出行带来极大便利、受到市民喜爱。",
+      "evidence_ids": [
+        "ev-01068",
+        "ev-01069",
+        "ev-01072",
+        "ev-01092",
+        "ev-01093"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": "同一公众群体同时存在对共享单车便利性的正面评价和对超量投放、乱停放治理问题的负面诉求，语义不同，需拆分。"
+    },
+    {
+      "stakeholder_cluster_id": "SC_E043_003",
+      "stakeholder": "武汉市民和居民",
+      "stakeholder_aliases": [
+        "市民",
+        "居民",
+        "周边居民",
+        "武汉市民",
+        "网友",
+        "诉求人",
+        "打工人"
+      ],
+      "opinion": "反映或担忧共享单车超量投放、乱停乱放、集中堆放影响交通出行、生活环境和城市秩序，并追问职能部门是否开展需求测评、使用率评估及分区域投放管理。",
+      "sentiment": "negative",
+      "rationale": "证据显示市民反映共享单车乱停乱放、堆放密集、影响正常出行或周边居民生活；另有留言质疑武汉共享单车投放量过多，询问是否做过需求调查、实际使用率评估以及是否应分区域投放。",
+      "evidence_ids": [
+        "ev-01074",
+        "ev-01088",
+        "ev-01096",
+        "ev-01100",
+        "ev-01101",
+        "ev-01102"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": "同一公众群体同时存在对共享单车便利性的正面评价和对超量投放、乱停放治理问题的负面诉求，语义不同，需拆分。"
+    },
+    {
+      "stakeholder_cluster_id": "SC_E043_004",
+      "stakeholder": "武汉市基层街道和区级城管执法部门",
+      "stakeholder_aliases": [
+        "武汉江岸区相关街道",
+        "劳动街道",
+        "唐家墩街工作人员",
+        "江岸城管执法部门",
+        "江岸区城管执法部门"
+      ],
+      "opinion": "对辖区内共享单车相关问题开展现场处置，包括联系单车公司清理、规范市民有序停放，并对违规停放影响交通的行为进行处罚或整治。",
+      "sentiment": "neutral",
+      "rationale": "证据显示江岸区相关街道联系单车公司清理，唐家墩街接诉后到现场核查并联系单车公司处理乱停乱放；江岸城管执法部门曾启动规范市民有序停放共享单车的宣传整治活动，并处罚未按规定停放、影响交通的市民。",
+      "evidence_ids": [
+        "ev-01075",
+        "ev-01077",
+        "ev-01089",
+        "ev-01096",
+        "ev-01097"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

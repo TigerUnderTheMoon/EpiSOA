@@ -1,0 +1,101 @@
+{
+  "event_id": "E045",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E045_001",
+      "stakeholder": "武汉东湖风景区城管执法局",
+      "stakeholder_aliases": [
+        "东湖风景区城管执法局",
+        "东湖风景区城管部门",
+        "武汉市东湖风景区城管部门",
+        "市城管部门"
+      ],
+      "opinion": "通过智能平台和电子围栏等方式强化共享单车停放秩序监管，并对因忽视预警、未及时清理车辆导致通行受阻的共享单车运营企业作出处罚。",
+      "sentiment": "neutral",
+      "rationale": "证据显示东湖风景区城管执法局因运营企业多次忽视潮汐点位预警、未及时清理车辆造成通行受阻而处罚企业；另有证据显示东湖风景区城管部门试点电子围栏、规范停车。",
+      "evidence_ids": [
+        "ev-01139",
+        "ev-01138",
+        "ev-01140"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E045_002",
+      "stakeholder": "共享单车运营企业",
+      "stakeholder_aliases": [
+        "某共享单车运营企业",
+        "共享单车运营企业",
+        "车企",
+        "3家车企"
+      ],
+      "opinion": "因多次忽视潮汐点位预警、未及时清理淤积车辆并造成通行受阻，被东湖风景区城管执法局处罚；相关车企也曾被城管部门督促自行囤积车辆、配合集中整治。",
+      "sentiment": "negative",
+      "rationale": "官方证据直接说明某共享单车运营企业未及时清理车辆造成通行受阻并受到处罚；另有证据显示城管局曾督促多家车企开展车辆囤积和集中整治以遏制乱象。",
+      "evidence_ids": [
+        "ev-01139",
+        "ev-01143"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E045_003",
+      "stakeholder": "共享单车用户",
+      "stakeholder_aliases": [
+        "共享单车一族",
+        "用户",
+        "骑行用户"
+      ],
+      "opinion": "在东湖风景区内需要按规定将共享单车停放在划定区域或电子围栏内，否则可能无法锁车、持续计费，甚至被列入禁骑名单。",
+      "sentiment": "neutral",
+      "rationale": "多条证据提到东湖风景区划定共享单车停放处、推出电子围栏，并规定随意停放会导致锁不上车、持续计费或可能被列入禁骑名单。",
+      "evidence_ids": [
+        "ev-01137",
+        "ev-01138",
+        "ev-01140"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E045_004",
+      "stakeholder": "公众网友",
+      "stakeholder_aliases": [
+        "网友",
+        "多名网友",
+        "公众"
+      ],
+      "opinion": "曝光并关注东湖绿道内共享单车被成堆丢弃在路边坡上、沟里等乱停乱放现象。",
+      "sentiment": "negative",
+      "rationale": "证据显示多名网友爆料称武汉东湖绿道内共享单车被成堆丢弃在路边坡上、沟里，反映公众对共享单车乱象的负面关注。",
+      "evidence_ids": [
+        "ev-01146"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E045_005",
+      "stakeholder": "新城美洁公司",
+      "stakeholder_aliases": [
+        "新城美洁公司",
+        "新城美洁公司环卫"
+      ],
+      "opinion": "参与东湖生态旅游风景区共享单车淤积协同治理，发现地质大学北门附近单车淤积后联系队员处理。",
+      "sentiment": "neutral",
+      "rationale": "证据显示五一后东湖生态旅游风景区协同共治仍在进行，新城美洁公司环卫人员发现单车淤积并联系队员处理。",
+      "evidence_ids": [
+        "ev-01144"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

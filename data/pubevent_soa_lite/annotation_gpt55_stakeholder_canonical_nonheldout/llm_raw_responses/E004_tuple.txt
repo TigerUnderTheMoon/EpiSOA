@@ -1,0 +1,104 @@
+{
+  "event_id": "E004",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E004_001",
+      "stakeholder": "横沙社区",
+      "stakeholder_aliases": [
+        "横沙社区",
+        "大沙街横沙社区"
+      ],
+      "opinion": "通过投票形成决议，向黄埔区政府申请行政处理改造范围内所有留守户房屋拆迁补偿安置争议，以推进旧村改造进度。",
+      "sentiment": "neutral",
+      "rationale": "多条报道均称横沙社区近期以投票方式通过决议，内容为向黄埔区政府申请行政处理留守户房屋拆迁补偿安置争议。",
+      "evidence_ids": [
+        "ev-00077",
+        "ev-00081",
+        "ev-00082",
+        "ev-00083",
+        "ev-00085",
+        "ev-01455",
+        "ev-01456",
+        "ev-01460"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E004_002",
+      "stakeholder": "黄埔区人民政府",
+      "stakeholder_aliases": [
+        "黄埔区政府",
+        "广州市黄埔区人民政府"
+      ],
+      "opinion": "曾发布横沙旧村改造项目剩余地块改造通告，载明改造范围内房屋权属人同意《横沙“城中村”拆迁安置补偿方案》。",
+      "sentiment": "neutral",
+      "rationale": "官方通告文本显示发布主体为广州市黄埔区人民政府，并涉及横沙旧村改造项目剩余地块及拆迁安置补偿方案。",
+      "evidence_ids": [
+        "ev-00080",
+        "ev-00086",
+        "ev-00087"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E004_003",
+      "stakeholder": "横沙旧村改造范围内房屋权属人",
+      "stakeholder_aliases": [
+        "改造范围内房屋权属人",
+        "房屋权属人"
+      ],
+      "opinion": "同意《横沙“城中村”拆迁安置补偿方案》。",
+      "sentiment": "positive",
+      "rationale": "黄埔区政府通告明确表述改造范围内房屋权属人同意相关拆迁安置补偿方案。",
+      "evidence_ids": [
+        "ev-00080",
+        "ev-00086",
+        "ev-00087"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E004_004",
+      "stakeholder": "广州市政府及市住建局",
+      "stakeholder_aliases": [
+        "广州市政府",
+        "市住建局"
+      ],
+      "opinion": "公布并解读《广州市旧村庄旧厂房旧城镇改造实施办法》，明确留守户拒不交回集体土地使用权时，由属地区政府依法处理并可申请法院强制执行。",
+      "sentiment": "neutral",
+      "rationale": "证据称《实施办法》在广州市政府网站公布，市住建局同步解读，并明确留守户拒不交回集体土地使用权时的属地区政府处理和法院强制执行路径。",
+      "evidence_ids": [
+        "ev-01461",
+        "ev-01462",
+        "ev-01463"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E004_005",
+      "stakeholder": "现场村民及未签约房屋相关方",
+      "stakeholder_aliases": [
+        "村民",
+        "未签约房屋相关村民",
+        "未签的房屋"
+      ],
+      "opinion": "担心拆迁作业未做好足够安全围蔽，可能危及相邻未签约房屋。",
+      "sentiment": "negative",
+      "rationale": "证据描述拆迁现场有挖机就位，村民发现相邻未签约房屋并直言安全围蔽不足，担心危及未签房屋。",
+      "evidence_ids": [
+        "ev-00084"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

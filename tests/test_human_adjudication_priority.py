@@ -32,7 +32,8 @@ def test_build_human_adjudication_sheet_scores_and_sorts_priority(tmp_path):
                 "evidence_id": "ev2",
                 "source_type": "news",
                 "source": "news",
-                "text": "residents describe the problem and local officials response with detailed handling " * 2,
+                "text": "residents describe the problem and local officials response with detailed handling " * 20,
+                "full_text": "full article residents describe the problem and local officials response with detailed handling " * 30,
             },
             {
                 "event_id": "E1",
@@ -112,6 +113,14 @@ def test_build_human_adjudication_sheet_scores_and_sorts_priority(tmp_path):
     tuple_fields, tuple_rows = read_csv(output_dir / "human_tuple_adjudication_sheet.csv")
     chain_fields, chain_rows = read_csv(output_dir / "human_chain_adjudication_sheet.csv")
     assert tuple_fields.index("adjudication_priority_score") < tuple_fields.index("review_decision")
+    assert "evidence_texts" in tuple_fields
+    assert "evidence_urls" in tuple_fields
+    assert "event_chain" not in tuple_fields
+    assert "evidence_texts_preview" not in tuple_fields
+    assert "evidence_texts_full" not in tuple_fields
+    assert "evidence_texts_full_status" not in tuple_fields
+    assert "evidence_titles" not in tuple_fields
+    assert "evidence_dates" not in tuple_fields
     assert chain_fields.index("priority_reason") < chain_fields.index("review_decision")
     assert [row["tuple_id"] for row in tuple_rows] == ["T_high", "T_low"]
     assert [row["chain_id"] for row in chain_rows] == ["C_high", "C_low"]

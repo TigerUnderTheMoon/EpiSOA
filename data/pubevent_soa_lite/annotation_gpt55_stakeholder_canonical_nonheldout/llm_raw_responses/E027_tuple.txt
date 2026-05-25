@@ -1,0 +1,95 @@
+{
+  "event_id": "E027",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E027_001",
+      "stakeholder": "上海市公安局浦东分局",
+      "stakeholder_aliases": [
+        "上海浦东警方",
+        "上海警方",
+        "当地警方",
+        "上海公安浦东分局"
+      ],
+      "opinion": "对在知名医院周边实施“医托”诈骗的团伙开展侦查打击并成功捣毁，抓获或拘留涉案人员。",
+      "sentiment": "positive",
+      "rationale": "多条证据称上海浦东警方或上海警方捣毁在医院周边实施医托诈骗的团伙，并提到涉案人员被拘留、40余人被抓等执法结果。",
+      "evidence_ids": [
+        "ev-00642",
+        "ev-00643",
+        "ev-00645",
+        "ev-01811",
+        "ev-01814",
+        "ev-01816",
+        "ev-01821"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E027_002",
+      "stakeholder": "医院周边“医托”诈骗团伙",
+      "stakeholder_aliases": [
+        "涉嫌诈骗的犯罪团伙",
+        "医托犯罪人员",
+        "医托诈骗团伙",
+        "40名成员组成的团伙",
+        "在各大医院实施“医托”诈骗的团伙"
+      ],
+      "opinion": "在医院门诊等候区、挂号区或周边搭讪患者，谎称可介绍重点医院退休名医或所谓知名专家就诊，诱导患者前往指定医馆或诊所，并以高于市场价数倍的中药牟利。",
+      "sentiment": "negative",
+      "rationale": "证据描述该团伙分工明确，通过搭讪、配合诱导患者到所谓名医处就诊，医生或药材被指虚假，药品价格高且疗效差，涉案金额达450余万元、被害人近千名。",
+      "evidence_ids": [
+        "ev-00642",
+        "ev-00643",
+        "ev-00645",
+        "ev-01811",
+        "ev-01814",
+        "ev-01816",
+        "ev-01821"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E027_003",
+      "stakeholder": "被害患者",
+      "stakeholder_aliases": [
+        "被害人",
+        "受害者",
+        "患者",
+        "多名被害人"
+      ],
+      "opinion": "多名患者在医院等候就诊过程中被搭讪并被介绍去所谓知名医院退休专家处就诊，随后遭遇医托诈骗并向警方报警。",
+      "sentiment": "negative",
+      "rationale": "证据称上海浦东警方陆续接到报警，多名被害人表示在医院等候就诊过程中被搭讪、引导至所谓名医或退休专家处，从而受骗。",
+      "evidence_ids": [
+        "ev-00642",
+        "ev-01811",
+        "ev-01816"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E027_004",
+      "stakeholder": "媒体报道方",
+      "stakeholder_aliases": [
+        "澎湃新闻",
+        "相关媒体",
+        "新闻报道"
+      ],
+      "opinion": "提醒公众在医院周边遇到“好心人”推荐某中医馆名医时要提高警惕，防范医托诈骗。",
+      "sentiment": "negative",
+      "rationale": "澎湃新闻相关报道在介绍浦东警方捣毁医托诈骗团伙时，明确提示医院周边有人推荐中医馆名医时“一定要小心”。",
+      "evidence_ids": [
+        "ev-01821"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

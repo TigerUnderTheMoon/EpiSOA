@@ -1,0 +1,59 @@
+{
+  "event_id": "E022",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E022_001",
+      "stakeholder": "武当山特区卫生健康局、市场监督管理局、公安局",
+      "stakeholder_aliases": [
+        "武当山特区相关部门",
+        "武当山特区",
+        "官方",
+        "武当发布",
+        "中共武当山旅游经济特区工作委员会宣传部"
+      ],
+      "opinion": "对“药王谷抗癌中心调查”事件表示高度重视，称前期已依法立案并正在开展全面调查，调查和处置结果将及时向社会通报。",
+      "sentiment": "neutral",
+      "rationale": "多条证据均引用三部门情况通报，明确称武当山特区高度重视、相关部门已依法立案、正在开展全面调查并将及时通报结果。",
+      "evidence_ids": [
+        "ev-00517",
+        "ev-00518",
+        "ev-00519",
+        "ev-00520",
+        "ev-00521",
+        "ev-00522",
+        "ev-00523",
+        "ev-00524",
+        "ev-00525",
+        "ev-00526"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E022_002",
+      "stakeholder": "广大网友",
+      "stakeholder_aliases": [
+        "网友",
+        "社会公众"
+      ],
+      "opinion": "关注“药王谷抗癌中心调查”事件。",
+      "sentiment": "neutral",
+      "rationale": "三部门通报开头称“感谢广大网友对‘药王谷抗癌中心调查’事件的关注”，可支持公众对该事件存在关注。",
+      "evidence_ids": [
+        "ev-00517",
+        "ev-00518",
+        "ev-00519",
+        "ev-00520",
+        "ev-00521",
+        "ev-00522",
+        "ev-00523",
+        "ev-00524",
+        "ev-00526"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

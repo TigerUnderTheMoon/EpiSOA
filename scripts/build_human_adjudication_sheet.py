@@ -35,13 +35,14 @@ TUPLE_FIELDS = [
     "opinion",
     "sentiment",
     "rationale",
-    "event_chain",
+    "stakeholder_cluster_id",
+    "stakeholder_aliases",
+    "canonical_tuple",
+    "opinion_split_reason",
     "evidence_ids",
     "evidence_texts",
     "evidence_source_types",
     "evidence_urls",
-    "evidence_titles",
-    "evidence_dates",
     *CROSS_SOURCE_FIELDS,
     *PRIORITY_FIELDS,
     "review_decision",
@@ -60,6 +61,9 @@ CHAIN_FIELDS = [
     "chain_id",
     "event_chain",
     "evidence_ids",
+    "evidence_texts_preview",
+    "evidence_texts_full",
+    "evidence_texts_full_status",
     "evidence_texts",
     "evidence_source_types",
     "evidence_urls",
@@ -166,13 +170,14 @@ def tuple_sheet_row(
         "opinion": row.get("opinion", ""),
         "sentiment": row.get("sentiment", ""),
         "rationale": row.get("rationale", ""),
-        "event_chain": join_blocks(chain_summary(chains_by_event.get(event_id, []))),
+        "stakeholder_cluster_id": row.get("stakeholder_cluster_id", ""),
+        "stakeholder_aliases": join_ids(parse_ids(row.get("stakeholder_aliases"))),
+        "canonical_tuple": row.get("canonical_tuple", ""),
+        "opinion_split_reason": row.get("opinion_split_reason", ""),
         "evidence_ids": join_ids(ids),
         "evidence_texts": join_blocks([evidence_text(ev) for ev in evidence_pack]),
         "evidence_source_types": join_blocks([source_type(ev) for ev in evidence_pack]),
         "evidence_urls": join_blocks([str(ev.get("url") or "") for ev in evidence_pack]),
-        "evidence_titles": join_blocks([str(ev.get("title") or "") for ev in evidence_pack]),
-        "evidence_dates": join_blocks([str(ev.get("publish_time") or "") for ev in evidence_pack]),
         **cross_source_fields(row),
         **priority,
         "review_decision": "uncertain",
@@ -197,11 +202,14 @@ def chain_sheet_row(row: dict[str, Any], evidence_by_id: dict[str, dict[str, Any
         "chain_id": row.get("chain_id") or row.get("candidate_chain_id") or row.get("gold_chain_id") or "",
         "event_chain": join_blocks(chain_nodes),
         "evidence_ids": join_ids(ids),
+        "evidence_texts_preview": join_blocks([evidence_text_preview(ev) for ev in evidence_pack]),
+        "evidence_texts_full": join_blocks([evidence_text_full(ev) for ev in evidence_pack]),
+        "evidence_texts_full_status": join_blocks([evidence_text_full_status(ev) for ev in evidence_pack]),
         "evidence_texts": join_blocks([evidence_text(ev) for ev in evidence_pack]),
         "evidence_source_types": join_blocks([source_type(ev) for ev in evidence_pack]),
         "evidence_urls": join_blocks([str(ev.get("url") or "") for ev in evidence_pack]),
-        "evidence_titles": join_blocks([str(ev.get("title") or "") for ev in evidence_pack]),
-        "evidence_dates": join_blocks([str(ev.get("publish_time") or "") for ev in evidence_pack]),
+        "evidence_titles": join_blocks([evidence_title(ev) for ev in evidence_pack]),
+        "evidence_dates": join_blocks([evidence_date(ev) for ev in evidence_pack]),
         **cross_source_fields(row),
         **priority,
         "review_decision": "uncertain",
@@ -403,8 +411,44 @@ def chain_summary(rows: list[dict[str, Any]]) -> list[str]:
 
 
 def evidence_text(row: dict[str, Any], limit: int = 600) -> str:
-    text = " ".join(str(row.get("text") or "").split())
+    text = normalize_space(row.get("text"))
     return text[:limit]
+
+
+def evidence_text_preview(row: dict[str, Any], limit: int = 60) -> str:
+    text = normalize_space(row.get("text"))
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "...[preview_truncated]"
+
+
+def evidence_text_full(row: dict[str, Any]) -> str:
+    canonical_text = normalize_space(row.get("text"))
+    for field in ("full_text", "raw_text", "source_text", "article_text", "html_text"):
+        candidate = normalize_space(row.get(field))
+        if len(candidate) > len(canonical_text):
+            return candidate
+    return "full_text_unavailable; use evidence_texts and evidence_urls"
+
+
+def evidence_text_full_status(row: dict[str, Any]) -> str:
+    return (
+        "full_text_available"
+        if evidence_text_full(row) != "full_text_unavailable; use evidence_texts and evidence_urls"
+        else "full_text_unavailable"
+    )
+
+
+def evidence_title(row: dict[str, Any]) -> str:
+    return normalize_space(row.get("title")) or "title_unavailable"
+
+
+def evidence_date(row: dict[str, Any]) -> str:
+    return normalize_space(row.get("publish_time")) or "date_unavailable"
+
+
+def normalize_space(value: Any) -> str:
+    return " ".join(str(value or "").split())
 
 
 def source_type(row: dict[str, Any]) -> str:

@@ -1,0 +1,114 @@
+{
+  "event_id": "E014",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E014_001",
+      "stakeholder": "南宁市公安局良庆分局",
+      "stakeholder_aliases": [
+        "良庆警方",
+        "广西南宁市公安局良庆分局",
+        "南宁良庆警方",
+        "该分局"
+      ],
+      "opinion": "接到报警后立即开展调查处理，并依法对涉案8人作出行政拘留等处罚，相关工作仍在开展。",
+      "sentiment": "neutral",
+      "rationale": "多条通报类证据显示，良庆警方在4月18日事件后介入调查，并对8名涉案人员作出行政拘留等处罚。",
+      "evidence_ids": [
+        "ev-00309",
+        "ev-01640",
+        "ev-01642",
+        "ev-01643",
+        "ev-01644",
+        "ev-01646",
+        "ev-01647"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E014_002",
+      "stakeholder": "涉案欺凌学生",
+      "stakeholder_aliases": [
+        "两名学生",
+        "多名外校学生",
+        "一群同学",
+        "施暴者",
+        "涉案8人"
+      ],
+      "opinion": "两名南宁三中初中部五象校区学生以归还手机为由将一名学生带至校外附近地点，并协同多名外校学生对其欺负、殴打、羞辱和录像。",
+      "sentiment": "negative",
+      "rationale": "证据反复描述两名本校学生诱导受害学生离校，并与多名外校学生实施欺凌、殴打和录制视频的行为。",
+      "evidence_ids": [
+        "ev-00301",
+        "ev-00302",
+        "ev-00303",
+        "ev-00304",
+        "ev-00306",
+        "ev-00307",
+        "ev-00308",
+        "ev-00322",
+        "ev-00324",
+        "ev-01636",
+        "ev-01639"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E014_003",
+      "stakeholder": "被欺凌初中女生",
+      "stakeholder_aliases": [
+        "一名初中女生",
+        "一名无辜的女生",
+        "另一名学生",
+        "该学生",
+        "初中女孩"
+      ],
+      "opinion": "在4月18日放学后被诱导至校外，在良庆大道某小区旁或附近公园遭多人欺负殴打、围攻羞辱，相关暴行被录制并传播。",
+      "sentiment": "negative",
+      "rationale": "多条证据均指向同一名受害女生在校外遭多人欺凌、殴打并被录像传播的遭遇。",
+      "evidence_ids": [
+        "ev-00300",
+        "ev-00301",
+        "ev-00302",
+        "ev-00303",
+        "ev-00304",
+        "ev-00308",
+        "ev-00309",
+        "ev-00324",
+        "ev-01640",
+        "ev-01642",
+        "ev-01643",
+        "ev-01646"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E014_004",
+      "stakeholder": "网络公众和媒体评论者",
+      "stakeholder_aliases": [
+        "网友",
+        "社会公众",
+        "公共社交平台评论者",
+        "媒体评论者"
+      ],
+      "opinion": "将该事件视为恶性校园霸凌或校园暴力，表达震惊、痛心和担忧，认为事件触动社会敏感神经并暴露校园暴力的残酷。",
+      "sentiment": "negative",
+      "rationale": "公共社交和论坛类证据使用“黑色风暴”“触动社会的敏感神经”“恶性霸凌”“让人心痛”“轩然大波”等表述，体现对事件的谴责和担忧。",
+      "evidence_ids": [
+        "ev-00300",
+        "ev-00301",
+        "ev-00320",
+        "ev-00323",
+        "ev-00325"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

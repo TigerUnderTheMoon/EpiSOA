@@ -1,0 +1,129 @@
+{
+  "event_id": "E019",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E019_001",
+      "stakeholder": "受影响的北京美吉姆家长/消费者",
+      "stakeholder_aliases": [
+        "家长",
+        "孩子家长",
+        "消费者",
+        "北京美吉姆家长",
+        "西直门中心消费者"
+      ],
+      "opinion": "家长反映北京多家美吉姆门店关停后，孩子无法正常上课，预付的上万元课时费或高额学费难以退还，并通过投诉等方式要求退款、解除合约或维权。",
+      "sentiment": "negative",
+      "rationale": "多条证据显示家长称预付课时费无处可退、剩余课程无法消耗；西直门中心投诉明确称“撤店跑路、高额学费无人处理”，黑猫投诉条目也列出退款、解除合约等要求。",
+      "evidence_ids": [
+        "ev-00458",
+        "ev-00461",
+        "ev-01677",
+        "ev-01678",
+        "ev-01680",
+        "ev-01685",
+        "ev-01689"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E019_002",
+      "stakeholder": "美吉姆北京多家门店",
+      "stakeholder_aliases": [
+        "北京美吉姆早教机构线下多家门店",
+        "美吉姆北京多家分店",
+        "常营华联中心店",
+        "昌平悦荟店",
+        "清河万象汇店",
+        "望京店",
+        "西直门中心",
+        "姚家园万象汇美吉姆"
+      ],
+      "opinion": "北京多家美吉姆门店被曝突然闭店停业或暂停营业，部分家长称此前仍在正常上课或举办活动，闭店缺乏充分沟通。",
+      "sentiment": "negative",
+      "rationale": "证据集中描述北京数家门店近日闭店停业、暂停营业，涉及常营、昌平悦荟、清河万象汇、望京、西直门、姚家园万象汇等门店；有爆料称家长突然收到闭店信息，甚至前一天仍有活动或正常上课。",
+      "evidence_ids": [
+        "ev-00457",
+        "ev-00458",
+        "ev-00460",
+        "ev-01680",
+        "ev-01681",
+        "ev-01682",
+        "ev-01689"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E019_003",
+      "stakeholder": "美吉姆（中国）总部",
+      "stakeholder_aliases": [
+        "美吉姆中国总部",
+        "美吉姆(中国)",
+        "美吉姆总部"
+      ],
+      "opinion": "美吉姆（中国）总部发布声明称仍在积极寻求措施支持加盟中心继续经营，并督促闭店、并店中心处理相关问题。",
+      "sentiment": "neutral",
+      "rationale": "新浪财经证据提到2023年12月31日美吉姆（中国）总部发布声明，称积极寻求措施支持加盟中心继续经营，并督促闭店、并店中心后续处理。",
+      "evidence_ids": [
+        "ev-00458"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E019_004",
+      "stakeholder": "美吉姆常营华联中心",
+      "stakeholder_aliases": [
+        "常营华联中心店",
+        "美吉姆常营华联中心"
+      ],
+      "opinion": "美吉姆常营华联中心称因经营遇到问题，曾向上市公司美吉姆提出借钱周转救助需求，但多次沟通无果且被以无法扶持为由拒绝，导致其无力支付房租、员工工资和社保。",
+      "sentiment": "negative",
+      "rationale": "证据明确记录常营华联中心对自身经营困境和向上市公司求助失败的说明。",
+      "evidence_ids": [
+        "ev-01676"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E019_005",
+      "stakeholder": "上市公司美吉姆",
+      "stakeholder_aliases": [
+        "上市公司美吉姆"
+      ],
+      "opinion": "上市公司美吉姆被常营华联中心称在其请求借款周转救助时，以无法扶持为由拒绝提供支持。",
+      "sentiment": "negative",
+      "rationale": "该说法来自常营华联中心的单方表述，证据显示其称多次沟通无果并被上市公司以无法扶持为由拒绝。",
+      "evidence_ids": [
+        "ev-01676"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E019_006",
+      "stakeholder": "部分北京美吉姆门店负责人",
+      "stakeholder_aliases": [
+        "门店负责人",
+        "有门店负责人"
+      ],
+      "opinion": "部分北京美吉姆门店负责人被报道已处于失联状态。",
+      "sentiment": "negative",
+      "rationale": "海报新闻相关转载和财经评论均提到知名早教机构美吉姆数家北京门店闭店停业，且有门店负责人已处于失联状态。",
+      "evidence_ids": [
+        "ev-00457",
+        "ev-01681"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

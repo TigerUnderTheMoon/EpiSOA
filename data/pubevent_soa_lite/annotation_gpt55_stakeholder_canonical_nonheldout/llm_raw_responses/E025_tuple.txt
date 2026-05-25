@@ -1,0 +1,135 @@
+{
+  "event_id": "E025",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E025_001",
+      "stakeholder": "上海市东方医院",
+      "stakeholder_aliases": [
+        "上海东方医院",
+        "东方医院",
+        "院方",
+        "该院",
+        "同济大学附属东方医院"
+      ],
+      "opinion": "针对网传孙某新医生泄露患者隐私问题，医院发布说明，立即暂停孙某新医疗工作，配合医院和相关部门调查，并表示将严肃认真、客观公正、依法依规处理。",
+      "sentiment": "neutral",
+      "rationale": "多条证据显示上海市东方医院在官网或通报中回应舆情，采取暂停涉事医生医疗工作、配合调查和依法依规处理等措施。",
+      "evidence_ids": [
+        "ev-00602",
+        "ev-00604",
+        "ev-00605",
+        "ev-00609",
+        "ev-01772",
+        "ev-01773",
+        "ev-01779",
+        "ev-01782",
+        "ev-01783",
+        "ev-01785",
+        "ev-01787",
+        "ev-01788"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E025_002",
+      "stakeholder": "实名举报人余女士",
+      "stakeholder_aliases": [
+        "余女士",
+        "网友实名举报人",
+        "一网友",
+        "网民",
+        "举报人"
+      ],
+      "opinion": "实名举报上海市东方医院医生孙某新私下传播患者隐私照片、视频及手术信息，并称自己曾是孙某新的患者且掌握相关发送记录。",
+      "sentiment": "negative",
+      "rationale": "证据称余女士实名举报孙某新传播多位女性患者麻醉状态下裸照、视频及180份手术信息；另有证据称她本人曾是孙某新的患者并提供相关信息。",
+      "evidence_ids": [
+        "ev-00606",
+        "ev-00608",
+        "ev-00609",
+        "ev-01777"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E025_003",
+      "stakeholder": "孙某新",
+      "stakeholder_aliases": [
+        "孙某新医生",
+        "孙某",
+        "孙贵新医生",
+        "上海市东方医院创伤外科主任",
+        "主任医师孙某新"
+      ],
+      "opinion": "被举报或被指私下传播患者麻醉时裸照、隐私照片、视频及多份手术信息，涉嫌泄露患者隐私。",
+      "sentiment": "negative",
+      "rationale": "多条证据均以“被举报”“被指”“涉嫌”等表述描述孙某新传播患者隐私照片和手术信息，支持该争议中的被指控行为。",
+      "evidence_ids": [
+        "ev-00603",
+        "ev-00604",
+        "ev-00606",
+        "ev-00607",
+        "ev-00608",
+        "ev-00609",
+        "ev-00610",
+        "ev-00611",
+        "ev-01777",
+        "ev-01785",
+        "ev-01786",
+        "ev-01788"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E025_004",
+      "stakeholder": "患者群体",
+      "stakeholder_aliases": [
+        "患者",
+        "病人",
+        "女性患者",
+        "多名病人",
+        "多位女性患者"
+      ],
+      "opinion": "患者隐私权和个人信息安全受到关注；相关报道认为若未经同意公开或传播患者隐私照片、病例资料和手术信息，将侵犯患者隐私和个人信息权益。",
+      "sentiment": "negative",
+      "rationale": "证据提到多位女性患者麻醉状态下裸照及手术信息被传播的举报，并引用医疗机构及医务人员应保护患者隐私、泄露需承担侵权责任的规定。",
+      "evidence_ids": [
+        "ev-00606",
+        "ev-00607",
+        "ev-00608",
+        "ev-01782"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E025_005",
+      "stakeholder": "社会公众和舆论",
+      "stakeholder_aliases": [
+        "公众",
+        "社会",
+        "网友",
+        "舆论"
+      ],
+      "opinion": "事件引发社会广泛关注和反思，舆论聚焦医疗场景中的患者隐私红线、医患信任和患者权益保护。",
+      "sentiment": "negative",
+      "rationale": "多条证据称事件引发关注或社会广泛关注，并有评论将其指向医患关系中的隐私红线和信任问题。",
+      "evidence_ids": [
+        "ev-00603",
+        "ev-00608",
+        "ev-00611",
+        "ev-01786"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

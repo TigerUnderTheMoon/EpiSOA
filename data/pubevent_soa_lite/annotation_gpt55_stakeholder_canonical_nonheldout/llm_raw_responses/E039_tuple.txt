@@ -1,0 +1,143 @@
+{
+  "event_id": "E039",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E039_001",
+      "stakeholder": "三河市应急管理局",
+      "stakeholder_aliases": [
+        "河北省三河市应急管理局",
+        "三河市应急管理局局长纪宏图",
+        "官方"
+      ],
+      "opinion": "发布情况通报称燕郊镇一商户发生疑似燃气泄漏引发的燃爆事故，公布伤亡、现场清理和伤者救治情况，并表示救援基本结束、后续安全隐患排查措施正在制定和实施。",
+      "sentiment": "neutral",
+      "rationale": "多条证据显示三河市应急管理局对事故进行官方通报，说明疑似燃气泄漏、伤亡人数、现场清理、伤者救治及后续隐患排查安排。",
+      "evidence_ids": [
+        "ev-00950",
+        "ev-00951",
+        "ev-00952",
+        "ev-00954"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_002",
+      "stakeholder": "河北省应急管理厅调查评估和统计处",
+      "stakeholder_aliases": [
+        "河北省应急管理厅",
+        "调查评估和统计处"
+      ],
+      "opinion": "发布燕郊地铁施工项目“3·13”较大燃气爆燃事故调查报告，认定事故与地铁区间盾构施工过程中地埋天然气管道被破损、泄漏有关。",
+      "sentiment": "neutral",
+      "rationale": "证据称河北省应急管理厅调查评估和统计处发布调查报告，并说明盾构施工造成地埋天然气管道破损泄漏。",
+      "evidence_ids": [
+        "ev-00948",
+        "ev-00949",
+        "ev-01992"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_003",
+      "stakeholder": "事故调查专家组",
+      "stakeholder_aliases": [
+        "事故调查专家组组长刘福来",
+        "刘福来",
+        "事故调查组专家"
+      ],
+      "opinion": "披露事故原因初步判断为燃气管道泄漏，并说明并非用户燃气，而是输送中的管道泄漏导致。",
+      "sentiment": "neutral",
+      "rationale": "证据显示专家组组长刘福来介绍初步原因是燃气管道泄漏，后续报道进一步称是输送中的管道泄漏、不是用户燃气。",
+      "evidence_ids": [
+        "ev-00947",
+        "ev-00969",
+        "ev-00970",
+        "ev-00971",
+        "ev-00977"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_004",
+      "stakeholder": "燕郊事发地周边居民和旅客",
+      "stakeholder_aliases": [
+        "一位旅客",
+        "早起送孩子的居民",
+        "居民",
+        "多位市民"
+      ],
+      "opinion": "事发前后向媒体或平台反映现场情况，包括有旅客和居民称爆炸前曾闻到浓烈或类似燃气味道，多位市民报料称学院路与迎宾路路口发生爆炸。",
+      "sentiment": "negative",
+      "rationale": "证据记录了旅客和居民对事发前燃气味的目击陈述，以及市民对爆炸发生的报料，体现事故相关风险和现场异常的公众反馈。",
+      "evidence_ids": [
+        "ev-00965",
+        "ev-00980"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_005",
+      "stakeholder": "消防救援人员",
+      "stakeholder_aliases": [
+        "消防",
+        "救援人员",
+        "消防救援人员"
+      ],
+      "opinion": "事故发生后在现场持续开展救援，官方和媒体称救援工作正在紧张进行。",
+      "sentiment": "neutral",
+      "rationale": "证据显示事故现场消防救援人员持续救援，相关报道也称救援工作正在紧张进行。",
+      "evidence_ids": [
+        "ev-00953",
+        "ev-00975"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_006",
+      "stakeholder": "燕郊地铁施工项目施工方",
+      "stakeholder_aliases": [
+        "燕郊地铁施工项目",
+        "地铁燕郊站至神威大街站区间盾构施工",
+        "盾构施工方"
+      ],
+      "opinion": "在地铁燕郊站至神威大街站区间盾构施工过程中造成地埋天然气管道破损泄漏，被调查报告认定为事故发生链条中的关键施工环节。",
+      "sentiment": "negative",
+      "rationale": "证据明确称盾构施工过程中造成或导致地埋天然气管道破损泄漏，但未给出具体施工单位名称，因此以项目施工方作为概括性 stakeholder。",
+      "evidence_ids": [
+        "ev-00948",
+        "ev-00949",
+        "ev-01992"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_007",
+      "stakeholder": "网友",
+      "stakeholder_aliases": [
+        "燕郊网友",
+        "发视频网友"
+      ],
+      "opinion": "通过行车记录仪和视频传播事故现场信息，有网友称发生二次爆炸并提醒围观群众迅速撤离。",
+      "sentiment": "negative",
+      "rationale": "证据称燕郊网友的行车记录仪记录爆燃全过程，另有网友发视频称发生二次爆炸并提示围观群众撤离。",
+      "evidence_ids": [
+        "ev-00976"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

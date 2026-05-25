@@ -1,0 +1,121 @@
+{
+  "event_id": "E015",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E015_001",
+      "stakeholder": "邯郸市肥乡区委员会宣传部",
+      "stakeholder_aliases": [
+        "肥乡区委员会宣传部",
+        "微观肥乡",
+        "肥乡区官方微信公众号“微观肥乡”",
+        "肥乡区相关部门"
+      ],
+      "opinion": "通过官方微信公众号发布通报，说明2024年3月10日肥乡区初一学生王某某被杀害，并称案件发生后肥乡区高度重视。",
+      "sentiment": "neutral",
+      "rationale": "多条证据均提到肥乡区委员会宣传部官方微信公众号“微观肥乡”于17日晚发布通报，披露案件基本情况并表示肥乡区高度重视。",
+      "evidence_ids": [
+        "ev-00326",
+        "ev-00329",
+        "ev-00330",
+        "ev-00333",
+        "ev-00347",
+        "ev-00348"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E015_002",
+      "stakeholder": "肥乡区公安机关",
+      "stakeholder_aliases": [
+        "公安机关",
+        "当地警方",
+        "肥乡区警方"
+      ],
+      "opinion": "案件发生后立即开展侦破工作，并于3月11日抓获全部涉案犯罪嫌疑人，依法采取刑事强制措施。",
+      "sentiment": "neutral",
+      "rationale": "官方通报及转述报道显示，肥乡区公安机关立即侦破，涉案犯罪嫌疑人于3月11日全部被抓获并被依法采取刑事强制措施。",
+      "evidence_ids": [
+        "ev-00326",
+        "ev-00329",
+        "ev-00330",
+        "ev-00331",
+        "ev-00332",
+        "ev-00333",
+        "ev-00348"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E015_003",
+      "stakeholder": "当地警方",
+      "stakeholder_aliases": [
+        "邯郸当地警方",
+        "警方"
+      ],
+      "opinion": "接受总台记者采访，介绍案件进展情况。",
+      "sentiment": "neutral",
+      "rationale": "证据称3月18日当地警方接受总台记者采访，详细介绍案件进展。",
+      "evidence_ids": [
+        "ev-00327"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E015_004",
+      "stakeholder": "司法机关",
+      "stakeholder_aliases": [
+        "司法机关"
+      ],
+      "opinion": "将依法处理犯罪行为。",
+      "sentiment": "neutral",
+      "rationale": "证据转述“微观肥乡”通报称司法机关将对犯罪行为依法处理，但文本末尾存在截断。",
+      "evidence_ids": [
+        "ev-00331"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E015_005",
+      "stakeholder": "全国网友",
+      "stakeholder_aliases": [
+        "网友",
+        "公众",
+        "社会公众"
+      ],
+      "opinion": "对自媒体博主的误导行为表示愤怒，并呼吁公正处理、制裁未成年嫌疑人。",
+      "sentiment": "negative",
+      "rationale": "证据明确称案件引发全国网友关注，自媒体博主误导行为引起网友愤怒，网友呼吁公正处理并制裁未成年嫌疑人。",
+      "evidence_ids": [
+        "ev-00346"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E015_006",
+      "stakeholder": "自媒体博主",
+      "stakeholder_aliases": [
+        "自媒体",
+        "博主"
+      ],
+      "opinion": "在事件传播中存在误导行为，引发网友愤怒。",
+      "sentiment": "negative",
+      "rationale": "证据称自媒体博主的误导行为引起网友愤怒，但未具体说明误导内容。",
+      "evidence_ids": [
+        "ev-00346"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

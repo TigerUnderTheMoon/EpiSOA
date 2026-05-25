@@ -1,0 +1,98 @@
+{
+  "event_id": "E030",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E030_001",
+      "stakeholder": "老年人与残疾人等特殊就医群体",
+      "stakeholder_aliases": [
+        "不会上网、不会使用智能手机和存在视力障碍的老年人与残疾人",
+        "残障人士、老年人等特殊群体",
+        "残疾人、老年人等特定群体"
+      ],
+      "opinion": "因部分医疗机构缺少电话预约挂号方式、挂号平台和自助挂号机未实现无障碍功能，老年人、残疾人等群体面临线上预约挂号和便捷就医障碍。",
+      "sentiment": "negative",
+      "rationale": "多条证据直接指出医疗机构未提供电话预约、挂号平台及自助机未实现无障碍功能，并追问不会上网或有视力障碍的老年人与残疾人如何便捷就医；另有证据称线上预约对残障人士、老年人等特殊群体并不容易。",
+      "evidence_ids": [
+        "ev-00711",
+        "ev-00712",
+        "ev-00713",
+        "ev-00714",
+        "ev-00715",
+        "ev-01286",
+        "ev-01287",
+        "ev-01289",
+        "ev-01290"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E030_002",
+      "stakeholder": "深圳市人民检察院",
+      "stakeholder_aliases": [
+        "广东省深圳市人民检察院",
+        "深圳市检察院"
+      ],
+      "opinion": "收到无障碍挂号就医公益诉讼线索后，督促相关方面实施就医挂号无障碍、适老化改造。",
+      "sentiment": "positive",
+      "rationale": "证据显示深圳市检察院于2024年4月或5月收到无障碍挂号就医公益诉讼线索；最高检发布的典型案例名称明确为“广东省深圳市人民检察院督促实施就医挂号无障碍、适老化改造”。",
+      "evidence_ids": [
+        "ev-00711",
+        "ev-00712",
+        "ev-00713",
+        "ev-00714",
+        "ev-00715",
+        "ev-00716",
+        "ev-00718"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E030_003",
+      "stakeholder": "部分深圳医疗机构",
+      "stakeholder_aliases": [
+        "医疗机构",
+        "部分医院",
+        "我市部分医院"
+      ],
+      "opinion": "未提供电话预约挂号方式，且挂号平台、自助挂号机未实现无障碍功能，导致适老化和无障碍服务不到位。",
+      "sentiment": "negative",
+      "rationale": "多条证据称医疗机构不提供电话预约挂号，挂号平台及自助挂号机没有实现无障碍功能；另有证据称线索反映深圳部分医院线上及相关挂号服务存在无障碍问题。",
+      "evidence_ids": [
+        "ev-00711",
+        "ev-00712",
+        "ev-00713",
+        "ev-00714",
+        "ev-00715"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E030_004",
+      "stakeholder": "最高人民检察院、民政部、中国残疾人联合会",
+      "stakeholder_aliases": [
+        "最高检与民政部、中国残联",
+        "最高人民检察院与民政部、中国残疾人联合会"
+      ],
+      "opinion": "联合发布无障碍和适老化检察公益诉讼典型案例，将深圳市人民检察院督促实施就医挂号无障碍、适老化改造行动纳入典型案例。",
+      "sentiment": "positive",
+      "rationale": "证据显示最高人民检察院与民政部、中国残疾人联合会联合发布一批无障碍和适老化检察公益诉讼典型案例，其中包括深圳市人民检察院督促实施就医挂号无障碍、适老化改造案例。",
+      "evidence_ids": [
+        "ev-00716",
+        "ev-00718",
+        "ev-01286",
+        "ev-01287",
+        "ev-01289",
+        "ev-01290"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

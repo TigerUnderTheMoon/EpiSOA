@@ -1,0 +1,122 @@
+{
+  "event_id": "E050",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E050_001",
+      "stakeholder": "滴滴出行",
+      "stakeholder_aliases": [
+        "滴滴",
+        "滴滴官方",
+        "滴滴网约车",
+        "滴滴出行官方"
+      ],
+      "opinion": "回应抽成质疑称高抽成并非普遍现象，承认存在部分司机收入占比较低、抽成高于30%的订单占总订单2.7%，并表示虚心接受批评、持续推进公开透明和排查原因。",
+      "sentiment": "mixed",
+      "rationale": "多条证据显示滴滴发布说明回应“抽成过高”“规则不透明”质疑，给出司机收入占比、30%以上订单占比等数据，同时承认部分订单给司机造成困扰并承诺改进透明度和排查原因。",
+      "evidence_ids": [
+        "ev-01237",
+        "ev-01239",
+        "ev-01240",
+        "ev-01241",
+        "ev-01242",
+        "ev-01243",
+        "ev-01244",
+        "ev-02137",
+        "ev-02138",
+        "ev-02139",
+        "ev-02140",
+        "ev-02141"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E050_002",
+      "stakeholder": "网约车司机",
+      "stakeholder_aliases": [
+        "滴滴司机",
+        "司机师傅",
+        "有双证的司机",
+        "网约车平台司机"
+      ],
+      "opinion": "质疑和抱怨平台抽成过高、计算方式不透明，认为高抽成影响收入并希望降低抽成比例。",
+      "sentiment": "negative",
+      "rationale": "证据中多次提到司机对平台抽成提出质疑，认为抽成比例过高且对每单抽成比例和计算方式不知情，也有司机抱怨抽成太高、不划算并希望降低抽成。",
+      "evidence_ids": [
+        "ev-01238",
+        "ev-01241",
+        "ev-01246",
+        "ev-02131",
+        "ev-02136"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E050_003",
+      "stakeholder": "乘客",
+      "stakeholder_aliases": [
+        "网约车乘客",
+        "用户",
+        "打车乘客"
+      ],
+      "opinion": "关注打车费用上涨、司机端与乘客端价格比例差异过大，以及平台从乘客和司机身上获取高额利益的问题。",
+      "sentiment": "negative",
+      "rationale": "证据显示乘客表示打车越来越贵，并提到司机端和乘客端价格比例相差过大、平台从司机和乘客身上攫取高额利益。",
+      "evidence_ids": [
+        "ev-01237",
+        "ev-02131",
+        "ev-02135"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E050_004",
+      "stakeholder": "新华社等媒体",
+      "stakeholder_aliases": [
+        "新华社",
+        "媒体",
+        "记者",
+        "自媒体"
+      ],
+      "opinion": "调查和报道网约车平台高额抽成、收费不透明及定价计算方式不透明等问题，推动舆论关注平台抽成治理。",
+      "sentiment": "negative",
+      "rationale": "证据显示新华社调查发现部分网约车平台抽成超过20%、甚至高达50%，收费和定价计算方式不透明；也有媒体和自媒体通过账单对比、司机采访等方式关注报道滴滴抽成问题。",
+      "evidence_ids": [
+        "ev-01241",
+        "ev-02131",
+        "ev-02134",
+        "ev-02135",
+        "ev-02136",
+        "ev-02137"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E050_005",
+      "stakeholder": "公众",
+      "stakeholder_aliases": [
+        "公众",
+        "社会舆论",
+        "网友",
+        "质疑声"
+      ],
+      "opinion": "质疑滴滴抽成过高、抽成规则不透明，要求平台提升公开透明度。",
+      "sentiment": "negative",
+      "rationale": "证据明确称公众对滴滴“抽成过高”“抽成规则不透明”等问题提出质疑，滴滴也表示虚心接受公众批评并将持续推进公开透明。",
+      "evidence_ids": [
+        "ev-01237",
+        "ev-02138"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

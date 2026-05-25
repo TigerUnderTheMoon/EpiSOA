@@ -1,0 +1,136 @@
+{
+  "event_id": "E029",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E029_001",
+      "stakeholder": "广西医科大学第一附属医院",
+      "stakeholder_aliases": [
+        "医院",
+        "我院",
+        "医院方面",
+        "广西医科大学第一附属医院方面"
+      ],
+      "opinion": "医院在事件发生后第一时间组织抢救并报警，配合公安机关开展调查。",
+      "sentiment": "neutral",
+      "rationale": "官方页面称事件发生后医院第一时间组织抢救并报警，配合公安机关开展调查。",
+      "evidence_ids": [
+        "ev-00696"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": "同一医院主体的应急处置行动，与另一个元组中的对外通报回应社会关切属于不同响应。"
+    },
+    {
+      "stakeholder_cluster_id": "SC_E029_001",
+      "stakeholder": "广西医科大学第一附属医院",
+      "stakeholder_aliases": [
+        "医院",
+        "我院",
+        "医院方面",
+        "广西医科大学第一附属医院方面"
+      ],
+      "opinion": "医院发布“4·19门诊大楼男子坠楼事件”后续情况通报，以回应社会关切并说明事件后续情况和调查进展。",
+      "sentiment": "neutral",
+      "rationale": "多条报道和医院通报均显示，医院于4月20日下午发布后续情况通报，目的包括回应社会关切、进一步通报事件后续情况。",
+      "evidence_ids": [
+        "ev-00691",
+        "ev-00692",
+        "ev-00693",
+        "ev-00694",
+        "ev-00695",
+        "ev-00697",
+        "ev-00699",
+        "ev-00700",
+        "ev-01832",
+        "ev-01833",
+        "ev-01837"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": "同一医院主体的对外信息发布行动，与另一个元组中的现场抢救、报警和配合调查属于不同响应。"
+    },
+    {
+      "stakeholder_cluster_id": "SC_E029_002",
+      "stakeholder": "坠楼男子",
+      "stakeholder_aliases": [
+        "一名男子",
+        "门诊大楼五楼一名男子",
+        "男子"
+      ],
+      "opinion": "该男子在门诊大楼五楼跨过防护栏，意欲跳楼，随后发生坠楼事件。",
+      "sentiment": "negative",
+      "rationale": "多条证据一致描述男子跨过防护栏、意欲跳楼，是事件的直接触发行为。",
+      "evidence_ids": [
+        "ev-00691",
+        "ev-00692",
+        "ev-00693",
+        "ev-00694",
+        "ev-00697",
+        "ev-00699",
+        "ev-00700",
+        "ev-01833",
+        "ev-01837"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E029_003",
+      "stakeholder": "广西医科大学第一附属医院职工",
+      "stakeholder_aliases": [
+        "我院一名职工",
+        "医院一名职工"
+      ],
+      "opinion": "一名医院职工冲出科室，伸手试图拉住意欲跳楼的男子，但未成功。",
+      "sentiment": "positive",
+      "rationale": "医院后续通报及转载报道均提到该职工试图阻止男子坠楼，属于救助尝试。",
+      "evidence_ids": [
+        "ev-00697",
+        "ev-00699",
+        "ev-01833",
+        "ev-01837"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E029_004",
+      "stakeholder": "社会公众",
+      "stakeholder_aliases": [
+        "社会",
+        "社会关切",
+        "社会广泛关注"
+      ],
+      "opinion": "该坠楼事件引发社会广泛关注和关切，促使医院对外通报后续情况和调查进展。",
+      "sentiment": "mixed",
+      "rationale": "证据称事件再次引起社会广泛关注，医院为回应社会关切而通报后续情况。",
+      "evidence_ids": [
+        "ev-00695",
+        "ev-00697",
+        "ev-01832",
+        "ev-01833"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E029_005",
+      "stakeholder": "公安机关",
+      "stakeholder_aliases": [
+        "警方"
+      ],
+      "opinion": "公安机关介入并开展事件调查，医院配合其调查工作。",
+      "sentiment": "neutral",
+      "rationale": "医院通报称已报警并配合公安机关开展调查，说明公安机关参与调查。",
+      "evidence_ids": [
+        "ev-00696"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

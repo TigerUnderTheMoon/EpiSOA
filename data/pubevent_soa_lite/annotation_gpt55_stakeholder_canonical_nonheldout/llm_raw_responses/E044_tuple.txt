@@ -1,0 +1,85 @@
+{
+  "event_id": "E044",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E044_001",
+      "stakeholder": "牡丹江市城市管理综合执法局",
+      "stakeholder_aliases": [
+        "市城市管理综合执法局",
+        "市城管局",
+        "牡丹江市城管局",
+        "市综合执法管理局",
+        "城管部门"
+      ],
+      "opinion": "针对共享单车乱停放、维管不到位和无法智慧化定点精准停车等问题，开展专项整治，约谈相关企业负责人，督促运营企业落实主体责任，并要求城区执法人员加大巡查管理力度，以规范停放秩序、改善交通秩序和市容环境。",
+      "sentiment": "neutral",
+      "rationale": "多条证据显示牡丹江市城管部门将乱停放视为影响交通秩序和市容环境的问题，并采取约谈、制定专项整治方案、督促企业和加强巡查等治理措施。",
+      "evidence_ids": [
+        "ev-01117",
+        "ev-01118",
+        "ev-02036",
+        "ev-02037"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E044_002",
+      "stakeholder": "牡丹江市民",
+      "stakeholder_aliases": [
+        "市民"
+      ],
+      "opinion": "反映哈啰单车乱停放问题，认为其严重影响交通安全和市容市貌。",
+      "sentiment": "negative",
+      "rationale": "证据明确提到“市民反映哈啰单车乱停放，严重影响交通安全和市容市貌问题”。",
+      "evidence_ids": [
+        "ev-01118"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E044_003",
+      "stakeholder": "牡丹江市共享单车运营企业",
+      "stakeholder_aliases": [
+        "共享单车运营企业",
+        "哈啰单车",
+        "哈啰",
+        "美团",
+        "青桔",
+        "哈啰单车牡丹江负责人"
+      ],
+      "opinion": "运营企业被指出存在争夺客源、维护管理不到位、无法实现智慧化定点精准停车等问题，并被要求落实主体责任、进一步规范共享单车停放秩序。",
+      "sentiment": "negative",
+      "rationale": "证据显示牡丹江市内有哈啰、美团、青桔等运营企业；相关报道和官方信息指出企业维管不到位等导致停车秩序混乱，哈啰负责人被约谈，运营企业被督促落实主体责任。",
+      "evidence_ids": [
+        "ev-01117",
+        "ev-01118",
+        "ev-01124",
+        "ev-02036",
+        "ev-02037"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E044_004",
+      "stakeholder": "爱民区老科协铁北街道分会",
+      "stakeholder_aliases": [
+        "爱民区老科协铁北街道分会"
+      ],
+      "opinion": "提出加强市区共享单车管理的建议，认为共享单车为市民中短途出行提供便利，但投放数量增加后需要加强规范管理。",
+      "sentiment": "mixed",
+      "rationale": "证据标题为“关于加强市区共享单车管理的建议”，同时提到共享单车成为绿色便捷新选择、企业入驻后投放数量与日俱增，体现既肯定便利性又主张加强管理。",
+      "evidence_ids": [
+        "ev-01126"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

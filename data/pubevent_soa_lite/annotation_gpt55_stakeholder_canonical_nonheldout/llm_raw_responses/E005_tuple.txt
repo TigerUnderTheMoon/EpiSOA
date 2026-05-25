@@ -1,0 +1,43 @@
+{
+  "event_id": "E005",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E005_001",
+      "stakeholder": "虹凉馨苑小区居民",
+      "stakeholder_aliases": [
+        "居民",
+        "小区居民",
+        "虹凉馨苑居民"
+      ],
+      "opinion": "因物业提出上调物业费、且被报道为物业费可能连续三年上涨，居民与物业发生激烈争吵，表现出对涨价方案的不满和反对。",
+      "sentiment": "negative",
+      "rationale": "证据称虹凉馨苑小区因物业要涨物业费引发居民与物业之间激烈争吵，另有标题表述“小区物业费要连涨三年?居民吵到拍台子”。",
+      "evidence_ids": [
+        "ev-00096",
+        "ev-00097"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E005_002",
+      "stakeholder": "虹凉馨苑小区物业公司",
+      "stakeholder_aliases": [
+        "物业",
+        "小区物业",
+        "虹凉馨苑物业"
+      ],
+      "opinion": "提出上调物业费的方案，并被报道为物业费可能连续三年上涨，由此引发与居民之间的争议和争吵。",
+      "sentiment": "neutral",
+      "rationale": "证据明确提到虹凉馨苑小区“物业要涨物业费”，并以“小区物业费要连涨三年?”概括争议焦点。",
+      "evidence_ids": [
+        "ev-00096",
+        "ev-00097"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

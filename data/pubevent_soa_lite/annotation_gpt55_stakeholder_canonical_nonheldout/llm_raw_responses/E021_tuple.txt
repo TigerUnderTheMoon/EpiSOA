@@ -1,0 +1,145 @@
+{
+  "event_id": "E021",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E021_001",
+      "stakeholder": "无锡虹桥医院",
+      "stakeholder_aliases": [
+        "江苏省无锡虹桥医院",
+        "无锡市民营医疗机构无锡虹桥医院",
+        "该院",
+        "该医院"
+      ],
+      "opinion": "被举报并初步查实涉嫌通过伪造病历、影像报告、诱导虚假住院等方式违规使用医保基金、欺诈骗保。",
+      "sentiment": "negative",
+      "rationale": "多条证据称无锡虹桥医院涉嫌骗保，检查发现涉嫌违规使用医保基金2228.4万元，其中涉嫌欺诈骗保1179.2万元，并存在伪造医学文书、影像报告等行为。",
+      "evidence_ids": [
+        "ev-00497",
+        "ev-00498",
+        "ev-00499",
+        "ev-00500",
+        "ev-01712",
+        "ev-01715",
+        "ev-01721",
+        "ev-01725"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E021_002",
+      "stakeholder": "无锡市医保局、公安机关和卫健部门",
+      "stakeholder_aliases": [
+        "无锡市医保局",
+        "当地公安机关",
+        "公安",
+        "卫健部门",
+        "公安、卫健等部门",
+        "我局"
+      ],
+      "opinion": "对无锡虹桥医院涉嫌骗保问题受理调查、行政立案并开展全面彻查，表示将依法依规严肃查处；后续取消该院医保定点资格，公安机关刑事立案。",
+      "sentiment": "negative",
+      "rationale": "证据显示无锡市医保局已根据举报线索受理调查、初步查实并于8月30日行政立案，会同公安、卫健部门全面彻查；9月22日取消医保定点资格，公安机关刑事立案。",
+      "evidence_ids": [
+        "ev-00498",
+        "ev-00500",
+        "ev-00502",
+        "ev-00503",
+        "ev-00504",
+        "ev-00505",
+        "ev-00506",
+        "ev-01714",
+        "ev-01716"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E021_003",
+      "stakeholder": "国家医保局",
+      "stakeholder_aliases": [
+        "国家医疗保障局"
+      ],
+      "opinion": "迅速响应无锡虹桥医院涉嫌欺诈骗保事件，派出检查组或飞行检查组进驻医院开展专项核查，通报核查发现，并指导江苏省医保局对相关定点医药机构开展全面排查。",
+      "sentiment": "negative",
+      "rationale": "证据称国家医保局9月23日派遣检查组进入医院配合调查，10月8日通报案件情况，并有报道称其派出飞行检查组、指导江苏省医保局全面排查。",
+      "evidence_ids": [
+        "ev-00499",
+        "ev-00501",
+        "ev-01712",
+        "ev-01715",
+        "ev-01722",
+        "ev-01723"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E021_004",
+      "stakeholder": "朱成刚",
+      "stakeholder_aliases": [
+        "朱医生",
+        "举报者朱医生",
+        "无锡虹桥医院放射影像科医生朱成刚",
+        "医生实名举报者"
+      ],
+      "opinion": "在无锡虹桥医院工作期间发现医院疑似蓄意伪造影像检查结果骗取医保资金，并进行了长达半年的实名举报。",
+      "sentiment": "negative",
+      "rationale": "证据明确称放射影像科医生朱成刚长期实名举报，称其发现医院蓄意伪造影像检查结果骗取国家医保资金。",
+      "evidence_ids": [
+        "ev-01720",
+        "ev-01721",
+        "ev-01722"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E021_005",
+      "stakeholder": "中央广电总台和央视新闻",
+      "stakeholder_aliases": [
+        "央视新闻",
+        "总台",
+        "中央广电总台",
+        "媒体"
+      ],
+      "opinion": "报道并曝光无锡虹桥医院涉嫌骗保事件，推动事件进入公众视野并引发监管回应。",
+      "sentiment": "neutral",
+      "rationale": "多条证据称9月21日中央广电总台或央视新闻报道无锡虹桥医院涉嫌骗保，随后无锡市医保局发布通报回应。",
+      "evidence_ids": [
+        "ev-00498",
+        "ev-00505",
+        "ev-01712",
+        "ev-01715",
+        "ev-01716"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E021_006",
+      "stakeholder": "社会公众和社会各界",
+      "stakeholder_aliases": [
+        "社会",
+        "公众",
+        "社会各界"
+      ],
+      "opinion": "对无锡虹桥医院涉嫌骗保事件表现出广泛关注，并对医疗诚信和医保基金安全产生担忧。",
+      "sentiment": "negative",
+      "rationale": "证据多次称事件引发社会广泛关注；另有评论称事件触动公众对医疗诚信的敏感神经，并引发社会各界关注。",
+      "evidence_ids": [
+        "ev-00499",
+        "ev-01722",
+        "ev-01724"
+      ],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

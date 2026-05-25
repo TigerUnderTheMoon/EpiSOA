@@ -1,0 +1,115 @@
+{
+  "event_id": "E023",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E023_001",
+      "stakeholder": "投诉患者",
+      "stakeholder_aliases": [
+        "某患者",
+        "女性患者",
+        "心脏彩超检查患者"
+      ],
+      "opinion": "患者在东莞市中医院进行心脏彩超检查时，因第三方设备维保公司工程师违规进入检查室而产生不良就医感受，并引发投诉。",
+      "sentiment": "negative",
+      "rationale": "多条通报转载均称患者检查期间工程师违规进入检查室，导致患者产生不良就医感受并投诉。",
+      "evidence_ids": [
+        "ev-00563",
+        "ev-00564",
+        "ev-00565",
+        "ev-00566",
+        "ev-00567",
+        "ev-00568",
+        "ev-00569",
+        "ev-00570"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E023_002",
+      "stakeholder": "东莞市中医院",
+      "stakeholder_aliases": [
+        "广东东莞市中医院",
+        "该院",
+        "我院",
+        "东莞市中医院微信公众号"
+      ],
+      "opinion": "东莞市中医院发布情况通报，承认第三方设备维保公司工程师违规进入检查室导致患者不良就医感受和投诉，并表示事件发生后高度重视、立即对全过程进行复盘调查。",
+      "sentiment": "mixed",
+      "rationale": "证据显示医院通过微信公众号发布通报/说明，说明违规进入检查室事实及投诉后续，并称高度重视、复盘调查。",
+      "evidence_ids": [
+        "ev-00563",
+        "ev-00564",
+        "ev-00565",
+        "ev-00566",
+        "ev-00567",
+        "ev-00568",
+        "ev-00569",
+        "ev-00570"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E023_003",
+      "stakeholder": "第三方设备维保公司工程师",
+      "stakeholder_aliases": [
+        "第三方设备维保公司一工程师",
+        "工程师",
+        "设备维保公司工程师"
+      ],
+      "opinion": "第三方设备维保公司工程师在患者心脏彩超检查期间违规进入检查室，与医务人员沟通调试检查设备事宜。",
+      "sentiment": "negative",
+      "rationale": "多条证据直接描述该工程师“违规进入检查室”并与医务人员沟通调试设备。",
+      "evidence_ids": [
+        "ev-00563",
+        "ev-00564",
+        "ev-00565",
+        "ev-00566",
+        "ev-00567",
+        "ev-00568",
+        "ev-00569",
+        "ev-00570"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E023_004",
+      "stakeholder": "东莞市卫健局",
+      "stakeholder_aliases": [
+        "东莞市卫健局工作人员",
+        "卫健局工作人员"
+      ],
+      "opinion": "东莞市卫健局工作人员表示，如接到相关投诉，具体业务科室会进行处理，并将在询问后答复记者；但截至发稿记者暂未接到回复。",
+      "sentiment": "neutral",
+      "rationale": "证据记录了卫健局工作人员对投诉处理流程的回应及尚未回复记者的状态。",
+      "evidence_ids": [
+        "ev-00571"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E023_005",
+      "stakeholder": "舆论评论者",
+      "stakeholder_aliases": [
+        "头条文章作者",
+        "公众评论"
+      ],
+      "opinion": "舆论评论认为患者隐私保护是医疗领域不可逾越的红线，工程师未经允许闯入检查室的行为挑战了隐私保护底线并侵犯患者隐私。",
+      "sentiment": "negative",
+      "rationale": "评论文章明确称医疗领域患者隐私保护是红线，并将工程师未经允许进入检查室描述为侵犯患者隐私。",
+      "evidence_ids": [
+        "ev-00552"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}
