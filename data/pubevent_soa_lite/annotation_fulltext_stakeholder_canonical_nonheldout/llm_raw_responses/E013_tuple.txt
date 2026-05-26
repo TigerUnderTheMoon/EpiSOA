@@ -1,0 +1,41 @@
+{
+  "event_id": "E013",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E013_001",
+      "stakeholder": "学生家长",
+      "stakeholder_aliases": ["家长", "学生家长"],
+      "opinion": "反映学校食堂存在鼠迹、卫生不达标及违规使用调味品和食用油等问题，对子女在校饮食安全表示担忧。",
+      "sentiment": "negative",
+      "rationale": "多份证据明确指出家长是事件的初始反映者，详细描述了食堂鼠迹和卫生问题，并明确表达了忧心忡忡的态度。",
+      "evidence_ids": ["ev-00280", "ev-00281", "ev-00282", "ev-00283", "ev-00284", "ev-00286", "ev-00287", "ev-01611", "ev-01612", "ev-01617", "ev-01618", "ev-01619", "ev-01620", "ev-01621", "ev-01622", "ev-01623", "ev-01624", "ev-01625", "ev-01629", "ev-01630"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E013_002",
+      "stakeholder": "海口市市场监督管理局及秀英区教育局",
+      "stakeholder_aliases": ["海口市市场监督管理局", "海口市市场监督管理局秀英分局", "秀英区教育局", "官方", "监管部门"],
+      "opinion": "接报后立即赴现场调查，确认食堂防鼠设施不完善及管理违规，依法对学校作出罚款5万元及警告处罚，责令停止供餐整改，启动监管人员问责程序，并承诺加强后续监管。",
+      "sentiment": "neutral",
+      "rationale": "官方通报详细记录了监管部门的调查过程、违法事实认定、行政处罚决定、问责程序启动及后续监管承诺，属于标准行政执法与回应行为。",
+      "evidence_ids": ["ev-00280", "ev-00281", "ev-00282", "ev-00283", "ev-00284", "ev-00285", "ev-00286", "ev-00287", "ev-01611", "ev-01612", "ev-01617", "ev-01618", "ev-01621", "ev-01622", "ev-01623", "ev-01624", "ev-01625", "ev-01627"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E013_003",
+      "stakeholder": "北京大学附属小学海口学校",
+      "stakeholder_aliases": ["北大附小海口学校", "涉事学校"],
+      "opinion": "配合调查并停止食堂供餐，提标采购调味品和食用油，按规定进行消杀整改，待达标后恢复供餐。",
+      "sentiment": "neutral",
+      "rationale": "通报指出学校已收到整改通知书，食堂已停止供餐并进行消杀与采购升级，属于被动整改与合规响应。",
+      "evidence_ids": ["ev-01617", "ev-01618", "ev-01622", "ev-01624", "ev-01625"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

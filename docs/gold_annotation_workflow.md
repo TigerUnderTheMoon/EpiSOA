@@ -47,6 +47,14 @@ data/pubevent_soa_lite/human_gold_v1/
 |-- human_gold_manifest_v1.json
 |-- human_gold_audit.md
 `-- human_gold_audit.json
+
+data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/
+|-- annotator_A/humanA_tuple_adjudication_sheet.csv
+|-- annotator_A/human_chain_adjudication_sheet.csv
+|-- annotator_B/humanB_tuple_adjudication_sheet.csv
+|-- annotator_B/human_chain_adjudication_sheet.csv
+|-- annotator_C/humanC_tuple_adjudication_sheet.csv
+`-- annotator_C/human_chain_adjudication_sheet.csv
 ```
 
 Rules:
@@ -58,6 +66,10 @@ Rules:
 - `add_missing` rows are allowed only with nonempty evidence IDs.
 - `human_gold_manifest_v1.json.ready_for_main_experiment` may be true only
   after `scripts/audit_human_gold.py` reports `total_issues=0`.
+- Independent `human_gold_v2_stakeholder_canonical` tuple sheets use
+  annotator-specific filenames (`humanA_tuple_adjudication_sheet.csv`,
+  `humanB_tuple_adjudication_sheet.csv`, `humanC_tuple_adjudication_sheet.csv`)
+  instead of the older repeated `human_tuple_adjudication_sheet.csv` name.
 
 ## Standard Workflow
 

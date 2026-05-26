@@ -1,0 +1,270 @@
+{
+  "min_independent_sources": 2,
+  "counts": {
+    "silver_candidate": 261,
+    "low_confidence": 23
+  },
+  "tuple_counts": {
+    "silver_candidate": 156,
+    "low_confidence": 18
+  },
+  "chain_counts": {
+    "silver_candidate": 105,
+    "low_confidence": 5
+  },
+  "low_confidence_records": [
+    {
+      "record_type": "tuple",
+      "event_id": "E001",
+      "record_id": "LLM_CANON_E001_003",
+      "evidence_ids": "ev-00023",
+      "independent_source_count": 1,
+      "independent_sources": "m.110ask.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E003",
+      "record_id": "LLM_CANON_E003_004",
+      "evidence_ids": "ev-01449",
+      "independent_source_count": 1,
+      "independent_sources": "finance.sina.com.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E005",
+      "record_id": "LLM_CANON_E005_001",
+      "evidence_ids": "ev-00096;ev-00097",
+      "independent_source_count": 1,
+      "independent_sources": "kankanews.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E005",
+      "record_id": "LLM_CANON_E005_002",
+      "evidence_ids": "ev-00096;ev-00097",
+      "independent_source_count": 1,
+      "independent_sources": "kankanews.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E006",
+      "record_id": "LLM_CANON_E006_001",
+      "evidence_ids": "ev-00116",
+      "independent_source_count": 1,
+      "independent_sources": "sohu.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E006",
+      "record_id": "LLM_CANON_E006_002",
+      "evidence_ids": "ev-00116",
+      "independent_source_count": 1,
+      "independent_sources": "sohu.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E007",
+      "record_id": "LLM_CANON_E007_002",
+      "evidence_ids": "ev-00139",
+      "independent_source_count": 1,
+      "independent_sources": "k.sina.com.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E007",
+      "record_id": "LLM_CANON_E007_003",
+      "evidence_ids": "ev-00139",
+      "independent_source_count": 1,
+      "independent_sources": "k.sina.com.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E009",
+      "record_id": "LLM_CANON_E009_004",
+      "evidence_ids": "ev-00207",
+      "independent_source_count": 1,
+      "independent_sources": "m.sohu.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E010",
+      "record_id": "LLM_CANON_E010_001",
+      "evidence_ids": "ev-00224;ev-01556",
+      "independent_source_count": 1,
+      "independent_sources": "kecheng.gov.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E014",
+      "record_id": "LLM_CANON_E014_005",
+      "evidence_ids": "ev-00300;ev-00320;ev-00323;ev-01649",
+      "independent_source_count": 1,
+      "independent_sources": "toutiao.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E015",
+      "record_id": "LLM_CANON_E015_002",
+      "evidence_ids": "ev-00332;ev-00334;ev-00346",
+      "independent_source_count": 1,
+      "independent_sources": "toutiao.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E027",
+      "record_id": "LLM_CANON_E027_004",
+      "evidence_ids": "ev-01818",
+      "independent_source_count": 1,
+      "independent_sources": "views.ce.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E029",
+      "record_id": "LLM_CANON_E029_002",
+      "evidence_ids": "ev-01846",
+      "independent_source_count": 1,
+      "independent_sources": "toutiao.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E032",
+      "record_id": "LLM_CANON_E032_004",
+      "evidence_ids": "ev-00764",
+      "independent_source_count": 1,
+      "independent_sources": "gov.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E033",
+      "record_id": "LLM_CANON_E033_001",
+      "evidence_ids": "ev-00771;ev-00792",
+      "independent_source_count": 1,
+      "independent_sources": "toutiao.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E035",
+      "record_id": "LLM_CANON_E035_005",
+      "evidence_ids": "ev-00835",
+      "independent_source_count": 1,
+      "independent_sources": "bjnews.com.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "tuple",
+      "event_id": "E046",
+      "record_id": "LLM_CANON_E046_004",
+      "evidence_ids": "ev-02082;ev-02086",
+      "independent_source_count": 1,
+      "independent_sources": "cloud.tencent.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "chain",
+      "event_id": "E005",
+      "record_id": "LLM_CHAIN_E005_001",
+      "evidence_ids": "ev-00096;ev-00097",
+      "independent_source_count": 1,
+      "independent_sources": "kankanews.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "chain",
+      "event_id": "E005",
+      "record_id": "LLM_CHAIN_E005_002",
+      "evidence_ids": "ev-00096",
+      "independent_source_count": 1,
+      "independent_sources": "kankanews.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "chain",
+      "event_id": "E006",
+      "record_id": "LLM_CHAIN_E006_001",
+      "evidence_ids": "ev-00116",
+      "independent_source_count": 1,
+      "independent_sources": "sohu.com",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "chain",
+      "event_id": "E007",
+      "record_id": "LLM_CHAIN_E007_001",
+      "evidence_ids": "ev-00139",
+      "independent_source_count": 1,
+      "independent_sources": "k.sina.com.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    },
+    {
+      "record_type": "chain",
+      "event_id": "E045",
+      "record_id": "LLM_CHAIN_E045_001",
+      "evidence_ids": "ev-01139",
+      "independent_source_count": 1,
+      "independent_sources": "cgw.wuhan.gov.cn",
+      "missing_evidence_ids": "",
+      "confidence_route": "low_confidence",
+      "required_action": "human_review_required"
+    }
+  ]
+}

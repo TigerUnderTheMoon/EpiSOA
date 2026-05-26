@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -67,7 +68,7 @@ def prepare_independent_sheets(
     for annotator in annotators:
         annotator_dir = output_dir / annotator
         annotator_dir.mkdir(parents=True, exist_ok=True)
-        tuple_out = annotator_dir / "human_tuple_adjudication_sheet.csv"
+        tuple_out = annotator_dir / tuple_sheet_filename(annotator)
         chain_out = annotator_dir / "human_chain_adjudication_sheet.csv"
         write_csv(tuple_out, reset_for_annotator(tuple_rows, annotator))
         write_csv(chain_out, reset_for_annotator(chain_rows, annotator))
@@ -127,6 +128,25 @@ def reset_for_annotator(rows: list[dict[str, str]], annotator: str) -> list[dict
         item["adjudication_status"] = "independent_review"
         output.append(item)
     return output
+
+
+def tuple_sheet_filename(annotator: str) -> str:
+    return f"{annotator_file_prefix(annotator)}_tuple_adjudication_sheet.csv"
+
+
+def annotator_file_prefix(annotator: str) -> str:
+    value = str(annotator or "").strip()
+    if value.startswith("annotator_") and value[len("annotator_"):]:
+        suffix = value[len("annotator_"):]
+        if len(suffix) == 1 and suffix.isalpha():
+            return f"human{suffix.upper()}"
+        return safe_filename_token(suffix)
+    return safe_filename_token(value) or "annotator"
+
+
+def safe_filename_token(value: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9_-]+", "_", str(value or "").strip()).strip("_")
+    return token or "annotator"
 
 
 def collect_votes(paths: list[Path], record_type: str) -> dict[str, dict[str, Any]]:

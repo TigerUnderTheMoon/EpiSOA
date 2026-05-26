@@ -112,3 +112,5 @@ class PredictionTuple(GoldTuple):
     verified: bool = False
     selection_diagnostics: dict[str, Any] | None = None
     verification_diagnosis: dict[str, Any] | None = None
+    stage_candidate_ids: list[str] | None = None
+    attribution_pass: str | None = None

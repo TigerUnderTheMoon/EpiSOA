@@ -5,6 +5,7 @@ from episoa.attribution.schema_attributor import (
     MAX_RATIONALE_CHARS,
     SchemaAttributor,
     parse_response,
+    parse_stage_response,
     run_schema_attribution,
     select_oracle_prompt_evidence,
     select_prompt_evidence,
@@ -36,7 +37,8 @@ def test_prompt_contains_event_and_evidence_id():
     assert "E012" in user_prompt
     assert "学校食堂食品安全争议" in user_prompt
     assert "ev-1" in user_prompt
-    assert "最多输出 4 条" in user_prompt
+    assert "stakeholder-canonical" in user_prompt
+    assert "There is no fixed per-event tuple target" in user_prompt
     assert "Return strict JSON only" in system_prompt
 
 
@@ -55,7 +57,7 @@ def test_hidden_chain_prompt_omits_chain_fields():
     assert "stage:" not in user_prompt
     assert "final_stage_score" not in user_prompt
     assert "event_relevance_score" not in user_prompt
-    assert "event_chain_stage" not in user_prompt
+    assert '"event_chain_stage": "unknown"' in user_prompt
 
 
 def test_parse_response_accepts_pure_json():
@@ -105,7 +107,7 @@ def test_no_json_object_is_reported():
     assert parsed.parse_error == "no JSON object found"
 
 
-def test_output_over_eight_tuples_keeps_first_eight_and_truncates_long_text():
+def test_output_over_eight_tuples_is_not_event_capped_and_truncates_long_text():
     rows = []
     for idx in range(10):
         rows.append(
@@ -118,19 +120,24 @@ def test_output_over_eight_tuples_keeps_first_eight_and_truncates_long_text():
                 "event_chain_stage": "conflict",
                 "support_status": "candidate_supported",
                 "confidence": 1.5,
+                "stakeholder_cluster_id": f"stakeholder_{idx:03d}",
+                "stakeholder_aliases": [],
+                "canonical_tuple": True,
+                "opinion_split_reason": "",
+                "stakeholder_candidate_match_status": "unmatched",
             }
         )
     raw = json.dumps({"event_id": "E012", "tuples": rows}, ensure_ascii=False)
 
     parsed = parse_response(raw, event_id="E012", allowed_evidence_ids={"ev-1"}, model_name="fake")
 
-    assert len(parsed.tuples) == 8
+    assert len(parsed.tuples) == 10
     assert len(parsed.tuples[0]["opinion"]) <= MAX_OPINION_CHARS
     assert len(parsed.tuples[0]["rationale"]) <= MAX_RATIONALE_CHARS
     assert parsed.tuples[0]["confidence"] == 1.0
 
 
-def test_invalid_evidence_id_is_filtered_and_empty_tuple_dropped():
+def test_invalid_evidence_id_rejects_tuple_rows():
     raw = json.dumps(
         {
             "event_id": "E012",
@@ -144,6 +151,11 @@ def test_invalid_evidence_id_is_filtered_and_empty_tuple_dropped():
                     "event_chain_stage": "conflict",
                     "support_status": "candidate_supported",
                     "confidence": 0.5,
+                    "stakeholder_cluster_id": "stakeholder_001",
+                    "stakeholder_aliases": [],
+                    "canonical_tuple": True,
+                    "opinion_split_reason": "",
+                    "stakeholder_candidate_match_status": "matched",
                 },
                 {
                     "stakeholder": "家长",
@@ -154,6 +166,11 @@ def test_invalid_evidence_id_is_filtered_and_empty_tuple_dropped():
                     "event_chain_stage": "conflict",
                     "support_status": "candidate_supported",
                     "confidence": 0.5,
+                    "stakeholder_cluster_id": "stakeholder_002",
+                    "stakeholder_aliases": [],
+                    "canonical_tuple": True,
+                    "opinion_split_reason": "",
+                    "stakeholder_candidate_match_status": "matched",
                 },
             ],
         },
@@ -162,8 +179,8 @@ def test_invalid_evidence_id_is_filtered_and_empty_tuple_dropped():
 
     parsed = parse_response(raw, event_id="E012", allowed_evidence_ids={"ev-1"}, model_name="fake")
 
-    assert len(parsed.tuples) == 1
-    assert parsed.tuples[0]["evidence_ids"] == ["ev-1"]
+    assert len(parsed.tuples) == 0
+    assert [row["reason"] for row in parsed.rejected_rows] == ["unknown evidence_id", "unknown evidence_id"]
 
 
 def test_parse_response_rejects_invalid_sentiment():
@@ -243,6 +260,8 @@ def test_raw_response_records_ablation_request_summary_flags(tmp_path):
     assert summary["chain_confidence"] == 0
     assert summary["hide_chain_in_prompt"] is True
     assert summary["skip_chain_ranking"] is True
+    assert summary["attribution_mode"] == "stakeholder_canonical"
+    assert summary["selection_diagnostics"]["stakeholder_candidate_count"] == 0
 
 
 def test_module_does_not_read_or_generate_gold(tmp_path):
@@ -282,10 +301,16 @@ def test_output_candidate_tuple_fields_are_complete(tmp_path):
         "event_id",
         "tuple_id",
         "stakeholder",
+        "stakeholder_cluster_id",
+        "stakeholder_aliases",
+        "stakeholder_candidate_match_status",
+        "matched_stakeholder_candidate",
         "opinion",
         "sentiment",
         "rationale",
         "evidence_ids",
+        "canonical_tuple",
+        "opinion_split_reason",
         "event_chain_stage",
         "support_status",
         "confidence",
@@ -299,6 +324,122 @@ def test_output_candidate_tuple_fields_are_complete(tmp_path):
     assert (tmp_path / "schema_attribution_summary.json").exists()
     assert (tmp_path / "schema_attribution_table.csv").exists()
     assert (tmp_path / "raw_llm_responses.jsonl").exists()
+    assert rows[0]["canonical_tuple"] is True
+
+
+def test_soe_v3_two_pass_writes_stage_candidates_and_final_tuples(tmp_path):
+    fake = FakeLLMClient([stage_payload(), merge_payload()])
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="soe_v3",
+        selector_mode="coverage_optimized",
+        use_stage_attribution=True,
+    )
+
+    candidates = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
+    stage_rows = [json.loads(line) for line in (tmp_path / "stage_soa_candidates.jsonl").read_text(encoding="utf-8").splitlines()]
+    raw_rows = [json.loads(line) for line in (tmp_path / "raw_llm_responses.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert fake.calls == 2
+    assert summary["use_stage_attribution"] is True
+    assert summary["num_stage_soa_candidates"] == 1
+    assert stage_rows[0]["stage_candidate_id"] == "E012_STAGE_001"
+    assert candidates[0]["attribution_pass"] == "soe_v3_two_pass"
+    assert candidates[0]["stage_candidate_ids"] == ["E012_STAGE_001"]
+    assert candidates[0]["evidence_spans"][0]["text"] == "parents reported"
+    assert raw_rows[0]["request_summary"]["attribution_pass"] == "soe_v3_two_pass"
+
+
+def test_soe_v3_two_pass_falls_back_to_single_pass_after_stage_parse_failure(tmp_path):
+    fake = FakeLLMClient(["", "", valid_payload()])
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="soe_v3",
+        selector_mode="coverage_optimized",
+        use_stage_attribution=True,
+    )
+
+    candidates = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
+    raw_rows = [json.loads(line) for line in (tmp_path / "raw_llm_responses.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert fake.calls == 3
+    assert summary["num_api_calls"] == 3
+    assert candidates[0]["attribution_pass"] == "legacy_single_pass"
+    assert raw_rows[0]["request_summary"]["fallback_mode"] == "legacy_single_pass"
+
+
+def test_parse_stage_response_accepts_stage_candidates():
+    parsed = parse_stage_response(
+        stage_payload(),
+        event_id="E012",
+        allowed_evidence_ids={"ev-1"},
+        evidence_context_by_id={"ev-1": prompt_evidence("ev-1")},
+        model_name="fake",
+    )
+
+    assert parsed.parse_success is True
+    assert parsed.tuples[0]["stage_candidate_id"] == "E012_STAGE_001"
+    assert parsed.tuples[0]["evidence_spans"][0]["evidence_id"] == "ev-1"
+
+
+def test_duplicate_cluster_without_split_reason_is_rejected():
+    payload = {
+        "event_id": "E012",
+        "tuples": [
+            canonical_tuple("家长", "认为存在问题", "stakeholder_001"),
+            canonical_tuple("家长", "要求说明情况", "stakeholder_001"),
+        ],
+    }
+
+    parsed = parse_response(json.dumps(payload, ensure_ascii=False), event_id="E012", allowed_evidence_ids={"ev-1"}, model_name="fake")
+
+    assert len(parsed.tuples) == 1
+    assert parsed.rejected_rows[0]["reason"] == "duplicate stakeholder_cluster_id without opinion_split_reason"
+
+
+def test_duplicate_cluster_with_split_reason_is_allowed():
+    payload = {
+        "event_id": "E012",
+        "tuples": [
+            canonical_tuple("家长", "认为存在问题", "stakeholder_001"),
+            canonical_tuple("家长", "要求说明情况", "stakeholder_001", split_reason="不同诉求"),
+        ],
+    }
+
+    parsed = parse_response(json.dumps(payload, ensure_ascii=False), event_id="E012", allowed_evidence_ids={"ev-1"}, model_name="fake")
+
+    assert len(parsed.tuples) == 2
+
+
+def test_candidate_outside_graph_is_kept_as_unmatched():
+    payload = {"event_id": "E012", "tuples": [canonical_tuple("校外商户", "否认供餐问题", "stakeholder_009")]}
+
+    parsed = parse_response(
+        json.dumps(payload, ensure_ascii=False),
+        event_id="E012",
+        allowed_evidence_ids={"ev-1"},
+        allowed_stakeholders=["家长", "学校"],
+        model_name="fake",
+    )
+
+    assert len(parsed.tuples) == 1
+    assert parsed.tuples[0]["stakeholder_candidate_match_status"] == "unmatched"
 
 
 def test_select_prompt_evidence_prefers_chain_context():
@@ -330,20 +471,64 @@ def valid_payload() -> str:
         {
             "event_id": "E012",
             "tuples": [
+                canonical_tuple("家长", "认为学校食堂存在食品安全问题", "stakeholder_001")
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+
+def stage_payload() -> str:
+    return json.dumps(
+        {
+            "event_id": "E012",
+            "stage_candidates": [
                 {
-                    "stakeholder": "家长",
-                    "opinion": "认为学校食堂存在食品安全问题",
+                    "stage_candidate_id": "E012_STAGE_001",
+                    "stakeholder": "parents",
+                    "opinion": "report food safety concerns",
                     "sentiment": "negative",
-                    "rationale": "家长反映饭菜中出现异物",
-                    "evidence_ids": ["ev-1"],
                     "event_chain_stage": "conflict",
-                    "support_status": "candidate_supported",
-                    "confidence": 0.78,
+                    "rationale": "parents reported foreign objects in meals",
+                    "evidence_ids": ["ev-1"],
+                    "evidence_spans": [{"evidence_id": "ev-1", "char_start": 0, "char_end": 12, "text": "parents reported"}],
+                    "confidence": 0.8,
                 }
             ],
         },
         ensure_ascii=False,
     )
+
+
+def merge_payload() -> str:
+    payload = json.loads(valid_payload())
+    payload["tuples"][0]["stage_candidate_ids"] = ["E012_STAGE_001"]
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def canonical_tuple(
+    stakeholder: str,
+    opinion: str,
+    cluster_id: str,
+    *,
+    split_reason: str = "",
+    evidence_ids: list[str] | None = None,
+) -> dict:
+    return {
+        "stakeholder": stakeholder,
+        "opinion": opinion,
+        "sentiment": "negative",
+        "rationale": "家长反映饭菜中出现异物",
+        "evidence_ids": evidence_ids or ["ev-1"],
+        "event_chain_stage": "conflict",
+        "support_status": "candidate_supported",
+        "confidence": 0.78,
+        "stakeholder_cluster_id": cluster_id,
+        "stakeholder_aliases": [stakeholder],
+        "canonical_tuple": True,
+        "opinion_split_reason": split_reason,
+        "stakeholder_candidate_match_status": "matched",
+    }
 
 
 def event_row() -> dict:

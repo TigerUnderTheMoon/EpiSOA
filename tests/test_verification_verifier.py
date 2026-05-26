@@ -12,6 +12,7 @@ from episoa.verification.faithfulness_verifier import (
     claim_supported_by_evidence,
     clamp_float,
     contains_any,
+    evidence_spans_supported_by_evidence,
     extract_json_object,
     fallback_verification_row,
     format_evidence_blocks,
@@ -164,6 +165,19 @@ def test_rule_precheck_stage_mismatch():
 
 
 @pytest.mark.unit
+def test_rule_precheck_evidence_span_not_supported():
+    flags = rule_precheck(
+        candidate=candidate_row(evidence_spans=[{"evidence_id": "ev-1", "text": "not in evidence"}]),
+        evidence_items=[evidence_row("ev-1", text="瀹堕暱鍙嶆槧椋熷爞闂")],
+        missing_evidence_ids=[],
+        chain_stages_by_event={},
+    )
+
+    assert "evidence_span_not_supported" in flags
+    assert not evidence_spans_supported_by_evidence([{"text": "not in evidence"}], "actual evidence")
+
+
+@pytest.mark.unit
 def test_rule_precheck_no_issues():
     flags = rule_precheck(
         candidate=candidate_row(),
@@ -212,6 +226,38 @@ def test_parse_valid_response():
     assert result.row["verification_score"] == 0.9
     assert result.row["verification_diagnosis"]["opinion_support"] == "supported"
     assert result.row["verification_diagnosis"]["over_inference"] is False
+
+
+@pytest.mark.unit
+def test_parse_nested_field_level_diagnosis():
+    payload = {
+        "tuple_id": "E001_SOA_001",
+        "event_id": "E001",
+        "verification_label": "partially_supported",
+        "verification_score": 0.55,
+        "verification_rationale": "partial support",
+        "supported_claims": ["stakeholder"],
+        "unsupported_claims": ["span"],
+        "evidence_quotes": [],
+        "issue_flags": ["evidence_span_not_supported"],
+        "verification_diagnosis": {
+            "stakeholder_support": True,
+            "opinion_support": "partial",
+            "sentiment_support": True,
+            "rationale_support": True,
+            "evidence_span_support": False,
+            "temporal_stage_consistency": True,
+            "over_inference": False,
+            "contradiction_detected": False,
+        },
+    }
+
+    result = parse_verifier_response(FakeLLMResponse(json.dumps(payload)), candidate=candidate_row(), model_name="fake")
+
+    assert result.parse_success
+    assert "evidence_span_not_supported" in result.row["issue_flags"]
+    assert result.row["verification_diagnosis"]["evidence_span_support"] is False
+    assert result.row["verification_diagnosis"]["contradiction_detected"] is False
 
 
 @pytest.mark.unit

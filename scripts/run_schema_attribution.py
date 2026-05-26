@@ -19,9 +19,20 @@ def main(argv: list[str] | None = None) -> int:
 
     events = read_jsonl(args.events)
     evidence = read_jsonl(args.evidence)
-    chains = read_chains(args.chains)
+    chains_path = Path(args.chains)
+    if args.dry_run and not chains_path.exists():
+        print(f"dry-run warning: chains file not found; using empty chain context: {chains_path}")
+        chains = []
+    else:
+        chains = read_chains(chains_path)
     graph_nodes = read_graph_nodes(args.graph_dir)
     event_ids = parse_event_ids(args.event_ids)
+    selector_config = config.ablation.get("evidence_selector", {}) or {}
+    selector_mode = args.selector_mode or selector_config.get("mode") or config.ablation.get("evidence_selector_mode") or "chain_aware"
+    method_version = args.method_version or config.ablation.get("method_version", "soe_v2")
+    max_evidence_per_event = args.max_evidence_per_event
+    if max_evidence_per_event is None:
+        max_evidence_per_event = int(config.ablation.get("max_evidence_per_event", 12))
 
     llm_client = None
     if args.dry_run:
@@ -44,8 +55,11 @@ def main(argv: list[str] | None = None) -> int:
         output_dir=args.output_dir,
         event_ids=event_ids,
         max_events=args.max_events,
-        max_evidence_per_event=args.max_evidence_per_event,
+        max_evidence_per_event=max_evidence_per_event,
         dry_run=args.dry_run,
+        selector_mode=selector_mode,
+        method_version=method_version,
+        use_stage_attribution=True if args.use_stage_attribution else None,
     )
 
     output_dir = Path(args.output_dir)
@@ -69,7 +83,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", default="outputs/runs/schema_attribution")
     parser.add_argument("--event-ids", default="")
     parser.add_argument("--max-events", type=int, default=None)
-    parser.add_argument("--max-evidence-per-event", type=int, default=12)
+    parser.add_argument("--max-evidence-per-event", type=int, default=None)
+    parser.add_argument("--selector-mode", default="")
+    parser.add_argument("--method-version", default="")
+    parser.add_argument("--use-stage-attribution", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser
 

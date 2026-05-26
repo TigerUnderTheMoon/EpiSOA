@@ -1,0 +1,41 @@
+{
+  "event_id": "E044",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E044_001",
+      "stakeholder": "牡丹江市城市管理综合执法局",
+      "stakeholder_aliases": ["市城管局", "牡丹江市城管局", "牡丹江市综合行政执法局"],
+      "opinion": "启动共享单车乱停放专项整治，约谈运营企业并暂扣违规车辆，要求企业加强日常巡查、增设电子围栏并规范停放秩序。",
+      "sentiment": "neutral",
+      "rationale": "官方通报显示城管局制定整治方案，约谈企业负责人，暂扣3500余台违规车辆，建立多部门协同管理群，并多次下发整改通知督促落实。",
+      "evidence_ids": ["ev-01118", "ev-02036", "ev-02037", "ev-02045"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E044_002",
+      "stakeholder": "共享单车运营企业",
+      "stakeholder_aliases": ["哈啰单车牡丹江负责人", "哈啰、美团和青桔", "单车运营企业", "四家运营企业"],
+      "opinion": "接受城管部门约谈与整改要求，承诺加强运维调度与车辆清运，引导市民规范用车并配合建立长效管理机制。",
+      "sentiment": "positive",
+      "rationale": "证据显示企业负责人表态将积极整改问题，确保车辆停放有序，加大宣传引导，并配合主管部门落实清运与电子围栏管理要求。",
+      "evidence_ids": ["ev-01118", "ev-01124", "ev-02036", "ev-02037"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E044_003",
+      "stakeholder": "市民及公众",
+      "stakeholder_aliases": ["市民", "网友", "爱民区老科协铁北街道分会"],
+      "opinion": "投诉乱停放影响市容与交通安全，部分公众呼吁直接取缔共享电动车，另有社会组织提出加强市区共享单车管理的具体建议。",
+      "sentiment": "mixed",
+      "rationale": "市民投诉引发政府整治行动；网络留言表达取缔诉求；老科协分会提交管理建议，反映公众对出行便利性与城市秩序管理的双重关注。",
+      "evidence_ids": ["ev-01117", "ev-01118", "ev-01126"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

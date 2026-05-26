@@ -17,8 +17,10 @@ from episoa.llm.client import json_schema_response_format
 from episoa.retrieval.evidence_selector import SELECTOR_MODES, select_evidence_for_prompt
 
 
-PROMPT_VERSION = "schema_attribution_v2_json"
+PROMPT_VERSION = "schema_attribution_v3_stakeholder_canonical_json"
 METHOD_VERSION = "soe_v2"
+SOE_V3_METHOD_VERSION = "soe_v3"
+ATTRIBUTION_MODE = "stakeholder_canonical"
 MAX_TUPLES_PER_EVENT = 8
 MAX_OPINION_CHARS = 40
 MAX_RATIONALE_CHARS = 60
@@ -46,6 +48,15 @@ SCHEMA_ATTRIBUTION_RESPONSE_FORMAT = json_schema_response_format(
                         "event_chain_stage": {"type": "string", "enum": sorted(ALLOWED_STAGE)},
                         "support_status": {"type": "string", "enum": sorted(ALLOWED_SUPPORT)},
                         "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                        "stakeholder_cluster_id": {"type": "string"},
+                        "stakeholder_aliases": {"type": "array", "items": {"type": "string"}},
+                        "canonical_tuple": {"type": "boolean"},
+                        "opinion_split_reason": {"type": "string"},
+                        "stakeholder_candidate_match_status": {
+                            "type": "string",
+                            "enum": ["matched", "unmatched", "no_candidates"],
+                        },
+                        "stage_candidate_ids": {"type": "array", "items": {"type": "string"}},
                     },
                     "required": [
                         "stakeholder",
@@ -56,12 +67,71 @@ SCHEMA_ATTRIBUTION_RESPONSE_FORMAT = json_schema_response_format(
                         "event_chain_stage",
                         "support_status",
                         "confidence",
+                        "stakeholder_cluster_id",
+                        "stakeholder_aliases",
+                        "canonical_tuple",
+                        "opinion_split_reason",
+                        "stakeholder_candidate_match_status",
                     ],
                     "additionalProperties": False,
                 },
             },
         },
         "required": ["event_id", "tuples"],
+        "additionalProperties": False,
+    },
+)
+
+STAGE_SOA_RESPONSE_FORMAT = json_schema_response_format(
+    "stage_soa_extraction_response",
+    {
+        "type": "object",
+        "properties": {
+            "event_id": {"type": "string"},
+            "stage_candidates": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "stage_candidate_id": {"type": "string"},
+                        "stakeholder": {"type": "string"},
+                        "opinion": {"type": "string"},
+                        "sentiment": {"type": "string", "enum": sorted(ALLOWED_SENTIMENT)},
+                        "event_chain_stage": {"type": "string", "enum": sorted(ALLOWED_STAGE)},
+                        "rationale": {"type": "string"},
+                        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                        "evidence_spans": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "evidence_id": {"type": "string"},
+                                    "char_start": {"type": "integer"},
+                                    "char_end": {"type": "integer"},
+                                    "text": {"type": "string"},
+                                },
+                                "required": ["evidence_id", "char_start", "char_end", "text"],
+                                "additionalProperties": False,
+                            },
+                        },
+                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    },
+                    "required": [
+                        "stage_candidate_id",
+                        "stakeholder",
+                        "opinion",
+                        "sentiment",
+                        "event_chain_stage",
+                        "rationale",
+                        "evidence_ids",
+                        "evidence_spans",
+                        "confidence",
+                    ],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["event_id", "stage_candidates"],
         "additionalProperties": False,
     },
 )
@@ -75,66 +145,63 @@ If the evidence is insufficient, return an empty tuples list.
 The first character must be { and the last character must be }."""
 
 
-USER_PROMPT_TEMPLATE = """任务：
-请基于给定公共事件、候选事件链和证据文本，抽取“主体—观点—情绪—依据”结构化元组。
+USER_PROMPT_TEMPLATE = """Task: Extract stakeholder-canonical SOA tuples for one public event.
 
-要求：
-1. 只能使用下方 evidence 中的信息，不能使用外部知识。
-2. 不能编造 evidence_id、主体、观点或依据。
-3. 如果只是泛化政策、背景介绍、无法判断具体主体观点，则返回空 tuples。
-4. 官方通报、说明、答复可标为“政府部门”或更具体部门。
-5. 家长、居民、网友、学生、消费者等表达质疑、不满、投诉时，归为相应主体。
-6. sentiment 只能为 positive、negative、neutral。
-7. 官方通报、政策发布、监管回应、调查处理、机制完善等治理行为，sentiment 默认标为 neutral。
-8. 只有证据中明确出现支持、满意、认可、赞扬、欢迎等态度表达时，才标为 positive。
-9. 如果主体只是发布政策、说明情况、开展调查、提出整改、加强监管，不应标为 positive，应标为 neutral。
-10. stakeholder 名称尽量规范化，例如“国务院食安办等五部门”可归为“监管部门”或“多部门联合监管主体”，避免过长机构名导致 stakeholder_distribution 过碎。
+Rules:
+1. Use only the evidence listed below. Do not use external knowledge.
+2. First identify distinct stakeholder clusters at event level. Merge aliases such as residents/villagers/local residents when they refer to the same actor.
+3. For each evidence-supported distinct stakeholder cluster, output one canonical tuple by default.
+4. If several evidence items support the same stakeholder and the same opinion/action, merge them into one tuple and include all supporting evidence_ids.
+5. Output multiple tuples for the same stakeholder_cluster_id only when the stakeholder has semantically different opinions/actions. In that case, opinion_split_reason must explain the split.
+6. Do not create tuples to reach a fixed count. There is no per-event target N.
+7. Every tuple must cite at least one evidence_id shown below.
+8. Prefer stakeholder names from stakeholder_candidates when they fit the evidence, but you may add an evidence-supported stakeholder missing from the list.
+9. sentiment must be positive, negative, or neutral. Official policy release, investigation, response, supervision, or corrective action is neutral unless the evidence explicitly states support/satisfaction/praise.
+10. Return strict JSON only. Do not output Markdown.
 
-重要输出限制：
-1. 每个事件最多输出 4 条 tuples。
-2. 每条 tuple 的 opinion 不超过 40 个中文字符。
-3. 每条 tuple 的 rationale 不超过 60 个中文字符。
-4. 不要输出 evidence 原文全文。
-5. 只输出一个 JSON 对象。
-6. 不要输出 Markdown。
-7. 第一个字符必须是 {{，最后一个字符必须是 }}。
-
-事件信息：
+event:
 event_id: {event_id}
 event_name: {event_name}
 event_description: {event_description}
 seed_keywords: {seed_keywords}
 stakeholder_hints: {stakeholder_hints}
 
-候选事件链摘要：
+event_chain_summary:
 chain_confidence: {chain_confidence}
 missing_stages: {missing_stages}
 
-阶段证据：
+evidence:
 {stage_evidence_blocks}
 
-主体候选：
+stakeholder_candidates:
 {stakeholder_candidates}
 
-请输出严格 JSON：
+JSON schema:
 {{
   "event_id": "{event_id}",
   "tuples": [
     {{
-      "stakeholder": "主体名称",
-      "opinion": "不超过40个中文字符",
+      "stakeholder_cluster_id": "stable cluster id within this event, e.g. stakeholder_001",
+      "stakeholder": "canonical stakeholder name",
+      "stakeholder_aliases": ["aliases merged into this stakeholder"],
+      "opinion": "evidence-supported opinion or action, <=40 Chinese chars when possible",
       "sentiment": "positive|negative|neutral",
-      "rationale": "不超过60个中文字符",
-      "evidence_ids": ["只能使用上方出现过的 evidence_id"],
+      "rationale": "short evidence-grounded rationale, <=60 Chinese chars when possible",
+      "evidence_ids": ["only evidence_id values shown above"],
       "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
       "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
-      "confidence": 0.0
+      "confidence": 0.0,
+      "canonical_tuple": true,
+      "opinion_split_reason": "",
+      "stakeholder_candidate_match_status": "matched|unmatched|no_candidates"
     }}
   ]
 }}"""
 
 
-RETRY_USER_PROMPT_TEMPLATE = """只根据下面 evidence 抽取最多 4 条主体观点元组。输出一个严格 JSON 对象，不能输出 Markdown 或解释文字。第一个字符必须是 {{，最后一个字符必须是 }}。
+RETRY_USER_PROMPT_TEMPLATE = """Extract stakeholder-canonical SOA tuples from the evidence below.
+Use one tuple per evidence-supported distinct stakeholder by default. Merge evidence_ids for the same stakeholder and same opinion/action. Do not output a fixed number of tuples.
+Return one strict JSON object only.
 
 event_id: {event_id}
 event_name: {event_name}
@@ -142,27 +209,35 @@ event_name: {event_name}
 evidence:
 {stage_evidence_blocks}
 
+stakeholder_candidates:
+{stakeholder_candidates}
+
 JSON schema:
 {{
   "event_id": "{event_id}",
   "tuples": [
     {{
-      "stakeholder": "主体",
-      "opinion": "不超过40个中文字符",
+      "stakeholder_cluster_id": "stakeholder_001",
+      "stakeholder": "canonical stakeholder",
+      "stakeholder_aliases": [],
+      "opinion": "evidence-supported opinion or action",
       "sentiment": "positive|negative|neutral",
-      "rationale": "不超过60个中文字符",
-      "evidence_ids": ["上方存在的 evidence_id"],
+      "rationale": "short evidence-grounded rationale",
+      "evidence_ids": ["evidence_id shown above"],
       "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
       "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
-      "confidence": 0.0
+      "confidence": 0.0,
+      "canonical_tuple": true,
+      "opinion_split_reason": "",
+      "stakeholder_candidate_match_status": "matched|unmatched|no_candidates"
     }}
   ]
 }}"""
 
 
-NO_CHAIN_USER_PROMPT_TEMPLATE = """Task: Extract stakeholder-opinion-sentiment-rationale tuples from the event and evidence below.
+NO_CHAIN_USER_PROMPT_TEMPLATE = """Task: Extract stakeholder-canonical SOA tuples from the event and evidence below.
 Use only the provided evidence. Do not use external knowledge. Do not invent stakeholders, opinions, rationales, or evidence IDs.
-If the evidence is insufficient, return an empty tuples list.
+Identify distinct stakeholder clusters, output one canonical tuple per evidence-supported stakeholder by default, and split the same stakeholder only for different opinions/actions with opinion_split_reason.
 Return strict JSON only.
 
 event_id: {event_id}
@@ -182,19 +257,25 @@ JSON schema:
   "event_id": "{event_id}",
   "tuples": [
     {{
-      "stakeholder": "stakeholder name",
+      "stakeholder_cluster_id": "stakeholder_001",
+      "stakeholder": "canonical stakeholder name",
+      "stakeholder_aliases": [],
       "opinion": "opinion supported by evidence",
       "sentiment": "positive|negative|neutral",
       "rationale": "short evidence-grounded rationale",
       "evidence_ids": ["evidence_id shown above"],
+      "event_chain_stage": "unknown",
       "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
-      "confidence": 0.0
+      "confidence": 0.0,
+      "canonical_tuple": true,
+      "opinion_split_reason": "",
+      "stakeholder_candidate_match_status": "matched|unmatched|no_candidates"
     }}
   ]
 }}"""
 
 
-NO_CHAIN_RETRY_USER_PROMPT_TEMPLATE = """Extract up to 4 stakeholder-opinion tuples from the evidence below.
+NO_CHAIN_RETRY_USER_PROMPT_TEMPLATE = """Extract stakeholder-canonical SOA tuples from the evidence below.
 Return one strict JSON object only.
 
 event_id: {event_id}
@@ -203,18 +284,115 @@ event_name: {event_name}
 evidence:
 {stage_evidence_blocks}
 
+stakeholder_candidates:
+{stakeholder_candidates}
+
 JSON schema:
 {{
   "event_id": "{event_id}",
   "tuples": [
     {{
+      "stakeholder_cluster_id": "stakeholder_001",
       "stakeholder": "stakeholder",
+      "stakeholder_aliases": [],
       "opinion": "opinion supported by evidence",
       "sentiment": "positive|negative|neutral",
       "rationale": "short evidence-grounded rationale",
       "evidence_ids": ["evidence_id shown above"],
+      "event_chain_stage": "unknown",
       "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
+      "confidence": 0.0,
+      "canonical_tuple": true,
+      "opinion_split_reason": "",
+      "stakeholder_candidate_match_status": "matched|unmatched|no_candidates"
+    }}
+  ]
+}}"""
+
+
+STAGE_EXTRACTION_USER_PROMPT_TEMPLATE = """Task: Extract stage-level SOA candidates for one public event.
+Use only the evidence below. Return strict JSON only.
+
+Rules:
+1. Extract candidates at evidence/stage level; do not merge stakeholders across stages.
+2. Every candidate must cite evidence_id values shown below.
+3. Keep opinion and rationale short and evidence-grounded.
+4. If no stage-level stakeholder opinion/action is supported, return an empty stage_candidates list.
+
+event:
+event_id: {event_id}
+event_name: {event_name}
+event_description: {event_description}
+stakeholder_hints: {stakeholder_hints}
+
+evidence:
+{stage_evidence_blocks}
+
+stakeholder_candidates:
+{stakeholder_candidates}
+
+JSON schema:
+{{
+  "event_id": "{event_id}",
+  "stage_candidates": [
+    {{
+      "stage_candidate_id": "{event_id}_STAGE_001",
+      "stakeholder": "evidence-supported stakeholder",
+      "opinion": "evidence-supported opinion or action",
+      "sentiment": "positive|negative|neutral",
+      "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
+      "rationale": "short evidence-grounded rationale",
+      "evidence_ids": ["evidence_id shown above"],
+      "evidence_spans": [{{"evidence_id": "ev-id", "char_start": 0, "char_end": 0, "text": "supporting quote"}}],
       "confidence": 0.0
+    }}
+  ]
+}}"""
+
+
+CANONICAL_MERGE_USER_PROMPT_TEMPLATE = """Task: Merge stage-level SOA candidates into event-level stakeholder-canonical SOA tuples.
+Use only the stage_candidates and evidence below. Return strict JSON only.
+
+Rules:
+1. Merge aliases that refer to the same stakeholder within this event.
+2. Output one canonical tuple per distinct stakeholder by default.
+3. Split the same stakeholder only when stage_candidates show different opinions/actions; explain with opinion_split_reason.
+4. Keep all supporting evidence_ids and preserve relevant stage_candidate_ids.
+5. Do not invent stakeholders, opinions, evidence IDs, or stage_candidate_ids.
+
+event:
+event_id: {event_id}
+event_name: {event_name}
+event_description: {event_description}
+
+stage_candidates:
+{stage_candidates}
+
+evidence:
+{stage_evidence_blocks}
+
+stakeholder_candidates:
+{stakeholder_candidates}
+
+JSON schema:
+{{
+  "event_id": "{event_id}",
+  "tuples": [
+    {{
+      "stakeholder_cluster_id": "stakeholder_001",
+      "stakeholder": "canonical stakeholder name",
+      "stakeholder_aliases": ["aliases merged into this stakeholder"],
+      "opinion": "merged evidence-supported opinion or action",
+      "sentiment": "positive|negative|neutral",
+      "rationale": "short evidence-grounded rationale",
+      "evidence_ids": ["evidence_id shown above"],
+      "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
+      "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
+      "confidence": 0.0,
+      "canonical_tuple": true,
+      "opinion_split_reason": "",
+      "stakeholder_candidate_match_status": "matched|unmatched|no_candidates",
+      "stage_candidate_ids": ["{event_id}_STAGE_001"]
     }}
   ]
 }}"""
@@ -225,6 +403,7 @@ class ParseResult:
     tuples: list[dict[str, Any]]
     parse_success: bool
     parse_error: str | None = None
+    rejected_rows: list[dict[str, Any]] | None = None
 
 
 class SchemaAttributor:
@@ -288,9 +467,11 @@ class SchemaAttributor:
         return (
             "\n\nMethod constraints:\n"
             f"- method_version: {self.method_version}\n"
-            f"- max_tuples_per_event: {self.max_tuples_per_event}\n"
+            f"- attribution_mode: {ATTRIBUTION_MODE}\n"
+            "- There is no fixed per-event tuple target.\n"
             "- Use only evidence_id values shown above.\n"
             "- Prefer stakeholder names from the stakeholder_candidates list when present.\n"
+            "- Emit multiple tuples for the same stakeholder only when the opinion/action differs.\n"
             f"- stakeholder_candidate_count: {len(stakeholder_candidates)}\n"
         )
 
@@ -299,6 +480,7 @@ class SchemaAttributor:
         *,
         event: dict[str, Any],
         evidence_items: list[dict[str, Any]],
+        stakeholder_candidates: list[str],
         hide_chain_in_prompt: bool = False,
     ) -> tuple[str, str]:
         stage_evidence_blocks = format_stage_evidence_blocks(
@@ -311,11 +493,13 @@ class SchemaAttributor:
                 event_id=event.get("event_id", ""),
                 event_name=event.get("event_name", ""),
                 stage_evidence_blocks=stage_evidence_blocks,
+                stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
             )
         return SYSTEM_PROMPT, RETRY_USER_PROMPT_TEMPLATE.format(
             event_id=event.get("event_id", ""),
             event_name=event.get("event_name", ""),
             stage_evidence_blocks=stage_evidence_blocks,
+            stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
         )
 
     def attribute_event(
@@ -330,7 +514,20 @@ class SchemaAttributor:
         hide_chain_in_prompt: bool = False,
         skip_chain_ranking: bool = False,
         enforce_candidate_constraints: bool = False,
+        use_stage_attribution: bool = False,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        if use_stage_attribution:
+            return self.attribute_event_two_pass(
+                event=event,
+                chain=chain,
+                evidence_items=evidence_items,
+                stakeholder_candidates=stakeholder_candidates,
+                selection_metadata=selection_metadata,
+                dry_run=dry_run,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+                skip_chain_ranking=skip_chain_ranking,
+                enforce_candidate_constraints=enforce_candidate_constraints,
+            )
         system_prompt, user_prompt = self.build_prompt(
             event=event,
             chain=chain,
@@ -342,12 +539,15 @@ class SchemaAttributor:
         selected_eids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
         request_summary = {
             "method_version": self.method_version,
+            "attribution_mode": ATTRIBUTION_MODE,
             "num_evidence": len(evidence_items),
             "chain_confidence": chain.get("chain_confidence", 0),
             "prompt_chars": len(system_prompt) + len(user_prompt),
             "api_calls_made": 0,
             "json_mode": True,
             "selected_evidence_ids": selected_eids,
+            "stakeholder_candidates": stakeholder_candidates,
+            "stakeholder_candidate_count": len(stakeholder_candidates),
             "hide_chain_in_prompt": hide_chain_in_prompt,
             "skip_chain_ranking": skip_chain_ranking,
         }
@@ -380,7 +580,7 @@ class SchemaAttributor:
             response,
             event_id,
             allowed_evidence_ids,
-            stakeholder_candidates=stakeholder_candidates if enforce_candidate_constraints else [],
+            stakeholder_candidates=stakeholder_candidates,
             evidence_context_by_id=evidence_context_by_id,
         )
         raw_response_text = normalize_raw_response(response)
@@ -391,6 +591,7 @@ class SchemaAttributor:
             retry_system_prompt, retry_user_prompt = self.build_retry_prompt(
                 event=event,
                 evidence_items=evidence_items,
+                stakeholder_candidates=stakeholder_candidates,
                 hide_chain_in_prompt=hide_chain_in_prompt,
             )
             retry_response = self.llm_client.chat(
@@ -407,12 +608,21 @@ class SchemaAttributor:
                 retry_response,
                 event_id,
                 allowed_evidence_ids,
-                stakeholder_candidates=stakeholder_candidates if enforce_candidate_constraints else [],
+                stakeholder_candidates=stakeholder_candidates,
                 evidence_context_by_id=evidence_context_by_id,
             )
             raw_response_text = normalize_raw_response(retry_response)
             raw_response_id = getattr(retry_response, "response_id", "")
 
+        request_summary["parsed_tuple_count"] = len(parsed.tuples)
+        request_summary["rejected_tuple_count"] = len(parsed.rejected_rows or [])
+        request_summary["supplemented_stakeholders"] = sorted(
+            {
+                str(row.get("stakeholder", ""))
+                for row in parsed.tuples
+                if row.get("stakeholder_candidate_match_status") == "unmatched"
+            }
+        )
         return parsed.tuples, raw_record(
             event_id=event_id,
             model_name=self.model_name,
@@ -420,7 +630,308 @@ class SchemaAttributor:
             raw_response=raw_response_text,
             parse_success=parsed.parse_success,
             parse_error=parsed.parse_error,
+            parse_diagnostics={"rejected_rows": parsed.rejected_rows or []},
         )
+
+    def build_stage_extraction_prompt(
+        self,
+        *,
+        event: dict[str, Any],
+        evidence_items: list[dict[str, Any]],
+        stakeholder_candidates: list[str],
+        hide_chain_in_prompt: bool = False,
+    ) -> tuple[str, str]:
+        return SYSTEM_PROMPT, STAGE_EXTRACTION_USER_PROMPT_TEMPLATE.format(
+            event_id=event.get("event_id", ""),
+            event_name=event.get("event_name", ""),
+            event_description=event.get("event_description", ""),
+            stakeholder_hints=json.dumps(event.get("stakeholder_hints", []), ensure_ascii=False),
+            stage_evidence_blocks=format_stage_evidence_blocks(
+                evidence_items,
+                hide_chain_fields=hide_chain_in_prompt,
+            ),
+            stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
+        )
+
+    def build_canonical_merge_prompt(
+        self,
+        *,
+        event: dict[str, Any],
+        evidence_items: list[dict[str, Any]],
+        stage_candidates: list[dict[str, Any]],
+        stakeholder_candidates: list[str],
+        hide_chain_in_prompt: bool = False,
+    ) -> tuple[str, str]:
+        return SYSTEM_PROMPT, CANONICAL_MERGE_USER_PROMPT_TEMPLATE.format(
+            event_id=event.get("event_id", ""),
+            event_name=event.get("event_name", ""),
+            event_description=event.get("event_description", ""),
+            stage_candidates=json.dumps(stage_candidates, ensure_ascii=False, indent=2),
+            stage_evidence_blocks=format_stage_evidence_blocks(
+                evidence_items,
+                max_excerpt_chars=300,
+                hide_chain_fields=hide_chain_in_prompt,
+            ),
+            stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
+        )
+
+    def attribute_event_two_pass(
+        self,
+        *,
+        event: dict[str, Any],
+        chain: dict[str, Any],
+        evidence_items: list[dict[str, Any]],
+        stakeholder_candidates: list[str],
+        selection_metadata: dict[str, Any] | None = None,
+        dry_run: bool = False,
+        hide_chain_in_prompt: bool = False,
+        skip_chain_ranking: bool = False,
+        enforce_candidate_constraints: bool = False,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        event_id = str(event.get("event_id", ""))
+        selected_eids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
+        stage_system, stage_user = self.build_stage_extraction_prompt(
+            event=event,
+            evidence_items=evidence_items,
+            stakeholder_candidates=stakeholder_candidates,
+            hide_chain_in_prompt=hide_chain_in_prompt,
+        )
+        request_summary = {
+            "method_version": self.method_version,
+            "attribution_mode": ATTRIBUTION_MODE,
+            "attribution_pass": "soe_v3_two_pass",
+            "num_evidence": len(evidence_items),
+            "chain_confidence": chain.get("chain_confidence", 0),
+            "prompt_chars": len(stage_system) + len(stage_user),
+            "stage_prompt_chars": len(stage_system) + len(stage_user),
+            "api_calls_made": 0,
+            "json_mode": True,
+            "selected_evidence_ids": selected_eids,
+            "stakeholder_candidates": stakeholder_candidates,
+            "stakeholder_candidate_count": len(stakeholder_candidates),
+            "hide_chain_in_prompt": hide_chain_in_prompt,
+            "skip_chain_ranking": skip_chain_ranking,
+        }
+        if selection_metadata:
+            request_summary.update(selection_metadata)
+            request_summary["attribution_pass"] = "soe_v3_two_pass"
+        if dry_run:
+            preview = stage_user[:2500]
+            safe_console_print(f"\n--- stage extraction prompt preview: {event_id} ---\n{preview}\n--- end stage extraction prompt: {event_id} ---\n")
+            return [], raw_record(
+                event_id=event_id,
+                model_name=self.model_name,
+                request_summary=request_summary,
+                raw_response="",
+                parse_success=True,
+                parse_error=None,
+                parse_diagnostics={"stage_candidates": []},
+                dry_run=True,
+            )
+        if self.llm_client is None:
+            raise RuntimeError("llm_client is required unless dry_run=True")
+
+        allowed_evidence_ids = {str(item["evidence_id"]) for item in evidence_items if item.get("evidence_id")}
+        evidence_context_by_id = {str(item["evidence_id"]): item for item in evidence_items if item.get("evidence_id")}
+        retryable_errors = {"empty_llm_content", "incomplete_or_malformed_json"}
+
+        stage_response = self.llm_client.chat(
+            system_prompt=stage_system,
+            user_prompt=stage_user,
+            response_format=STAGE_SOA_RESPONSE_FORMAT,
+        )
+        request_summary["api_calls_made"] = 1
+        stage_parsed = parse_stage_response(
+            stage_response,
+            event_id=event_id,
+            allowed_evidence_ids=allowed_evidence_ids,
+            evidence_context_by_id=evidence_context_by_id,
+            model_name=self.model_name,
+            prompt_version=self.prompt_version,
+            raw_response_id=getattr(stage_response, "response_id", ""),
+        )
+        stage_raw = normalize_raw_response(stage_response)
+        if stage_parsed.parse_error in retryable_errors:
+            stage_response = self.llm_client.chat(
+                system_prompt=stage_system,
+                user_prompt=stage_user,
+                response_format=STAGE_SOA_RESPONSE_FORMAT,
+            )
+            request_summary["api_calls_made"] = 2
+            request_summary["stage_extract_retried"] = True
+            stage_parsed = parse_stage_response(
+                stage_response,
+                event_id=event_id,
+                allowed_evidence_ids=allowed_evidence_ids,
+                evidence_context_by_id=evidence_context_by_id,
+                model_name=self.model_name,
+                prompt_version=self.prompt_version,
+                raw_response_id=getattr(stage_response, "response_id", ""),
+            )
+            stage_raw = normalize_raw_response(stage_response)
+
+        if not stage_parsed.parse_success:
+            return self._fallback_to_legacy_single_pass(
+                event=event,
+                chain=chain,
+                evidence_items=evidence_items,
+                stakeholder_candidates=stakeholder_candidates,
+                selection_metadata=selection_metadata,
+                dry_run=dry_run,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+                skip_chain_ranking=skip_chain_ranking,
+                enforce_candidate_constraints=enforce_candidate_constraints,
+                prior_api_calls=int(request_summary["api_calls_made"]),
+                fallback_reason=stage_parsed.parse_error or "stage_extract_failed",
+                stage_candidates=[],
+            )
+
+        request_summary["stage_candidate_count"] = len(stage_parsed.tuples)
+        request_summary["stage_rejected_candidate_count"] = len(stage_parsed.rejected_rows or [])
+        if not stage_parsed.tuples:
+            request_summary["parsed_tuple_count"] = 0
+            return [], raw_record(
+                event_id=event_id,
+                model_name=self.model_name,
+                request_summary=request_summary,
+                raw_response=json.dumps({"stage_extract": stage_raw, "canonical_merge": ""}, ensure_ascii=False),
+                parse_success=True,
+                parse_error=None,
+                parse_diagnostics={
+                    "stage_candidates": [],
+                    "stage_rejected_rows": stage_parsed.rejected_rows or [],
+                    "rejected_rows": [],
+                },
+            )
+
+        merge_system, merge_user = self.build_canonical_merge_prompt(
+            event=event,
+            evidence_items=evidence_items,
+            stage_candidates=stage_parsed.tuples,
+            stakeholder_candidates=stakeholder_candidates,
+            hide_chain_in_prompt=hide_chain_in_prompt,
+        )
+        request_summary["prompt_chars"] += len(merge_system) + len(merge_user)
+        request_summary["merge_prompt_chars"] = len(merge_system) + len(merge_user)
+        merge_response = self.llm_client.chat(
+            system_prompt=merge_system,
+            user_prompt=merge_user,
+            response_format=SCHEMA_ATTRIBUTION_RESPONSE_FORMAT,
+        )
+        request_summary["api_calls_made"] = int(request_summary["api_calls_made"]) + 1
+        merge_parsed = self._parse_llm_response(
+            merge_response,
+            event_id,
+            allowed_evidence_ids,
+            stakeholder_candidates=stakeholder_candidates,
+            evidence_context_by_id=evidence_context_by_id,
+        )
+        merge_raw = normalize_raw_response(merge_response)
+        if merge_parsed.parse_error in retryable_errors:
+            merge_response = self.llm_client.chat(
+                system_prompt=merge_system,
+                user_prompt=merge_user,
+                response_format=SCHEMA_ATTRIBUTION_RESPONSE_FORMAT,
+            )
+            request_summary["api_calls_made"] = int(request_summary["api_calls_made"]) + 1
+            request_summary["canonical_merge_retried"] = True
+            merge_parsed = self._parse_llm_response(
+                merge_response,
+                event_id,
+                allowed_evidence_ids,
+                stakeholder_candidates=stakeholder_candidates,
+                evidence_context_by_id=evidence_context_by_id,
+            )
+            merge_raw = normalize_raw_response(merge_response)
+
+        if not merge_parsed.parse_success:
+            return self._fallback_to_legacy_single_pass(
+                event=event,
+                chain=chain,
+                evidence_items=evidence_items,
+                stakeholder_candidates=stakeholder_candidates,
+                selection_metadata=selection_metadata,
+                dry_run=dry_run,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+                skip_chain_ranking=skip_chain_ranking,
+                enforce_candidate_constraints=enforce_candidate_constraints,
+                prior_api_calls=int(request_summary["api_calls_made"]),
+                fallback_reason=merge_parsed.parse_error or "canonical_merge_failed",
+                stage_candidates=stage_parsed.tuples,
+            )
+
+        for row in merge_parsed.tuples:
+            row["attribution_pass"] = "soe_v3_two_pass"
+            if not row.get("stage_candidate_ids"):
+                row["stage_candidate_ids"] = infer_stage_candidate_ids(row, stage_parsed.tuples)
+            stage_spans = evidence_spans_from_stage_candidates(
+                row.get("stage_candidate_ids", []),
+                stage_parsed.tuples,
+                row.get("evidence_ids", []),
+            )
+            if stage_spans:
+                row["evidence_spans"] = stage_spans
+        request_summary["parsed_tuple_count"] = len(merge_parsed.tuples)
+        request_summary["rejected_tuple_count"] = len(merge_parsed.rejected_rows or [])
+        request_summary["supplemented_stakeholders"] = sorted(
+            {
+                str(row.get("stakeholder", ""))
+                for row in merge_parsed.tuples
+                if row.get("stakeholder_candidate_match_status") == "unmatched"
+            }
+        )
+        return merge_parsed.tuples, raw_record(
+            event_id=event_id,
+            model_name=self.model_name,
+            request_summary=request_summary,
+            raw_response=json.dumps({"stage_extract": stage_raw, "canonical_merge": merge_raw}, ensure_ascii=False),
+            parse_success=merge_parsed.parse_success,
+            parse_error=merge_parsed.parse_error,
+            parse_diagnostics={
+                "stage_candidates": stage_parsed.tuples,
+                "stage_rejected_rows": stage_parsed.rejected_rows or [],
+                "rejected_rows": merge_parsed.rejected_rows or [],
+            },
+        )
+
+    def _fallback_to_legacy_single_pass(
+        self,
+        *,
+        event: dict[str, Any],
+        chain: dict[str, Any],
+        evidence_items: list[dict[str, Any]],
+        stakeholder_candidates: list[str],
+        selection_metadata: dict[str, Any] | None,
+        dry_run: bool,
+        hide_chain_in_prompt: bool,
+        skip_chain_ranking: bool,
+        enforce_candidate_constraints: bool,
+        prior_api_calls: int,
+        fallback_reason: str,
+        stage_candidates: list[dict[str, Any]],
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        legacy_tuples, legacy_record = self.attribute_event(
+            event=event,
+            chain=chain,
+            evidence_items=evidence_items,
+            stakeholder_candidates=stakeholder_candidates,
+            selection_metadata=selection_metadata,
+            dry_run=dry_run,
+            hide_chain_in_prompt=hide_chain_in_prompt,
+            skip_chain_ranking=skip_chain_ranking,
+            enforce_candidate_constraints=enforce_candidate_constraints,
+            use_stage_attribution=False,
+        )
+        summary = legacy_record.setdefault("request_summary", {})
+        summary["fallback_mode"] = "legacy_single_pass"
+        summary["fallback_reason"] = fallback_reason
+        summary["stage_candidate_count"] = len(stage_candidates)
+        summary["api_calls_made"] = prior_api_calls + int(summary.get("api_calls_made", 0) or 0)
+        diagnostics = legacy_record.setdefault("parse_diagnostics", {})
+        diagnostics["stage_candidates"] = stage_candidates
+        for row in legacy_tuples:
+            row["attribution_pass"] = "legacy_single_pass"
+        return legacy_tuples, legacy_record
 
     def _parse_llm_response(
         self,
@@ -440,7 +951,6 @@ class SchemaAttributor:
             model_name=self.model_name,
             prompt_version=self.prompt_version,
             raw_response_id=getattr(response, "response_id", ""),
-            max_tuples=self.max_tuples_per_event,
         )
 
 
@@ -465,6 +975,7 @@ def run_schema_attribution(
     max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
     seed: int = 42,
     enforce_candidate_constraints: bool | None = None,
+    use_stage_attribution: bool | None = None,
 ) -> dict[str, Any]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -475,7 +986,9 @@ def run_schema_attribution(
     if selector_mode not in SELECTOR_MODES:
         raise ValueError(f"unknown evidence selector mode: {selector_mode}")
     if enforce_candidate_constraints is None:
-        enforce_candidate_constraints = method_version == METHOD_VERSION
+        enforce_candidate_constraints = False
+    if use_stage_attribution is None:
+        use_stage_attribution = method_version == SOE_V3_METHOD_VERSION
     attributor = SchemaAttributor(
         llm_client=llm_client,
         model_name=model_name,
@@ -484,6 +997,7 @@ def run_schema_attribution(
     )
 
     tuples: list[dict[str, Any]] = []
+    stage_candidates: list[dict[str, Any]] = []
     raw_records: list[dict[str, Any]] = []
     no_chain_context_events: list[str] = []
     empty_tuple_events: list[str] = []
@@ -510,10 +1024,12 @@ def run_schema_attribution(
             mode=effective_selector_mode,
             oracle_evidence_ids=oracle_evidence_ids,
             seed=seed,
+            stakeholder_candidates=stakeholder_candidates,
         )
         evidence_items = selection.evidence
         selection_metadata = {
             "method_version": method_version,
+            "attribution_mode": ATTRIBUTION_MODE,
             "selector_mode": effective_selector_mode,
             "enforce_candidate_constraints": enforce_candidate_constraints,
             "selection_diagnostics": selection.diagnostics,
@@ -533,8 +1049,15 @@ def run_schema_attribution(
                 hide_chain_in_prompt=hide_chain_in_prompt,
                 skip_chain_ranking=skip_chain_ranking,
                 enforce_candidate_constraints=enforce_candidate_constraints,
+                use_stage_attribution=use_stage_attribution,
             )
             raw_records.append(record)
+            diagnostics = record.get("parse_diagnostics") if isinstance(record.get("parse_diagnostics"), dict) else {}
+            for stage_row in diagnostics.get("stage_candidates", []) or []:
+                if isinstance(stage_row, dict):
+                    copied = dict(stage_row)
+                    copied["selection_diagnostics"] = selection.diagnostics
+                    stage_candidates.append(copied)
             api_calls += int(record.get("request_summary", {}).get("api_calls_made", 0) or 0)
             if record.get("parse_success") is False:
                 parse_failed_events.append(event_id)
@@ -553,6 +1076,7 @@ def run_schema_attribution(
                         "num_evidence": len(evidence_items),
                         "api_calls_made": 0,
                         "method_version": method_version,
+                        "attribution_mode": ATTRIBUTION_MODE,
                         "chain_confidence": chain.get("chain_confidence", 0),
                         "prompt_chars": 0,
                         "selected_evidence_ids": [
@@ -572,11 +1096,13 @@ def run_schema_attribution(
             )
 
     candidates_path = output_dir / "candidate_soa_tuples.jsonl"
+    stage_candidates_path = output_dir / "stage_soa_candidates.jsonl"
     raw_path = output_dir / "raw_llm_responses.jsonl"
     table_path = output_dir / "schema_attribution_table.csv"
     summary_path = output_dir / "schema_attribution_summary.json"
 
     write_jsonl(candidates_path, tuples)
+    write_jsonl(stage_candidates_path, stage_candidates)
     write_jsonl(raw_path, raw_records)
     write_tuple_table(table_path, tuples)
     summary = build_summary(
@@ -594,6 +1120,9 @@ def run_schema_attribution(
         selector_mode=selector_mode,
         max_tuples_per_event=max_tuples_per_event,
     )
+    summary["stage_soa_candidates_path"] = str(stage_candidates_path)
+    summary["num_stage_soa_candidates"] = len(stage_candidates)
+    summary["use_stage_attribution"] = bool(use_stage_attribution)
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
 
@@ -608,7 +1137,6 @@ def parse_response(
     model_name: str,
     prompt_version: str = PROMPT_VERSION,
     raw_response_id: str = "",
-    max_tuples: int = MAX_TUPLES_PER_EVENT,
 ) -> ParseResult:
     text = normalize_raw_response(raw_response)
     if not text.strip():
@@ -630,35 +1158,69 @@ def parse_response(
         return ParseResult([], False, "tuples must be a list")
 
     output: list[dict[str, Any]] = []
-    for row in tuples_value:
+    rejected_rows: list[dict[str, Any]] = []
+    seen_cluster_ids: set[str] = set()
+    for index, row in enumerate(tuples_value):
         if not isinstance(row, dict):
+            rejected_rows.append({"row_index": index, "reason": "tuple row must be an object"})
             continue
         sentiment = str(row.get("sentiment", "")).strip()
         if sentiment not in ALLOWED_SENTIMENT:
+            rejected_rows.append({"row_index": index, "reason": f"invalid sentiment: {sentiment}"})
             continue
         stage = str(row.get("event_chain_stage") or "unknown").strip()
         if stage not in ALLOWED_STAGE:
             stage = "unknown"
         support = str(row.get("support_status") or "candidate_unclear").strip()
         if support not in ALLOWED_SUPPORT:
-            support = "candidate_unclear"
-        evidence_ids = dedupe(
-            [str(eid) for eid in row.get("evidence_ids", []) if str(eid) in allowed_evidence_ids]
-        )
+            rejected_rows.append({"row_index": index, "reason": f"invalid support_status: {support}"})
+            continue
+        raw_evidence_ids = dedupe([str(eid).strip() for eid in row.get("evidence_ids", []) if str(eid).strip()])
+        unknown_evidence_ids = [eid for eid in raw_evidence_ids if eid not in allowed_evidence_ids]
+        if unknown_evidence_ids:
+            rejected_rows.append(
+                {
+                    "row_index": index,
+                    "reason": "unknown evidence_id",
+                    "unknown_evidence_ids": unknown_evidence_ids,
+                }
+            )
+            continue
+        evidence_ids = raw_evidence_ids
         if not evidence_ids:
+            rejected_rows.append({"row_index": index, "reason": "missing evidence_ids"})
             continue
         stakeholder = str(row.get("stakeholder", "")).strip()
         opinion = truncate_text(row.get("opinion", ""), MAX_OPINION_CHARS)
         rationale = truncate_text(row.get("rationale", ""), MAX_RATIONALE_CHARS)
         if not stakeholder or not opinion or not rationale:
+            rejected_rows.append({"row_index": index, "reason": "missing stakeholder, opinion, or rationale"})
+            continue
+        if row.get("canonical_tuple") is not True:
+            rejected_rows.append({"row_index": index, "reason": "canonical_tuple must be true"})
+            continue
+        stakeholder_cluster_id = str(row.get("stakeholder_cluster_id") or "").strip()
+        if not stakeholder_cluster_id:
+            rejected_rows.append({"row_index": index, "reason": "missing stakeholder_cluster_id"})
             continue
         stakeholder_match = best_stakeholder_match(stakeholder, allowed_stakeholders or [])
-        if allowed_stakeholders and stakeholder_match is None:
+        match_status = "matched" if stakeholder_match else ("unmatched" if allowed_stakeholders else "no_candidates")
+        opinion_split_reason = str(row.get("opinion_split_reason") or "").strip()
+        if stakeholder_cluster_id in seen_cluster_ids and not opinion_split_reason:
+            rejected_rows.append(
+                {
+                    "row_index": index,
+                    "reason": "duplicate stakeholder_cluster_id without opinion_split_reason",
+                    "stakeholder_cluster_id": stakeholder_cluster_id,
+                }
+            )
             continue
+        seen_cluster_ids.add(stakeholder_cluster_id)
         stakeholder_id = make_stakeholder_id(event_id, stakeholder_match or stakeholder)
         opinion_id = make_opinion_id(event_id, opinion)
         stage_id = f"stage:{event_id}:{stage}"
         spans = evidence_spans_for_tuple(evidence_ids, evidence_context_by_id or {})
+        stage_candidate_ids = normalize_string_list(row.get("stage_candidate_ids", []), max_items=40, max_chars=100)
         output.append(
             {
                 "event_id": event_id,
@@ -675,15 +1237,101 @@ def parse_response(
                 "stage_id": stage_id,
                 "support_status": support,
                 "confidence": clamp_float(row.get("confidence", 0.0)),
+                "stakeholder_cluster_id": stakeholder_cluster_id,
+                "stakeholder_aliases": normalize_string_list(row.get("stakeholder_aliases", []), max_items=12, max_chars=80),
+                "canonical_tuple": True,
+                "opinion_split_reason": opinion_split_reason,
+                "stakeholder_candidate_match_status": match_status,
+                "matched_stakeholder_candidate": stakeholder_match or "",
+                "stage_candidate_ids": stage_candidate_ids,
                 "model_name": model_name,
                 "prompt_version": prompt_version,
                 "raw_response_id": raw_response_id,
                 "created_at": now_iso(),
             }
         )
-        if len(output) >= max_tuples:
-            break
-    return ParseResult(output, True, None)
+    return ParseResult(output, True, None, rejected_rows)
+
+
+def parse_stage_response(
+    raw_response: Any,
+    *,
+    event_id: str,
+    allowed_evidence_ids: set[str],
+    evidence_context_by_id: dict[str, dict[str, Any]] | None = None,
+    model_name: str,
+    prompt_version: str = PROMPT_VERSION,
+    raw_response_id: str = "",
+) -> ParseResult:
+    text = normalize_raw_response(raw_response)
+    if not text.strip():
+        return ParseResult([], False, "empty_llm_content")
+    try:
+        json_text = extract_json_object(text)
+    except ValueError as exc:
+        return ParseResult([], False, str(exc))
+    try:
+        payload = json.loads(json_text)
+    except json.JSONDecodeError:
+        return ParseResult([], False, "incomplete_or_malformed_json")
+    if not isinstance(payload, dict):
+        return ParseResult([], False, "response JSON must be an object")
+    if str(payload.get("event_id", "")) != event_id:
+        return ParseResult([], False, f"event_id mismatch: {payload.get('event_id')}")
+    candidates_value = payload.get("stage_candidates", [])
+    if not isinstance(candidates_value, list):
+        return ParseResult([], False, "stage_candidates must be a list")
+
+    output: list[dict[str, Any]] = []
+    rejected_rows: list[dict[str, Any]] = []
+    for index, row in enumerate(candidates_value):
+        if not isinstance(row, dict):
+            rejected_rows.append({"row_index": index, "reason": "stage candidate row must be an object"})
+            continue
+        sentiment = str(row.get("sentiment", "")).strip()
+        if sentiment not in ALLOWED_SENTIMENT:
+            rejected_rows.append({"row_index": index, "reason": f"invalid sentiment: {sentiment}"})
+            continue
+        stage = str(row.get("event_chain_stage") or "unknown").strip()
+        if stage not in ALLOWED_STAGE:
+            stage = "unknown"
+        evidence_ids = dedupe([str(eid).strip() for eid in row.get("evidence_ids", []) if str(eid).strip()])
+        unknown_evidence_ids = [eid for eid in evidence_ids if eid not in allowed_evidence_ids]
+        if unknown_evidence_ids:
+            rejected_rows.append(
+                {"row_index": index, "reason": "unknown evidence_id", "unknown_evidence_ids": unknown_evidence_ids}
+            )
+            continue
+        if not evidence_ids:
+            rejected_rows.append({"row_index": index, "reason": "missing evidence_ids"})
+            continue
+        stakeholder = str(row.get("stakeholder", "")).strip()
+        opinion = truncate_text(row.get("opinion", ""), MAX_OPINION_CHARS)
+        rationale = truncate_text(row.get("rationale", ""), MAX_RATIONALE_CHARS)
+        if not stakeholder or not opinion:
+            rejected_rows.append({"row_index": index, "reason": "missing stakeholder or opinion"})
+            continue
+        stage_candidate_id = str(row.get("stage_candidate_id") or f"{event_id}_STAGE_{len(output) + 1:03d}").strip()
+        spans = normalize_stage_spans(row.get("evidence_spans", []), evidence_ids, evidence_context_by_id or {})
+        output.append(
+            {
+                "event_id": event_id,
+                "stage_candidate_id": stage_candidate_id,
+                "stakeholder": stakeholder,
+                "opinion": opinion,
+                "sentiment": sentiment,
+                "event_chain_stage": stage,
+                "rationale": rationale,
+                "evidence_ids": evidence_ids,
+                "evidence_spans": spans,
+                "confidence": clamp_float(row.get("confidence", 0.0)),
+                "model_name": model_name,
+                "prompt_version": prompt_version,
+                "raw_response_id": raw_response_id,
+                "created_at": now_iso(),
+            }
+        )
+    return ParseResult(output, True, None, rejected_rows)
 
 
 def select_events(events: list[dict[str, Any]], *, event_ids: list[str] | None, max_events: int | None) -> list[dict[str, Any]]:
@@ -897,6 +1545,83 @@ def evidence_spans_for_tuple(evidence_ids: list[str], evidence_context_by_id: di
     return spans
 
 
+def normalize_stage_spans(
+    value: Any,
+    evidence_ids: list[str],
+    evidence_context_by_id: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    spans: list[dict[str, Any]] = []
+    if isinstance(value, list):
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            evidence_id = str(item.get("evidence_id") or "").strip()
+            if evidence_id not in evidence_ids:
+                continue
+            spans.append(
+                {
+                    "evidence_id": evidence_id,
+                    "char_start": int(item.get("char_start", 0) or 0),
+                    "char_end": int(item.get("char_end", 0) or 0),
+                    "text": truncate_text(item.get("text", ""), 500),
+                }
+            )
+    return spans or evidence_spans_for_tuple(evidence_ids, evidence_context_by_id)
+
+
+def infer_stage_candidate_ids(row: dict[str, Any], stage_candidates: list[dict[str, Any]]) -> list[str]:
+    evidence_ids = set(str(item) for item in row.get("evidence_ids", []) or [])
+    stakeholder = str(row.get("stakeholder", ""))
+    matches: list[str] = []
+    for candidate in stage_candidates:
+        candidate_id = str(candidate.get("stage_candidate_id", ""))
+        if not candidate_id:
+            continue
+        candidate_evidence = set(str(item) for item in candidate.get("evidence_ids", []) or [])
+        same_stakeholder = char_overlap(stakeholder, str(candidate.get("stakeholder", ""))) >= 0.35
+        if evidence_ids & candidate_evidence or same_stakeholder:
+            matches.append(candidate_id)
+    return dedupe(matches)
+
+
+def evidence_spans_from_stage_candidates(
+    stage_candidate_ids: list[str],
+    stage_candidates: list[dict[str, Any]],
+    evidence_ids: list[str],
+) -> list[dict[str, Any]]:
+    wanted = {str(item).strip() for item in stage_candidate_ids or [] if str(item).strip()}
+    allowed_evidence = {str(item).strip() for item in evidence_ids or [] if str(item).strip()}
+    if not wanted:
+        return []
+    spans: list[dict[str, Any]] = []
+    seen: set[tuple[str, int, int, str]] = set()
+    for candidate in stage_candidates:
+        if str(candidate.get("stage_candidate_id") or "") not in wanted:
+            continue
+        for span in candidate.get("evidence_spans", []) or []:
+            if not isinstance(span, dict):
+                continue
+            evidence_id = str(span.get("evidence_id") or "").strip()
+            if not evidence_id or (allowed_evidence and evidence_id not in allowed_evidence):
+                continue
+            text = str(span.get("text") or "")
+            char_start = int(span.get("char_start") or 0)
+            char_end = int(span.get("char_end") or 0)
+            key = (evidence_id, char_start, char_end, text)
+            if key in seen:
+                continue
+            seen.add(key)
+            spans.append(
+                {
+                    "evidence_id": evidence_id,
+                    "char_start": char_start,
+                    "char_end": char_end,
+                    "text": text,
+                }
+            )
+    return spans
+
+
 def normalize_token(value: str) -> str:
     token = re.sub(r"\W+", "_", str(value or "").strip().lower(), flags=re.UNICODE).strip("_")
     return token or "unknown"
@@ -1013,8 +1738,10 @@ def build_summary(
         "model_name": model_name,
         "prompt_version": PROMPT_VERSION,
         "method_version": method_version,
+        "attribution_mode": ATTRIBUTION_MODE,
         "selector_mode": selector_mode,
-        "max_tuples_per_event": max_tuples_per_event,
+        "tuple_limit_policy": "none",
+        "max_tuples_per_event_deprecated_noop": max_tuples_per_event,
     }
 
 
@@ -1026,12 +1753,20 @@ def write_tuple_table(path: str | Path, tuples: list[dict[str, Any]]) -> None:
         "tuple_id",
         "stakeholder",
         "stakeholder_id",
+        "stakeholder_cluster_id",
+        "stakeholder_aliases",
+        "stakeholder_candidate_match_status",
+        "matched_stakeholder_candidate",
         "opinion",
         "opinion_id",
+        "canonical_tuple",
+        "opinion_split_reason",
         "sentiment",
         "rationale",
         "evidence_ids",
         "evidence_spans",
+        "stage_candidate_ids",
+        "attribution_pass",
         "event_chain_stage",
         "stage_id",
         "support_status",
@@ -1045,6 +1780,8 @@ def write_tuple_table(path: str | Path, tuples: list[dict[str, Any]]) -> None:
             flat = dict(row)
             flat["evidence_ids"] = "|".join(row.get("evidence_ids", []))
             flat["evidence_spans"] = json.dumps(row.get("evidence_spans", []), ensure_ascii=False)
+            flat["stage_candidate_ids"] = "|".join(row.get("stage_candidate_ids", []))
+            flat["stakeholder_aliases"] = "|".join(row.get("stakeholder_aliases", []))
             flat["selection_diagnostics"] = json.dumps(row.get("selection_diagnostics", {}), ensure_ascii=False)
             writer.writerow(flat)
 
@@ -1101,6 +1838,7 @@ def raw_record(
     raw_response: str,
     parse_success: bool,
     parse_error: str | None,
+    parse_diagnostics: dict[str, Any] | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
     record = {
@@ -1112,6 +1850,8 @@ def raw_record(
         "parse_success": parse_success,
         "parse_error": parse_error,
     }
+    if parse_diagnostics:
+        record["parse_diagnostics"] = parse_diagnostics
     if dry_run:
         record["dry_run"] = True
     return record
@@ -1128,6 +1868,16 @@ def clamp_float(value: Any) -> float:
     except (TypeError, ValueError):
         numeric = 0.0
     return max(0.0, min(1.0, numeric))
+
+
+def normalize_string_list(value: Any, *, max_items: int, max_chars: int) -> list[str]:
+    if isinstance(value, str):
+        raw_values = [value]
+    elif isinstance(value, list):
+        raw_values = value
+    else:
+        raw_values = []
+    return dedupe([truncate_text(item, max_chars) for item in raw_values if str(item).strip()])[:max_items]
 
 
 def dedupe(values: list[str]) -> list[str]:

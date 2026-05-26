@@ -1,0 +1,29 @@
+{
+  "event_id": "E006",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E006_001",
+      "stakeholder": "美心翡翠明庭小区业主",
+      "stakeholder_aliases": ["业主", "居民", "业主李小姐"],
+      "opinion": "质疑物业费涨价表决结果的真实性与程序合法性，认为现有物业服务态度恶劣且设施维护不到位，反对在服务质量未改善的情况下提高物业费。",
+      "sentiment": "negative",
+      "rationale": "证据明确指出业主追问公示投票结果与实际调查差异巨大并怀疑作假，同时列举门卫闲置、门禁损坏、服务态度恶劣等现状，认为不应涨价。",
+      "evidence_ids": ["ev-00116"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E006_002",
+      "stakeholder": "广州市创佳物业管理有限公司",
+      "stakeholder_aliases": ["创佳物业", "小区物业管理方"],
+      "opinion": "发起并推进小区物业费上调表决程序，但在公示后遭遇业主对表决结果及服务质量的强烈质疑。",
+      "sentiment": "neutral",
+      "rationale": "证据表明该公司为小区实际物业管理方并主导了此次涨价表决，但文本未提供其针对业主质疑的直接回应或辩护声明。",
+      "evidence_ids": ["ev-00116"],
+      "support_label": "partially_supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

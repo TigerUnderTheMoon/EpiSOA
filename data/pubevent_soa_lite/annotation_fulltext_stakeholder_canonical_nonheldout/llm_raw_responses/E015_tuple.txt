@@ -1,0 +1,29 @@
+{
+  "event_id": "E015",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E015_001",
+      "stakeholder": "肥乡区相关部门",
+      "stakeholder_aliases": ["肥乡区公安机关", "肥乡区委员会宣传部", "微观肥乡", "肥乡区联合工作组"],
+      "opinion": "高度重视案件并迅速开展侦破，已抓获全部嫌疑人并采取刑事强制措施，全力做好受害人家属安抚与善后工作，同时呼吁公众不信谣不传谣以保护未成年人隐私。",
+      "sentiment": "neutral",
+      "rationale": "多篇官方通报及权威媒体报道一致指出，肥乡区官方迅速响应案件，明确通报侦办进展、善后安排，并提示公众理性发声以保护受害人隐私。",
+      "evidence_ids": ["ev-00326", "ev-00329", "ev-00330", "ev-00331", "ev-00333", "ev-00347", "ev-00348"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E015_002",
+      "stakeholder": "公众与网友",
+      "stakeholder_aliases": ["社会", "全国网友", "人们"],
+      "opinion": "对初中生被害事件表示震惊与广泛关注，对部分自媒体博主的误导行为感到愤怒，并强烈呼吁公正处理案件、依法制裁未成年犯罪嫌疑人。",
+      "sentiment": "negative",
+      "rationale": "社交媒体及新闻评论证据显示，该事件引发广泛社会关注，公众对自媒体误导行为表达不满，并明确提出公正处理与严惩嫌疑人的诉求。",
+      "evidence_ids": ["ev-00332", "ev-00334", "ev-00346"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

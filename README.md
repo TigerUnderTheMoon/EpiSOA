@@ -8,6 +8,12 @@ The core output schema is:
 <Event, Stakeholder, Opinion, Sentiment, Rationale, EventChain, EvidenceIDs>
 ```
 
+Formal pipeline predictions also carry audit fields for stakeholder-canonical
+extraction: `stakeholder_cluster_id`, `stakeholder_aliases`,
+`canonical_tuple`, `opinion_split_reason`,
+`stakeholder_candidate_match_status`, `matched_stakeholder_candidate`,
+`stage_candidate_ids`, and `attribution_pass`.
+
 ## Event-First Paper Workflow
 
 1. Formal event registry construction
@@ -36,6 +42,11 @@ data/pubevent_soa_lite/
 |   `-- llm_gold_event_chains.jsonl
 |-- silver_v1/
 |-- human_gold_v1/
+|-- human_gold_v2_stakeholder_canonical/
+|   `-- independent/
+|       |-- annotator_A/humanA_tuple_adjudication_sheet.csv
+|       |-- annotator_B/humanB_tuple_adjudication_sheet.csv
+|       `-- annotator_C/humanC_tuple_adjudication_sheet.csv
 |-- evidence_v3_repaired_plus_low37.jsonl
 `-- README.md
 ```
@@ -66,6 +77,61 @@ events.jsonl
 
 Generated raw, interim, annotation, evidence, gold, and output files are intentionally ignored by git. Use `scripts/reset_workspace.py` to return the repository to an empty data skeleton.
 
+## SOE v3 Main Method
+
+The paper main method is `soe_v3`. It does not use a GNN; the rule-derived
+evidence graph remains an auditable skeleton. The main path uses:
+
+- `coverage_optimized` evidence selection.
+- Two-pass SOA attribution: `stage_extract` first writes stage-level candidates
+  to `stage_soa_candidates.jsonl`; `canonical_merge` then writes
+  stakeholder-canonical final tuples to `candidate_soa_tuples.jsonl`.
+- `soe_graph/` materialization from final stakeholder, opinion, sentiment,
+  stage, and evidence-span nodes.
+- Decomposed field-level verifier diagnostics.
+
+The formal pipeline no longer asks the LLM for a fixed number of tuples per
+event. `SchemaAttributor` runs with
+`attribution_mode=stakeholder_canonical`:
+
+- It identifies distinct event-level stakeholder clusters from graph
+  stakeholder candidates and selected evidence.
+- It emits one canonical tuple per evidence-supported stakeholder by default.
+- It merges multiple evidence items for the same stakeholder/opinion into one
+  tuple by collecting all valid `evidence_ids`.
+- It allows multiple tuples for the same `stakeholder_cluster_id` only when
+  the opinions/actions differ and `opinion_split_reason` is non-empty.
+- It allows evidence-supported stakeholders missing from graph candidates, but
+  marks them as `stakeholder_candidate_match_status=unmatched` for audit.
+
+`max_tuples_per_event` may still appear in legacy config files for compatibility,
+but it is no longer a formal attribution target or cap. Pipeline manifests write
+`tuple_limit_policy: none` and
+`max_tuples_per_event_deprecated_noop` to make this explicit.
+
+Evidence selection is coverage-optimized in the main method. The selector
+balances event relevance, chain stage score, stakeholder coverage, stage
+coverage, source-family coverage, opinion-bearing signal, and quality score,
+then penalizes near-duplicate title/text evidence. Per-event diagnostics include
+covered/uncovered stakeholder candidates, selected evidence IDs, source/stage
+coverage, redundancy penalty counts, and objective components.
+
+## Human Gold Review Sheets
+
+Independent human review tuple sheets are intentionally annotator-specific:
+
+```text
+data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/
+|-- annotator_A/humanA_tuple_adjudication_sheet.csv
+|-- annotator_B/humanB_tuple_adjudication_sheet.csv
+`-- annotator_C/humanC_tuple_adjudication_sheet.csv
+```
+
+The chain review sheet remains `human_chain_adjudication_sheet.csv` inside each
+annotator directory. The annotator-specific tuple filenames are pure renames of
+the older per-directory `human_tuple_adjudication_sheet.csv` convention, so each
+reviewer's file is visible in diffs and handoffs.
+
 ## Evidence Collection Scope
 
 The C-FSM collector performs cross-source public web retrieval over publicly accessible and search-indexed evidence. It is not platform-specific login-based crawling.
@@ -94,6 +160,15 @@ Check full paper readiness:
 python scripts/validate_paper_data.py
 python -m episoa.cli paper-status
 ```
+
+Run fast tests:
+
+```bash
+python -m pytest -q
+```
+
+Use `python -m pytest` rather than bare `pytest` in this Windows workspace so
+repo-local `scripts.*` imports resolve consistently.
 
 Run data preparation after `events_ready=true`:
 

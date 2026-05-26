@@ -11,6 +11,12 @@ data:
   gold_event_chains_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl
 output:
   runs_dir: outputs/runs
+ablation:
+  method_version: soe_v3
+  max_evidence_per_event: 16
+  max_tuples_per_event: 8
+  evidence_selector:
+    mode: coverage_optimized
 model:
   mode: real
   llm_mode: real

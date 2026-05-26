@@ -16,10 +16,12 @@ import yaml
 from episoa.attribution.schema_attributor import (
     ALLOWED_SENTIMENT,
     ALLOWED_SUPPORT,
+    ATTRIBUTION_MODE,
     MAX_OPINION_CHARS,
     MAX_RATIONALE_CHARS,
     MAX_TUPLES_PER_EVENT,
     PROMPT_VERSION,
+    SOE_V3_METHOD_VERSION,
     run_schema_attribution,
 )
 from episoa.collector.cfsm_collector import collect_evidence
@@ -115,7 +117,9 @@ def _write_prompt_manifest(setting_dir: Path, config, flags: dict | None = None)
     manifest = {
         "prompt_version": PROMPT_VERSION,
         "method_version": flags.get("method_version", config.ablation.get("method_version", "legacy")),
-        "max_tuples_per_event": int(flags.get("max_tuples_per_event", config.ablation.get("max_tuples_per_event", MAX_TUPLES_PER_EVENT))),
+        "attribution_mode": ATTRIBUTION_MODE,
+        "tuple_limit_policy": "none",
+        "max_tuples_per_event_deprecated_noop": int(flags.get("max_tuples_per_event", config.ablation.get("max_tuples_per_event", MAX_TUPLES_PER_EVENT))),
         "max_opinion_chars": MAX_OPINION_CHARS,
         "max_rationale_chars": MAX_RATIONALE_CHARS,
         "allowed_sentiment": sorted(ALLOWED_SENTIMENT),
@@ -183,6 +187,7 @@ def _run_core_pipeline(
     method_version="legacy",
     max_tuples_per_event=None,
     enforce_candidate_constraints=None,
+    use_stage_attribution=None,
 ):
     """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
     collected = collect_evidence(events, evidence)
@@ -221,6 +226,8 @@ def _run_core_pipeline(
     selector_config = config.ablation.get("evidence_selector", {}) or {}
     configured_selector_mode = selector_config.get("mode") or config.ablation.get("evidence_selector_mode")
     selector_mode = selector_mode or configured_selector_mode or "chain_aware"
+    if use_stage_attribution is None:
+        use_stage_attribution = bool(use_soe_graph and method_version == SOE_V3_METHOD_VERSION)
     max_evidence_per_event = int(config.ablation.get("max_evidence_per_event", 12))
     max_tuples = int(max_tuples_per_event or config.ablation.get("max_tuples_per_event", MAX_TUPLES_PER_EVENT))
     oracle_evidence_ids_by_event = _oracle_evidence_ids_by_event(gold) if oracle_evidence else None
@@ -241,6 +248,7 @@ def _run_core_pipeline(
         max_tuples_per_event=max_tuples,
         seed=int(config.ablation.get("seed", 42)),
         enforce_candidate_constraints=enforce_candidate_constraints,
+        use_stage_attribution=use_stage_attribution,
     )
 
     candidates = _attribution_to_predictions(
@@ -330,7 +338,14 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
 
     verified, retrieval_metrics, verifier_metrics = _run_core_pipeline(
         events, evidence, gold, gold_chains, config, run_dir, llm_client,
-        use_graph=True, use_event_chain=True, use_verifier=True,
+        use_graph=True,
+        use_event_chain=True,
+        use_verifier=True,
+        use_soe_graph=True,
+        selector_mode="coverage_optimized",
+        verifier_mode="decomposed",
+        method_version=SOE_V3_METHOD_VERSION,
+        use_stage_attribution=True,
     )
 
     metrics = evaluate_main(gold, verified)
@@ -384,23 +399,31 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
                 confidence=row.get("confidence", 0.0),
                 support_status=row.get("support_status", ""),
                 selection_diagnostics=row.get("selection_diagnostics"),
+                stakeholder_cluster_id=row.get("stakeholder_cluster_id"),
+                stakeholder_aliases=row.get("stakeholder_aliases", []),
+                canonical_tuple=row.get("canonical_tuple", True),
+                opinion_split_reason=row.get("opinion_split_reason", ""),
+                stakeholder_candidate_match_status=row.get("stakeholder_candidate_match_status", ""),
+                matched_stakeholder_candidate=row.get("matched_stakeholder_candidate", ""),
+                stage_candidate_ids=row.get("stage_candidate_ids", []),
+                attribution_pass=row.get("attribution_pass", ""),
             )
         )
     return predictions
 
 
 ABLATION_SETTINGS = {
-    "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "method_version": "legacy"},
-    "full_soe":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True,  "selector_mode": "chain_aware", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "legacy"},
+    "full_soe":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "full_oracle_evidence":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
-    "oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "direct_llm":                 {"use_graph": False, "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True,  "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "direct_llm"},
-    "without_soe_graph":          {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
-    "without_chain_aware_selection": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
-    "quality_topk_selector":      {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True,  "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
-    "bm25_selector":              {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True,  "selector_mode": "bm25_keyword", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
-    "random_selector":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True,  "selector_mode": "random", "verifier_mode": "decomposed", "method_version": "soe_v2", "max_tuples_per_event": 8},
-    "without_decomposed_verifier": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "selector_mode": "chain_aware", "verifier_mode": "id_only", "method_version": "soe_v2", "max_tuples_per_event": 8},
+    "without_soe_graph":          {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_chain_aware_selection": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "quality_topk_selector":      {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "bm25_selector":              {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "bm25_keyword", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "random_selector":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "random", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_decomposed_verifier": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_graph":              {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed"},
     "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed"},
     "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware"},
@@ -421,6 +444,7 @@ PIPELINE_FLAG_KEYS = {
     "skip_chain_ranking",
     "oracle_evidence",
     "use_soe_graph",
+    "use_stage_attribution",
     "selector_mode",
     "verifier_mode",
     "method_version",

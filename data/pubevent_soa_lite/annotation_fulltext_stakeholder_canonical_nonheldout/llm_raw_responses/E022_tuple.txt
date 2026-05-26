@@ -1,0 +1,53 @@
+{
+  "event_id": "E022",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E022_001",
+      "stakeholder": "武当山特区卫健局、市场监管局、公安局",
+      "stakeholder_aliases": ["特区相关部门", "武当发布", "武当山特区卫生健康局", "武当山特区市场监督管理局", "武当山特区公安局"],
+      "opinion": "已依法对药王谷中医馆立案，正在开展全面调查，并将及时向社会通报调查和处置结果。",
+      "sentiment": "neutral",
+      "rationale": "多份证据引用了12月2日晚三部门联合发布的情况通报，明确表示已立案并全面调查，态度为依法履职与信息公开。",
+      "evidence_ids": ["ev-00517", "ev-00518", "ev-00520", "ev-00521", "ev-00522", "ev-00523", "ev-00524", "ev-00525", "ev-00526", "ev-00537", "ev-00539", "ev-00541", "ev-00542", "ev-01732", "ev-01733", "ev-01734", "ev-01739", "ev-01740"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E022_002",
+      "stakeholder": "药王谷中医馆",
+      "stakeholder_aliases": ["药王谷“抗癌中心”", "武当山旅游经济特区药王谷中医馆"],
+      "opinion": "因涉嫌虚假宣传（号称抗癌治愈率超80%）及非法行医被立案侦查，初查证据更符合虚假广告罪构成要件。",
+      "sentiment": "negative",
+      "rationale": "证据指出该中医馆曾以“抗癌大师”“治愈率超80%”等旗号宣传，警方初查认为符合虚假广告罪，目前正加紧侦办。",
+      "evidence_ids": ["ev-01732", "ev-01736", "ev-01738", "ev-01742", "ev-01743", "ev-01744", "ev-01745", "ev-01746", "ev-01748"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E022_003",
+      "stakeholder": "就诊患者及家属",
+      "stakeholder_aliases": ["患者", "病友或家属", "患癌者"],
+      "opinion": "在中医馆就诊期间遭受严重健康损害，部分患者病情加重或不幸去世，承受巨大身心痛楚并关注调查进展。",
+      "sentiment": "negative",
+      "rationale": "证据显示392名就诊患者中已有15人去世、20人病情加重，家属及患者承受痛楚，事件引发对虚假医疗的担忧。",
+      "evidence_ids": ["ev-01732", "ev-01743", "ev-01746", "ev-01748"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E022_004",
+      "stakeholder": "媒体与公众网友",
+      "stakeholder_aliases": ["广大网友", "媒体", "公众"],
+      "opinion": "曝光并质疑药王谷中医馆的虚假宣传与资质问题，呼吁提高警惕，要求彻查并公布结果。",
+      "sentiment": "negative",
+      "rationale": "媒体率先曝光该事件，网友高度关注并质疑其“治愈率超80%”的宣传话术，官方通报亦感谢网友关注。",
+      "evidence_ids": ["ev-00517", "ev-01732", "ev-01744", "ev-01745", "ev-01746"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "event_id": "E045",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E045_001",
+      "stakeholder": "武汉东湖风景区城管执法局",
+      "stakeholder_aliases": ["东湖城管", "东湖高新区城管局", "武汉市城管执法委"],
+      "opinion": "对多次忽视预警且未及时清理淤积车辆的共享单车运营企业依法处以罚款，并推行“半阈值报警”智慧监管系统与“电子围栏”技术，督促企业落实运维责任与总量控制。",
+      "sentiment": "positive",
+      "rationale": "官方通报与新闻报道明确指出城管部门对违规企业开出罚单，并部署智能监管平台、电子围栏及调度会议以强化精准管控。",
+      "evidence_ids": ["ev-01139", "ev-02051", "ev-02053", "ev-02065", "ev-02070", "ev-01138", "ev-01140"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E045_002",
+      "stakeholder": "共享单车运营企业",
+      "stakeholder_aliases": ["哈啰单车", "美团单车", "青桔单车", "车企"],
+      "opinion": "因忽视潮汐点位预警、未及时清理车辆导致通行受阻而受到行政处罚，并在监管部门督促下参与制定运维保障方案，配合车辆减量回收与规范停放管理。",
+      "sentiment": "negative",
+      "rationale": "证据显示企业因管理不力被罚款，随后被要求履行社会责任、参与调度会并配合减量与秩序整治工作。",
+      "evidence_ids": ["ev-01139", "ev-02051", "ev-02053", "ev-02065", "ev-02070"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E045_003",
+      "stakeholder": "游客与市民",
+      "stakeholder_aliases": ["骑行者", "网友", "消费者"],
+      "opinion": "部分游客随意停放共享单车造成景区道路淤积与通行压力，在电子围栏技术限制与现场人员引导下，逐步适应规范停放要求。",
+      "sentiment": "mixed",
+      "rationale": "网友爆料与报道指出乱停放引发淤积问题，同时电子围栏无法锁车机制及专人提醒促使游客改变停车习惯。",
+      "evidence_ids": ["ev-01137", "ev-01138", "ev-01140", "ev-01146", "ev-02064", "ev-02067"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E045_004",
+      "stakeholder": "环卫工与社会共治力量",
+      "stakeholder_aliases": ["路长", "市政环卫人员", "巡查保洁员"],
+      "opinion": "在日常滚动巡查中主动发现并上报单车淤积盲区，配合城管部门与路长进行清理规整，发挥协同共治作用。",
+      "sentiment": "positive",
+      "rationale": "报道详细描述了环卫负责人及共治力量在巡查中发现淤积后及时联系路长处置，并配合执法队员规整车辆。",
+      "evidence_ids": ["ev-01144", "ev-02064"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

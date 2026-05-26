@@ -17,12 +17,14 @@ Python >= 3.10. Entry point: `episoa` CLI (defined in `pyproject.toml`).
 ## Test Commands
 
 ```bash
-pytest                          # fast unit tests only (default markers exclude integration/slow/real_model/browser)
-pytest -m integration            # integration tests
-pytest -m real_model             # tests requiring real embeddings/LLM
-pytest -m ""                     # everything
-pytest tests/test_metrics.py::test_tuple_f1   # single test
+python -m pytest                          # fast unit tests only (default markers exclude integration/slow/real_model/browser)
+python -m pytest -m integration            # integration tests
+python -m pytest -m real_model             # tests requiring real embeddings/LLM
+python -m pytest -m ""                     # everything
+python -m pytest tests/test_metrics.py::test_tuple_f1   # single test
 ```
+
+Prefer `python -m pytest` in this Windows workspace so the repository root is on `sys.path` and `scripts.*` test imports resolve consistently.
 
 Default exclusions are set in `pyproject.toml` `[tool.pytest.ini_options]`.
 
@@ -66,9 +68,26 @@ events.jsonl (formal event registry)
 
 - **No LangChain in core pipeline.** The LLM client (`src/episoa/llm/client.py`) is a thin `httpx` wrapper (`OpenAICompatibleClient`). `langgraph` is listed as a dependency but not used in the critical path.
 - **Rule-based retrieval, not learned.** Event chain retrieval and coverage extraction use hand-crafted Chinese keyword rules, domain lists, and source priors. No embeddings or neural rerankers in the default pipeline.
+- **Main method is `soe_v3`, no GNN.** The paper main path uses a rule-derived evidence graph as an auditable skeleton, `coverage_optimized` evidence selection, two-pass SOA attribution, `soe_graph/` materialization, and decomposed verifier diagnostics.
+- **Stakeholder-canonical attribution.** The formal `SchemaAttributor` runs with `attribution_mode=stakeholder_canonical`: it clusters event-level stakeholders and emits one canonical tuple per evidence-supported stakeholder by default. It may emit multiple tuples for the same `stakeholder_cluster_id` only when `opinion_split_reason` explains distinct opinions/actions.
+- **Two-pass SOA attribution.** For `method_version=soe_v3`, attribution first writes stage-level candidates to `stage_soa_candidates.jsonl`, then merges them into stakeholder-canonical final tuples in `candidate_soa_tuples.jsonl`. Parse failure retries once and then falls back to legacy single-pass attribution with `fallback_mode=legacy_single_pass`.
+- **No event-level tuple target.** `max_tuples_per_event` is deprecated for formal attribution and must not be interpreted as a generation cap or target. Manifests report `tuple_limit_policy: none` and may keep `max_tuples_per_event_deprecated_noop` only for backward-compatible config reading.
+- **Coverage-optimized evidence selection.** The paper main path uses `selector_mode=coverage_optimized`, balancing event relevance, chain stage score, stakeholder/stage/source-family coverage, opinion-bearing signal, and quality score while penalizing near-duplicate text/title evidence. Candidate coverage diagnostics are written into `request_summary` / `selection_diagnostics`.
+- **Candidate constraints are audit signals, not hard gold filters.** Graph stakeholder candidates guide extraction, but evidence-supported stakeholders missing from the graph are allowed and marked `stakeholder_candidate_match_status=unmatched`.
+- **Field-level verification.** Decomposed verifier output includes `verification_diagnosis` with stakeholder, opinion, sentiment, rationale, evidence-span, temporal-stage, over-inference, and contradiction checks.
 - **JSONL everywhere.** All data artifacts (events, evidence, tuples, chains) are line-delimited JSON with Pydantic validation on read.
 - **Chinese-language NLP.** Stop words, stage keywords, stakeholder terms, and LLM prompts are all in Chinese.
 - **Heuristic planner, not GA.** The collector uses a heuristic seed-expansion + repair loop. The GA planner was removed in recent commits.
+
+## Human Gold Sheet Naming
+
+Independent human review tuple sheets are annotator-specific:
+
+- `annotator_A/humanA_tuple_adjudication_sheet.csv`
+- `annotator_B/humanB_tuple_adjudication_sheet.csv`
+- `annotator_C/humanC_tuple_adjudication_sheet.csv`
+
+The chain sheet name remains `human_chain_adjudication_sheet.csv` inside each annotator directory. These renamed tuple files are content-preserving replacements for the older per-annotator `human_tuple_adjudication_sheet.csv` files.
 
 ## Source Scope Categories
 
@@ -94,7 +113,7 @@ Runtime status prints only the source and a masked key; never the full key.
 
 ## Ablation Settings
 
-Defined in `src/episoa/pipeline.py` (`ABLATION_SETTINGS`). Seven settings including `full`, `without_graph`, `without_event_chain`, `without_verifier`, `full_oracle_evidence`, and chain-prompt/ranking ablations. Each setting runs the full pipeline independently in its own directory.
+Defined in `src/episoa/pipeline.py` (`ABLATION_SETTINGS`). Each setting runs the full pipeline independently in its own directory and writes prompt/input manifests. Ablation interpretation should use the manifest fields (`attribution_mode`, `tuple_limit_policy`, selected evidence IDs, prompt flags, verifier flags) rather than relying on legacy config names.
 
 ## Project-Specific Skills
 

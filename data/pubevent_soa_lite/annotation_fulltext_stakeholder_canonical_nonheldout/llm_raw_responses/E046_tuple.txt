@@ -1,0 +1,125 @@
+{
+  "event_id": "E046",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E046_001",
+      "stakeholder": "工业和信息化部",
+      "stakeholder_aliases": [
+        "工信部",
+        "工业和信息化部信息通信管理局",
+        "工信微报"
+      ],
+      "opinion": "持续组织第三方检测机构抽查并通报侵害用户权益的App及SDK，要求相关企业限期整改，对整改不到位者将依法依规采取下架、罚款等处置措施。",
+      "sentiment": "neutral",
+      "rationale": "多份证据显示工信部定期发布通报名单，明确违规情形，设定整改期限，并声明逾期不改将依法处置。",
+      "evidence_ids": [
+        "ev-01157",
+        "ev-01158",
+        "ev-01161",
+        "ev-01163",
+        "ev-02073",
+        "ev-02075",
+        "ev-02077",
+        "ev-02078",
+        "ev-02083",
+        "ev-02087",
+        "ev-02088"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E046_002",
+      "stakeholder": "违规App及SDK运营企业",
+      "stakeholder_aliases": [
+        "APP及SDK主办者",
+        "相关企业",
+        "应用开发者",
+        "App运营者"
+      ],
+      "opinion": "被通报存在强制授权、超范围收集、未明示规则等侵害用户权益行为，需按监管要求限期完成整改，否则面临下架或行政处罚。",
+      "sentiment": "negative",
+      "rationale": "证据明确指出多款App及SDK因违规收集使用个人信息被通报，并被责令整改，部分企业逾期未改或整改不到位。",
+      "evidence_ids": [
+        "ev-01161",
+        "ev-01163",
+        "ev-02073",
+        "ev-02075",
+        "ev-02077",
+        "ev-02078",
+        "ev-02083",
+        "ev-02086",
+        "ev-02087",
+        "ev-02088"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E046_003",
+      "stakeholder": "用户及公众",
+      "stakeholder_aliases": [
+        "群众",
+        "广大网民",
+        "个人信息主体",
+        "人民群众"
+      ],
+      "opinion": "对App非法获取、超范围收集、过度索权等侵害个人信息的行为反应强烈，是监管部门开展专项治理与通报行动的核心保护对象。",
+      "sentiment": "negative",
+      "rationale": "证据提及群众关注的生活服务类App问题，以及广大网民对个人信息被违规收集反应强烈，直接推动专项治理行动。",
+      "evidence_ids": [
+        "ev-01160",
+        "ev-01161",
+        "ev-02080",
+        "ev-02084"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E046_004",
+      "stakeholder": "应用商店及分发平台",
+      "stakeholder_aliases": [
+        "移动应用分发平台",
+        "应用商店",
+        "部分移动应用分发平台"
+      ],
+      "opinion": "因审核把关不严、管理主体责任缺位被监管部门点名，需立即组织下架违规应用，否则将面临依法严厉处置。",
+      "sentiment": "negative",
+      "rationale": "证据指出部分应用商店及分发平台未严格落实管理规定，对上架App审核不严，被要求承担管理责任并下架问题应用。",
+      "evidence_ids": [
+        "ev-02082",
+        "ev-02086"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E046_005",
+      "stakeholder": "中央网信办等多部门联合监管部门",
+      "stakeholder_aliases": [
+        "中央网信办",
+        "公安部",
+        "市场监管总局",
+        "四部门",
+        "国家互联网信息办公室"
+      ],
+      "opinion": "联合开展个人信息保护系列专项行动，印发违规行为认定方法，协同推进App违法违规收集使用个人信息治理工作。",
+      "sentiment": "neutral",
+      "rationale": "证据显示多部门联合发布公告与认定方法，明确治理范围与标准，协同开展抽查与专项行动，形成监管合力。",
+      "evidence_ids": [
+        "ev-02073",
+        "ev-02075",
+        "ev-02080",
+        "ev-02081"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

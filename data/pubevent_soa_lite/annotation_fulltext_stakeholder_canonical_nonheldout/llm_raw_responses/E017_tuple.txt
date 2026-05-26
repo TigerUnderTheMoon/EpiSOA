@@ -1,0 +1,53 @@
+{
+  "event_id": "E017",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E017_001",
+      "stakeholder": "绍兴市第一中学",
+      "stakeholder_aliases": ["绍兴一中", "学校"],
+      "opinion": "发布情况通报，确认教师徐某在课堂上发表不当言论，违反职业行为准则，决定即日起停止其教学工作、调离教学岗位并给予警告处分。",
+      "sentiment": "neutral",
+      "rationale": "学校官方通报明确调查结论及处理决定，依据相关准则对涉事教师进行纪律处分。",
+      "evidence_ids": ["ev-00403", "ev-00404", "ev-00405", "ev-00406", "ev-00407", "ev-00408", "ev-00409", "ev-00411", "ev-00412", "ev-00423", "ev-00425", "ev-00436"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E017_002",
+      "stakeholder": "徐某",
+      "stakeholder_aliases": ["涉事教师", "通用技术教师徐某", "徐姓教师"],
+      "opinion": "对网传不当言论指控予以否认，并表示将“有则加改之无则加勉”。",
+      "sentiment": "neutral",
+      "rationale": "媒体报道引述涉事教师本人回应，其否认相关指控并表态愿意反思改进。",
+      "evidence_ids": ["ev-00407", "ev-00409", "ev-00411", "ev-00412", "ev-00425"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E017_003",
+      "stakeholder": "网友/举报人",
+      "stakeholder_aliases": ["爆料网友", "网络举报者"],
+      "opinion": "发文举报该教师在课堂上向女生开黄腔、课间做猥琐动作，引发网络关注与投诉。",
+      "sentiment": "negative",
+      "rationale": "网络举报内容直接触发事件发酵，指控教师存在严重违背师德的言行。",
+      "evidence_ids": ["ev-00407", "ev-00409", "ev-00411", "ev-00412", "ev-00425"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E017_004",
+      "stakeholder": "绍兴市教育局",
+      "stakeholder_aliases": ["市教育局"],
+      "opinion": "表示已着手处理该事件，已有初步处理意见，正在积极处理中。",
+      "sentiment": "neutral",
+      "rationale": "教育局工作人员回应媒体称事件已进入处理流程，并已有初步意见。",
+      "evidence_ids": ["ev-00407", "ev-00411", "ev-00412"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

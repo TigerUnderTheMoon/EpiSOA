@@ -12,11 +12,11 @@ data:
 output:
   runs_dir: outputs/runs
 ablation:
-  method_version: soe_v2
+  method_version: soe_v3
   max_evidence_per_event: 16
   max_tuples_per_event: 8
   evidence_selector:
-    mode: chain_aware
+    mode: coverage_optimized
   settings:
     - full_soe
     - direct_llm

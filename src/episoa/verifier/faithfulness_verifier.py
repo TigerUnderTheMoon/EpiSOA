@@ -92,9 +92,11 @@ def decomposed_diagnosis(
         "opinion_support": support_level(opinion_overlap, score),
         "sentiment_support": True,
         "rationale_support": support_level(rationale_overlap, score),
+        "evidence_span_support": evidence_span_support(prediction, evidence_text),
         "evidence_same_event": all(item.event_id == prediction.event_id for item in evidence_items),
         "temporal_stage_consistency": True,
         "over_inference": score < 0.4 or (opinion_overlap < 0.08 and rationale_overlap < 0.08),
+        "contradiction_detected": False,
         "missing_evidence_ids": missing_evidence_ids or [],
         "support_score": round(float(score), 4),
     }
@@ -104,9 +106,11 @@ def decomposed_diagnosis(
             "opinion_support",
             "sentiment_support",
             "rationale_support",
+            "evidence_span_support",
             "evidence_same_event",
             "temporal_stage_consistency",
             "over_inference",
+            "contradiction_detected",
         ):
             if key in llm_details:
                 diagnosis[key] = llm_details[key]
@@ -140,6 +144,19 @@ def loose_contains(text: str, needle: str) -> bool:
         return True
     tokens = [needle[idx:idx + 2] for idx in range(0, max(1, len(needle) - 1), 2)]
     return bool(tokens and any(token and token in text for token in tokens))
+
+
+def evidence_span_support(prediction: PredictionTuple, evidence_text: str) -> bool:
+    spans = prediction.evidence_spans or []
+    if not spans:
+        return True
+    for span in spans:
+        if not isinstance(span, dict):
+            return False
+        text = str(span.get("text") or "").strip()
+        if text and text not in evidence_text:
+            return False
+    return True
 
 
 VERIFIER_SYSTEM = """你是严格的中文公共事件证据支撑度判定专家。判断证据是否直接支撑利益相关方的具体观点。

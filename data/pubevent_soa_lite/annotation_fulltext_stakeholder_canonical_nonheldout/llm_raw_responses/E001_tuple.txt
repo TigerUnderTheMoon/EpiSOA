@@ -1,0 +1,41 @@
+{
+  "event_id": "E001",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E001_001",
+      "stakeholder": "广州市白云区政府及相关征收部门",
+      "stakeholder_aliases": ["白云区政府", "三元里街道办事处", "广州市白云区人民政府国有土地上房屋征收办公室"],
+      "opinion": "发布城中村改造补偿安置方案，明确“拆一补一”原则与签约奖励机制，并强调改造资金由政府统借统还、全程监管以保障项目顺利推进不烂尾。",
+      "sentiment": "positive",
+      "rationale": "官方公告与新闻报道详细记录了政府印发方案、设立工作组、出台激励政策及回应资金安全问题的具体举措。",
+      "evidence_ids": ["ev-00001", "ev-00002", "ev-00007", "ev-00010", "ev-00012", "ev-00022", "ev-00027"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E001_002",
+      "stakeholder": "三元里村村民及被征收人",
+      "stakeholder_aliases": ["村民", "居民", "被征收人", "社员"],
+      "opinion": "整体对改造持较高支持态度并积极响应签约奖励，但部分群体对货币补偿标准与周边地价存在落差表示关注，多数倾向于选择产权调换回迁。",
+      "sentiment": "mixed",
+      "rationale": "证据显示改造同意率超75%，大量村民主动咨询签约；同时网传方案引发对补偿金额的讨论，但多数反馈支持复建回迁。",
+      "evidence_ids": ["ev-00010", "ev-00022", "ev-00023", "ev-00033", "ev-00034"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E001_003",
+      "stakeholder": "三元里村党委及村集体",
+      "stakeholder_aliases": ["三元里村党委", "村集体", "三元里建设投资有限公司"],
+      "opinion": "明确支持旧改项目，认为改造将推动产业升级并提升集体收益，同时牵头成立投资公司专项管理资金以防范项目烂尾风险。",
+      "sentiment": "positive",
+      "rationale": "村党委书记公开表态支持改造并阐述经济收益，同时披露成立专项公司监管资金运作的具体安排。",
+      "evidence_ids": ["ev-00023"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

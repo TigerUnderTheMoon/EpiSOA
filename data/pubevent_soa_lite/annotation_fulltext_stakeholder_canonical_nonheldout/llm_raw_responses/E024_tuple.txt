@@ -1,0 +1,110 @@
+{
+  "event_id": "E024",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E024_001",
+      "stakeholder": "受害人家属（李女士）",
+      "stakeholder_aliases": [
+        "李女士",
+        "受害人家属",
+        "女子",
+        "老人女儿"
+      ],
+      "opinion": "反映父亲在养老院遭捆绑殴打致脑出血住院，对院方行为表示强烈愤慨与质疑，认为送老人去养老院是养老而非受罪。",
+      "sentiment": "negative",
+      "rationale": "证据显示李女士发布视频反映父亲被绑铁柱、浑身是伤并住院，受访时表示“气得手抖”，并质问院方为何如此对待老人。",
+      "evidence_ids": [
+        "ev-00582",
+        "ev-00583",
+        "ev-00584",
+        "ev-01760",
+        "ev-01762",
+        "ev-01763",
+        "ev-01764",
+        "ev-01766",
+        "ev-01768",
+        "ev-01770"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E024_002",
+      "stakeholder": "曲沃县天慈养老院（院方）",
+      "stakeholder_aliases": [
+        "天慈养老院",
+        "某养老院",
+        "养老院",
+        "老院长"
+      ],
+      "opinion": "辩称捆绑老人系因其患有小脑萎缩和皮肤病，为防止其自伤而采取的措施，并说明老人入住仅一个多月。",
+      "sentiment": "neutral",
+      "rationale": "院方/自称老院长的人员回应媒体称老人生活无法自理且患病，捆绑是为防自伤，并非虐待。",
+      "evidence_ids": [
+        "ev-01760",
+        "ev-01762"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E024_003",
+      "stakeholder": "曲沃县公安局（警方）",
+      "stakeholder_aliases": [
+        "曲沃县公安局",
+        "警方",
+        "辖区派出所",
+        "曲沃公安"
+      ],
+      "opinion": "经调查确认护工多次对老人实施捆绑、殴打，依法对涉事护工作出行政拘留十五日并处罚款500元的处罚，通报案件已调查完结。",
+      "sentiment": "neutral",
+      "rationale": "警方发布警情通报，明确查实护工赵某发多次捆绑殴打老人，并依据治安管理处罚法作出行政处罚。",
+      "evidence_ids": [
+        "ev-00582",
+        "ev-00583",
+        "ev-00584",
+        "ev-00585",
+        "ev-00586",
+        "ev-00588",
+        "ev-00589",
+        "ev-00591",
+        "ev-01755",
+        "ev-01756",
+        "ev-01758",
+        "ev-01759",
+        "ev-01760",
+        "ev-01762",
+        "ev-01765",
+        "ev-01768",
+        "ev-01769",
+        "ev-01770"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E024_004",
+      "stakeholder": "乐昌镇政府及民政部门",
+      "stakeholder_aliases": [
+        "乐昌镇政府",
+        "民政局",
+        "当地多部门"
+      ],
+      "opinion": "回应称已介入此事，目前由民政局牵头联合辖区派出所开展调查。",
+      "sentiment": "neutral",
+      "rationale": "镇政府工作人员回应记者询问，明确事件正由民政局牵头和派出所联合调查中。",
+      "evidence_ids": [
+        "ev-00582",
+        "ev-00584",
+        "ev-01756",
+        "ev-01762"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "event_id": "E029",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E029_001",
+      "stakeholder": "广西医科大学第一附属医院",
+      "stakeholder_aliases": ["医院", "院方", "广西医科大一附院"],
+      "opinion": "发布官方通报说明坠楼经过与调查结果，确认无医疗纠纷，配合公安机关调查，并呼吁公众尊重逝者隐私、不传播现场影像资料。",
+      "sentiment": "neutral",
+      "rationale": "医院于4月20日连续发布情况通报，详细还原事件经过，澄清不存在医疗投诉及纠纷，并明确提出保护逝者隐私的诉求。",
+      "evidence_ids": ["ev-00691", "ev-00693", "ev-00694", "ev-00695", "ev-00696", "ev-00697", "ev-00699", "ev-00700", "ev-01832", "ev-01833", "ev-01837", "ev-01844", "ev-01845"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E029_002",
+      "stakeholder": "公众/网友/社会各界",
+      "stakeholder_aliases": ["社会各界", "网友", "市民", "舆论"],
+      "opinion": "对事件高度关注并引发广泛议论，对坠楼详细经过和原因存在疑点，同时部分声音响应院方呼吁，要求尊重逝者及家属隐私。",
+      "sentiment": "mixed",
+      "rationale": "媒体报道指出事件引发社会广泛关注与讨论，公众对细节存疑，舆论场中同时存在关切与要求保护隐私的声音。",
+      "evidence_ids": ["ev-01846"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

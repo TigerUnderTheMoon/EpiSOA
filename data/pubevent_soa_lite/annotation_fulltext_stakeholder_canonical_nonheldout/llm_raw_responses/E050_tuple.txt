@@ -1,0 +1,101 @@
+{
+  "event_id": "E050",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E050_001",
+      "stakeholder": "滴滴出行",
+      "stakeholder_aliases": [
+        "滴滴",
+        "滴滴平台",
+        "滴滴网约车平台"
+      ],
+      "opinion": "回应抽成质疑，承认存在部分高抽成订单（超30%占2.7%），公布收入分配结构（司机79.1%、补贴10.9%、成本6.9%、利润3.1%），承诺推进收费定价公开透明并排查极端订单原因。",
+      "sentiment": "neutral",
+      "rationale": "滴滴通过官方声明及公众号详细回应了抽成比例、成本构成及极端订单占比，并承诺透明化与整改，态度为官方说明与合规回应。",
+      "evidence_ids": [
+        "ev-01237",
+        "ev-01239",
+        "ev-01241",
+        "ev-01243",
+        "ev-01244",
+        "ev-01246",
+        "ev-02138",
+        "ev-02139",
+        "ev-02149",
+        "ev-02150"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E050_002",
+      "stakeholder": "网约车司机",
+      "stakeholder_aliases": [
+        "司机",
+        "司机师傅",
+        "滴滴司机"
+      ],
+      "opinion": "质疑平台抽成过高且不透明，抱怨收入占比低、运营成本高，要求平台降低抽成比例并公开计价规则。",
+      "sentiment": "negative",
+      "rationale": "多名司机及司机群体反馈抽成高、收入低，对平台规则不透明表示不满，并通过司机委员会等渠道实名反馈意见。",
+      "evidence_ids": [
+        "ev-01237",
+        "ev-01241",
+        "ev-01243",
+        "ev-01245",
+        "ev-01246",
+        "ev-02138",
+        "ev-02149"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E050_003",
+      "stakeholder": "乘客及网友",
+      "stakeholder_aliases": [
+        "乘客",
+        "网友",
+        "打车用户"
+      ],
+      "opinion": "关注乘客支付费用与司机实际收入差距过大，质疑平台抽成过高及定价机制不透明，部分认为司机接单仍有盈利空间。",
+      "sentiment": "mixed",
+      "rationale": "网友对比账单发现乘客付费与司机收入差距大，质疑抽成；同时也有部分声音认为平台接单模式仍具盈利性，公众观点存在分歧。",
+      "evidence_ids": [
+        "ev-01237",
+        "ev-01243",
+        "ev-02138"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E050_004",
+      "stakeholder": "媒体及调查机构",
+      "stakeholder_aliases": [
+        "新华社",
+        "媒体",
+        "自媒体",
+        "调查记者"
+      ],
+      "opinion": "调查并曝光网约车平台抽成比例过高（部分超20%甚至50%）及定价计算不透明问题，引发公众对平台垄断与利益分配的质疑。",
+      "sentiment": "negative",
+      "rationale": "新华社等媒体通过调查报道披露高抽成现象，指出平台利用相对垄断地位提高费率且规则不透明，直接触发本次舆论事件。",
+      "evidence_ids": [
+        "ev-01237",
+        "ev-01241",
+        "ev-01243",
+        "ev-02133",
+        "ev-02134",
+        "ev-02135",
+        "ev-02146"
+      ],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

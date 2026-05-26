@@ -1,0 +1,41 @@
+{
+  "event_id": "E023",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E023_001",
+      "stakeholder": "患者/多女士",
+      "stakeholder_aliases": ["患者", "多女士", "女患者"],
+      "opinion": "投诉在心脏彩超检查期间因第三方工程师违规闯入导致隐私暴露，质疑非医务人员进入检查室的合理性，后经院方沟通与致歉表示谅解。",
+      "sentiment": "mixed",
+      "rationale": "证据显示患者发帖投诉隐私被侵犯并质疑工程师闯入行为，院方通报称已第一时间联系患者表达歉意并得到其沟通谅解。",
+      "evidence_ids": ["ev-00552", "ev-00571", "ev-00564", "ev-00565", "ev-00566", "ev-00567", "ev-00569", "ev-00581"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E023_002",
+      "stakeholder": "东莞市中医院/院方",
+      "stakeholder_aliases": ["东莞市中医院", "院方", "医院"],
+      "opinion": "承认事件暴露当班医务人员隐私保护意识淡薄，向患者致歉，对涉事医务人员及科室负责人作出通报批评、取消评优等处理，并承诺完善机制、设立隐私保护监督小组以杜绝类似事件。",
+      "sentiment": "neutral",
+      "rationale": "院方发布官方通报，详细说明调查结果、内部处理决定及后续整改措施，态度为积极回应与整改。",
+      "evidence_ids": ["ev-00563", "ev-00564", "ev-00565", "ev-00566", "ev-00567", "ev-00568", "ev-00569", "ev-00570", "ev-00579", "ev-00581"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E023_003",
+      "stakeholder": "第三方设备维保公司及涉事工程师",
+      "stakeholder_aliases": ["第三方设备维保公司", "涉事工程师", "设备维保公司工程师"],
+      "opinion": "涉事工程师未严格执行医院制度违规进入检查室调试设备，院方已责成第三方公司对其作出严肃处理，并要求加强人员培训与管理。",
+      "sentiment": "negative",
+      "rationale": "通报明确指出工程师违规进入是事件直接原因，医院已要求第三方公司严肃处理该工程师并加强管理培训。",
+      "evidence_ids": ["ev-00564", "ev-00565", "ev-00566", "ev-00567", "ev-00569", "ev-00571", "ev-00581"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

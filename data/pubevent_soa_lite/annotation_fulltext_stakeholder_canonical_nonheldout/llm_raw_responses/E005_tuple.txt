@@ -1,0 +1,29 @@
+{
+  "event_id": "E005",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E005_001",
+      "stakeholder": "虹凉馨苑小区居民/业主",
+      "stakeholder_aliases": ["居民", "业主", "老百姓"],
+      "opinion": "反对物业费“三年三连涨”方案，要求物业公开涨价依据与账目，质疑服务质量未提升却涨价，并提议若续聘需涨价则应公开招投标更换物业。",
+      "sentiment": "negative",
+      "rationale": "证据显示居民在协调会上激烈反对每年递增0.2元/平方米的涨价方案，表决表多为反对，要求物业给出心服口服的依据，并因口碑差质疑续聘合理性。",
+      "evidence_ids": ["ev-00096", "ev-00097"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E005_002",
+      "stakeholder": "虹凉馨苑小区物业公司",
+      "stakeholder_aliases": ["物业", "物业服务企业"],
+      "opinion": "提出自2026年1月1日起连续三年上调物业费，每年每平方米每月递增0.2元，并同步推进续聘表决。",
+      "sentiment": "neutral",
+      "rationale": "证据明确指出物业发出续聘及涨价表决通知，计划实施“三年三连涨”方案，引发居民争议。",
+      "evidence_ids": ["ev-00096", "ev-00097"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

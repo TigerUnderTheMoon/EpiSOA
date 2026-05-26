@@ -25,12 +25,18 @@ Required artifacts: `llm_preannotation_report.json`, `llm_preannotation_audit.js
 ```bash
 python scripts/build_human_adjudication_sheet.py
 python scripts/build_independent_human_adjudication.py prepare
-python scripts/build_independent_human_adjudication.py audit --tuple-sheets <A.csv>,<B.csv>,<C.csv> --chain-sheets <A.csv>,<B.csv>,<C.csv>
+python scripts/build_independent_human_adjudication.py audit \
+  --tuple-sheets data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/annotator_A/humanA_tuple_adjudication_sheet.csv,data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/annotator_B/humanB_tuple_adjudication_sheet.csv,data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/annotator_C/humanC_tuple_adjudication_sheet.csv \
+  --chain-sheets data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/annotator_A/human_chain_adjudication_sheet.csv,data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/annotator_B/human_chain_adjudication_sheet.csv,data/pubevent_soa_lite/human_gold_v2_stakeholder_canonical/independent/annotator_C/human_chain_adjudication_sheet.csv
 python scripts/convert_adjudication_to_human_gold.py --tuple-sheet <adjudicated_tuple.csv> --chain-sheet <adjudicated_chain.csv> --output-dir data/pubevent_soa_lite/human_gold_v2
 python scripts/audit_human_gold.py --tuples data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl --chains data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl --manifest data/pubevent_soa_lite/human_gold_v2/human_gold_manifest_v2.json --output-dir data/pubevent_soa_lite/human_gold_v2
 ```
 
 Only `adjudication_status=adjudicated_final` rows enter final gold.
+Independent tuple review sheets are named per annotator (`humanA_tuple_adjudication_sheet.csv`,
+`humanB_tuple_adjudication_sheet.csv`, `humanC_tuple_adjudication_sheet.csv`);
+chain sheets keep the shared `human_chain_adjudication_sheet.csv` filename
+inside each annotator directory.
 
 ## Stage 8 Paper/Ablation
 

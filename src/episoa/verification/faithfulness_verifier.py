@@ -25,7 +25,9 @@ ALLOWED_ISSUE_FLAGS = {
     "stakeholder_not_supported",
     "opinion_overgeneralized",
     "rationale_not_supported",
+    "evidence_span_not_supported",
     "stage_mismatch",
+    "contradiction_detected",
     "official_action_should_be_neutral",
     "media_comment_should_be_neutral",
     "no_issue",
@@ -44,6 +46,30 @@ VERIFIER_RESPONSE_FORMAT = json_schema_response_format(
             "unsupported_claims": {"type": "array", "items": {"type": "string"}},
             "evidence_quotes": {"type": "array", "items": {"type": "string"}},
             "issue_flags": {"type": "array", "items": {"type": "string", "enum": sorted(ALLOWED_ISSUE_FLAGS)}},
+            "verification_diagnosis": {
+                "type": "object",
+                "properties": {
+                    "stakeholder_support": {"type": ["boolean", "string"]},
+                    "opinion_support": {"type": "string"},
+                    "sentiment_support": {"type": ["boolean", "string"]},
+                    "rationale_support": {"type": ["boolean", "string"]},
+                    "evidence_span_support": {"type": ["boolean", "string"]},
+                    "temporal_stage_consistency": {"type": ["boolean", "string"]},
+                    "over_inference": {"type": ["boolean", "string"]},
+                    "contradiction_detected": {"type": ["boolean", "string"]},
+                },
+                "required": [
+                    "stakeholder_support",
+                    "opinion_support",
+                    "sentiment_support",
+                    "rationale_support",
+                    "evidence_span_support",
+                    "temporal_stage_consistency",
+                    "over_inference",
+                    "contradiction_detected",
+                ],
+                "additionalProperties": True,
+            },
         },
         "required": [
             "tuple_id",
@@ -55,6 +81,7 @@ VERIFIER_RESPONSE_FORMAT = json_schema_response_format(
             "unsupported_claims",
             "evidence_quotes",
             "issue_flags",
+            "verification_diagnosis",
         ],
         "additionalProperties": False,
     },
@@ -64,9 +91,11 @@ DIAGNOSIS_FIELDS = {
     "opinion_support",
     "sentiment_support",
     "rationale_support",
+    "evidence_span_support",
     "evidence_same_event",
     "temporal_stage_consistency",
     "over_inference",
+    "contradiction_detected",
 }
 POSITIVE_ATTITUDE_TERMS = ["支持", "点赞", "满意", "认可", "感谢", "欢迎", "肯定", "赞扬", "好事", "益处", "有益"]
 INFERENTIAL_ATTITUDE_TERMS = ["抵触", "强烈反对", "质疑", "认可", "满意", "支持", "赞扬"]
@@ -136,7 +165,17 @@ candidate_confidence: {confidence}
   "supported_claims": ["证据支持的部分"],
   "unsupported_claims": ["证据不支持或过度推断的部分"],
   "evidence_quotes": ["从证据中摘取的关键短句"],
-  "issue_flags": ["no_issue"]
+  "issue_flags": ["no_issue"],
+  "verification_diagnosis": {{
+    "stakeholder_support": true,
+    "opinion_support": "supported|partial|unsupported|unclear",
+    "sentiment_support": true,
+    "rationale_support": true,
+    "evidence_span_support": true,
+    "temporal_stage_consistency": true,
+    "over_inference": false,
+    "contradiction_detected": false
+  }}
 }}
 
 重要：
@@ -454,6 +493,8 @@ def rule_precheck(
         flags.append("stakeholder_not_supported")
     if evidence_items and rationale and not claim_supported_by_evidence(rationale, evidence_text):
         flags.append("rationale_not_supported")
+    if evidence_items and not evidence_spans_supported_by_evidence(candidate.get("evidence_spans", []), evidence_text):
+        flags.append("evidence_span_not_supported")
     if sentiment == "positive" and not contains_any(evidence_text, POSITIVE_ATTITUDE_TERMS):
         if contains_any(stakeholder, MEDIA_STAKEHOLDERS):
             flags.append("media_comment_should_be_neutral")
@@ -473,16 +514,21 @@ def rule_precheck(
 
 def normalize_verification_diagnosis(payload: dict[str, Any], *, flags: list[str], score: float) -> dict[str, Any]:
     diagnosis: dict[str, Any] = {}
+    nested = payload.get("verification_diagnosis") if isinstance(payload.get("verification_diagnosis"), dict) else {}
     for field in DIAGNOSIS_FIELDS:
-        if field in payload:
+        if field in nested:
+            diagnosis[field] = normalize_diagnosis_value(nested.get(field))
+        elif field in payload:
             diagnosis[field] = normalize_diagnosis_value(payload.get(field))
     diagnosis.setdefault("stakeholder_support", "stakeholder_not_supported" not in flags)
     diagnosis.setdefault("opinion_support", "partial" if "opinion_overgeneralized" in flags else support_level(score))
     diagnosis.setdefault("sentiment_support", "sentiment_not_supported" not in flags)
     diagnosis.setdefault("rationale_support", "rationale_not_supported" not in flags)
+    diagnosis.setdefault("evidence_span_support", "evidence_span_not_supported" not in flags)
     diagnosis.setdefault("evidence_same_event", "missing_evidence" not in flags)
     diagnosis.setdefault("temporal_stage_consistency", "stage_mismatch" not in flags)
     diagnosis.setdefault("over_inference", any(flag in flags for flag in ("opinion_overgeneralized", "rationale_not_supported")))
+    diagnosis.setdefault("contradiction_detected", "contradiction_detected" in flags)
     diagnosis["support_score"] = clamp_float(score)
     return diagnosis
 
@@ -506,6 +552,20 @@ def support_level(score: float) -> str:
     if score >= 0.4:
         return "partial"
     return "unsupported"
+
+
+def evidence_spans_supported_by_evidence(value: Any, evidence_text: str) -> bool:
+    if not value:
+        return True
+    if not isinstance(value, list):
+        return False
+    for span in value:
+        if not isinstance(span, dict):
+            return False
+        text = str(span.get("text") or "").strip()
+        if text and text not in evidence_text:
+            return False
+    return True
 
 
 def resolve_candidate_evidence(
@@ -600,6 +660,12 @@ def verified_tuple_row(
         "rationale": str(candidate.get("rationale", "")),
         "evidence_ids": list(candidate.get("evidence_ids", []) or []),
         "event_chain_stage": str(candidate.get("event_chain_stage", "")),
+        "stakeholder_cluster_id": candidate.get("stakeholder_cluster_id", ""),
+        "stakeholder_aliases": list(candidate.get("stakeholder_aliases", []) or []),
+        "canonical_tuple": candidate.get("canonical_tuple", True),
+        "opinion_split_reason": candidate.get("opinion_split_reason", ""),
+        "stakeholder_candidate_match_status": candidate.get("stakeholder_candidate_match_status", ""),
+        "matched_stakeholder_candidate": candidate.get("matched_stakeholder_candidate", ""),
         "candidate_confidence": clamp_float(candidate.get("confidence", candidate.get("candidate_confidence", 0.0))),
         "verification_label": verification_label,
         "verification_score": clamp_float(verification_score),
@@ -660,7 +726,7 @@ def build_summary(
         key
         for row in verified
         for key, value in (row.get("verification_diagnosis") or {}).items()
-        if value is False or value == "unsupported"
+        if value is False or value in {"unsupported", "partial"}
     )
     scores = [float(row.get("verification_score", 0) or 0) for row in verified]
     total = len(verified) or 1
@@ -674,6 +740,7 @@ def build_summary(
         "label_distribution": dict(label_counts),
         "issue_flag_distribution": dict(flag_counts),
         "diagnosis_failure_distribution": dict(diagnosis_counts),
+        "field_diagnosis_failure_distribution": dict(diagnosis_counts),
         "avg_verification_score": round(sum(scores) / len(scores), 4) if scores else 0.0,
         "supported_rate": round(label_counts.get("supported", 0) / total, 4),
         "partially_supported_rate": round(label_counts.get("partially_supported", 0) / total, 4),
@@ -697,6 +764,12 @@ def write_verifier_table(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "rationale",
         "evidence_ids",
         "event_chain_stage",
+        "stakeholder_cluster_id",
+        "stakeholder_aliases",
+        "canonical_tuple",
+        "opinion_split_reason",
+        "stakeholder_candidate_match_status",
+        "matched_stakeholder_candidate",
         "candidate_confidence",
         "verification_label",
         "verification_score",
@@ -710,6 +783,7 @@ def write_verifier_table(path: str | Path, rows: list[dict[str, Any]]) -> None:
         for row in rows:
             flat = dict(row)
             flat["evidence_ids"] = "|".join(str(item) for item in row.get("evidence_ids", []))
+            flat["stakeholder_aliases"] = "|".join(str(item) for item in row.get("stakeholder_aliases", []))
             flat["issue_flags"] = "|".join(str(item) for item in row.get("issue_flags", []))
             flat["verification_diagnosis"] = json.dumps(row.get("verification_diagnosis", {}), ensure_ascii=False)
             writer.writerow(flat)

@@ -32,7 +32,6 @@ REQUIRED_TUPLE_FIELDS = [
     "opinion",
     "sentiment",
     "rationale",
-    "event_chain",
     "evidence_ids",
     "evidence_texts",
     "evidence_source_types",

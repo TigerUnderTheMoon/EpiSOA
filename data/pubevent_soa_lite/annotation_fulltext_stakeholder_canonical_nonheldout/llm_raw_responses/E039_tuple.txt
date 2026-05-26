@@ -1,0 +1,41 @@
+{
+  "event_id": "E039",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E039_001",
+      "stakeholder": "地方政府及应急管理部门",
+      "stakeholder_aliases": ["三河市应急管理局", "河北省应急管理厅", "事故调查专家组", "纪宏图", "刘福来", "廊坊市政府及住建局", "三河市委市政府及住建局", "燕郊高新区党工委管委会"],
+      "opinion": "迅速组织现场救援并通报伤亡情况，经调查认定事故系地铁盾构施工破坏燃气管道泄漏所致，明确与商户操作无关，并依法对涉事公职人员及参建单位责任人进行党纪政务处分与移交处理。",
+      "sentiment": "neutral",
+      "rationale": "多份官方通报与调查报告证实应急部门第一时间开展救援，专家组与局长公开澄清事故原因为管道泄漏而非商户操作不当，后续发布正式报告并对23名公职人员作出纪律处分。",
+      "evidence_ids": ["ev-00947", "ev-00948", "ev-00949", "ev-00951", "ev-00954", "ev-00969", "ev-00971", "ev-00972", "ev-00981", "ev-01996", "ev-02006", "ev-02010"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_002",
+      "stakeholder": "地铁施工及相关参建企业",
+      "stakeholder_aliases": ["中交隧道局", "中交一公局", "北京城勘公司", "中铁设计公司", "北京赛瑞斯公司", "快轨公司", "京冀公司", "北京迅联公司", "百川新能源公司", "百川燃气公司", "地铁参建各方"],
+      "opinion": "因盾构施工违规破坏地埋天然气管道、安全管理不力及管道核查流于形式被认定负主要责任，相关责任人被采取刑事强制措施或移交纪检监察机关依规处理。",
+      "sentiment": "negative",
+      "rationale": "事故调查报告明确指出地铁参建各方在管道调查核查中流于形式、涉燃气施工安全管理不力，直接导致管道破损泄漏，7名责任人员被刑拘，46名相关人员被移交处理。",
+      "evidence_ids": ["ev-00947", "ev-00948", "ev-00949", "ev-01993", "ev-01994"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E039_003",
+      "stakeholder": "燕郊镇周边居民与商户",
+      "stakeholder_aliases": ["周边居民", "商户", "炸鸡店业主", "足浴店老板李向东", "业主周程程", "旅客", "志愿者", "小张各庄居民"],
+      "opinion": "对突发爆燃感到震惊与担忧，部分商户因店铺受损和客流减少面临经营困境，居民担忧燃气安全隐患及历史事故重演，志愿者协助登记房屋受损情况。",
+      "sentiment": "negative",
+      "rationale": "现场报道与采访显示居民闻到燃气味后紧急撤离，商户玻璃震碎担忧营业恢复，亲历者对安全事故频发心有余悸，社区志愿者主动协助统计居民受损情况。",
+      "evidence_ids": ["ev-00953", "ev-00965", "ev-00966", "ev-00973"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

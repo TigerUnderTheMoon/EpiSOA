@@ -5,6 +5,7 @@ from scripts.build_independent_human_adjudication import (
     audit_independent_annotations,
     fleiss_kappa,
     prepare_independent_sheets,
+    tuple_sheet_filename,
 )
 
 
@@ -38,7 +39,7 @@ def test_prepare_and_audit_independent_sheets(tmp_path):
     tuple_paths = []
     chain_paths = []
     for annotator in ("annotator_A", "annotator_B", "annotator_C"):
-        tuple_path = tmp_path / "independent" / annotator / "human_tuple_adjudication_sheet.csv"
+        tuple_path = tmp_path / "independent" / annotator / tuple_sheet_filename(annotator)
         chain_path = tmp_path / "independent" / annotator / "human_chain_adjudication_sheet.csv"
         tuple_paths.append(tuple_path)
         chain_paths.append(chain_path)
@@ -58,3 +59,9 @@ def test_prepare_and_audit_independent_sheets(tmp_path):
     assert report["conflict_count"] == 1
     assert report["chain_iaa"]["fleiss_kappa"] == 1.0
     assert (tmp_path / "audit" / "adjudication_conflict_sheet.csv").exists()
+
+
+def test_independent_tuple_sheet_names_are_annotator_specific():
+    assert tuple_sheet_filename("annotator_A") == "humanA_tuple_adjudication_sheet.csv"
+    assert tuple_sheet_filename("annotator_B") == "humanB_tuple_adjudication_sheet.csv"
+    assert tuple_sheet_filename("annotator_C") == "humanC_tuple_adjudication_sheet.csv"

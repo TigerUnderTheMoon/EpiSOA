@@ -1,0 +1,29 @@
+{
+  "event_id": "E010",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E010_001",
+      "stakeholder": "衢州市柯城区双港街道办事处",
+      "stakeholder_aliases": ["街道办", "实施单位", "房屋征收指挥部"],
+      "opinion": "发布安置房选房公告，组织补选工作以保障被征收人权益，并明确选房时间、地点及注意事项以推进流程。",
+      "sentiment": "neutral",
+      "rationale": "官方通告明确指出为保障被征收人权益将再次组织补选，并详细公布选房细则与时间安排，体现行政回应与流程管理。",
+      "evidence_ids": ["ev-00224", "ev-01556"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E010_002",
+      "stakeholder": "百家坊未来社区项目建设单位/施工方",
+      "stakeholder_aliases": ["参建单位", "项目施工方"],
+      "opinion": "按计划推进各标段主体结构与二次结构施工，承诺分期完工（一期预计2024年4月或年底具备验收条件，二期预计2024年9月，整体2025年全面建成）。",
+      "sentiment": "neutral",
+      "rationale": "多篇进展报道显示项目分标段施工，各参建单位正进行装饰装修及主体结构建设，并给出明确的分阶段完工时间节点。",
+      "evidence_ids": ["ev-01562", "ev-01563", "ev-01564", "ev-01565"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

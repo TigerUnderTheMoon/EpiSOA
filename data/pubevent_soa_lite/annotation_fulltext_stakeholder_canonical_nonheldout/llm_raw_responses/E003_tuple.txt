@@ -1,0 +1,53 @@
+{
+  "event_id": "E003",
+  "tuples": [
+    {
+      "stakeholder_cluster_id": "SC_E003_001",
+      "stakeholder": "金钻豪园原业主/拆迁户",
+      "stakeholder_aliases": ["原业主", "拆迁户", "回迁业主", "居民", "村民"],
+      "opinion": "反映自2020年起过渡安置费被长期拖欠，项目处于半停工状态，诉求尽快支付费用并保障项目交付。",
+      "sentiment": "negative",
+      "rationale": "多名业主在网络平台及人民网留言板集中爆料，指出开发商自2020年起未按合同发放过渡费，且工地长期半停工，表达强烈担忧与支付诉求。",
+      "evidence_ids": ["ev-00056", "ev-00059", "ev-00060", "ev-00061", "ev-00062", "ev-01435"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E003_002",
+      "stakeholder": "深圳新华城房地产有限公司（原开发商）",
+      "stakeholder_aliases": ["开发商", "原实施主体", "深圳新华城房地产有限公司", "项目单位"],
+      "opinion": "因资金链断裂与市场低迷陷入财务困境，导致项目停工且无力按约支付过渡安置费。",
+      "sentiment": "negative",
+      "rationale": "证据明确指出原实施主体（深圳新华城房地产有限公司）存在资金短缺与财务困境，直接导致项目推进停滞及过渡费拖欠。",
+      "evidence_ids": ["ev-00056", "ev-00059", "ev-00060", "ev-00061", "ev-00062", "ev-01440"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E003_003",
+      "stakeholder": "罗湖区翠竹街道及罗湖区政府（含区级工作专班）",
+      "stakeholder_aliases": ["翠竹街道", "罗湖区政府", "区级工作专班", "官方", "罗湖区城市更新和土地整备局"],
+      "opinion": "确认项目资金短缺问题，已成立专班统筹协调，并通过引入新合作主体签署盘活协议，以解决资金缺口并推进过渡费支付与项目重启。",
+      "sentiment": "neutral",
+      "rationale": "街道信访办及区政府公开回应资金问题，成立工作专班介入协调，并成功引入中信联合体签署盘活合作协议，推动项目全面重启。",
+      "evidence_ids": ["ev-00059", "ev-00061", "ev-00062", "ev-01440", "ev-01442"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    },
+    {
+      "stakeholder_cluster_id": "SC_E003_004",
+      "stakeholder": "行业专家/研究员",
+      "stakeholder_aliases": ["广东省住房政策研究中心研究员", "李宇嘉"],
+      "opinion": "分析指出旧改项目停滞的实质是房价下行导致预期销售收入无法覆盖旧改成本，叠加民营房企融资困难所致。",
+      "sentiment": "neutral",
+      "rationale": "专家基于市场数据与房企融资环境，客观剖析了深圳旧改项目普遍放缓及资金链紧张的根本经济原因。",
+      "evidence_ids": ["ev-01449"],
+      "support_label": "supported",
+      "canonical_tuple": true,
+      "opinion_split_reason": ""
+    }
+  ]
+}

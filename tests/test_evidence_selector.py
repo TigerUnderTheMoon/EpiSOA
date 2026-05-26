@@ -54,6 +54,48 @@ def test_oracle_mode_forces_only_evidence_ids_not_gold_text():
     assert "gold_tuple" not in str(result.diagnostics).lower()
 
 
+def test_stakeholder_candidates_are_prioritized_before_selector_fill():
+    result = select_evidence_for_prompt(
+        event=event_row(),
+        chain=chain_row(),
+        evidence_rows=[
+            evidence_row("ev-residents", quality_score=0.4, text="Residents complain about safety"),
+            evidence_row("ev-agency", quality_score=0.3, text="Agency responds to safety issue"),
+            evidence_row("ev-high", quality_score=0.99, text="Generic background about safety"),
+        ],
+        max_evidence=2,
+        mode="quality_topk",
+        stakeholder_candidates=["Residents", "Agency"],
+    )
+
+    assert [row["evidence_id"] for row in result.evidence] == ["ev-residents", "ev-agency"]
+    assert result.diagnostics["covered_stakeholder_candidates"] == ["Agency", "Residents"]
+    assert result.diagnostics["stakeholder_candidate_coverage"] == 1.0
+
+
+def test_coverage_optimized_covers_stage_source_stakeholder_and_avoids_duplicate():
+    result = select_evidence_for_prompt(
+        event=event_row(),
+        chain=chain_row(),
+        evidence_rows=[
+            evidence_row("ev-conflict", source_type="forum", quality_score=0.9, text="Residents complain about safety issue"),
+            evidence_row("ev-duplicate", source_type="forum", quality_score=0.89, text="Residents complain about safety issue"),
+            evidence_row("ev-response", source_type="official", quality_score=0.7, text="Agency responds to safety issue"),
+            evidence_row("ev-resolution", source_type="news", quality_score=0.7, text="Agency resolution plan addresses safety"),
+        ],
+        max_evidence=3,
+        mode="coverage_optimized",
+        stakeholder_candidates=["Residents", "Agency"],
+    )
+
+    ids = [row["evidence_id"] for row in result.evidence]
+    assert result.diagnostics["selector_mode"] == "coverage_optimized"
+    assert "ev-duplicate" not in ids
+    assert {"Residents", "Agency"} <= set(result.diagnostics["covered_stakeholder_candidates"])
+    assert "coverage_objective_components" in result.diagnostics
+    assert "source_type_distribution" in result.diagnostics
+
+
 def event_row():
     return {
         "event_id": "E1",
