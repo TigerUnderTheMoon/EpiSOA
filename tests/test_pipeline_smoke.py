@@ -26,6 +26,7 @@ def test_main_configs_use_soe_v3_coverage_optimized() -> None:
 
 def test_full_soe_v3_and_without_soe_graph_ablation_flags() -> None:
     full_soe = ABLATION_SETTINGS["full_soe"]
+    full_soe_high_recall = ABLATION_SETTINGS["full_soe_high_recall"]
     without_soe_graph = ABLATION_SETTINGS["without_soe_graph"]
 
     assert full_soe["method_version"] == "soe_v3"
@@ -33,8 +34,11 @@ def test_full_soe_v3_and_without_soe_graph_ablation_flags() -> None:
     assert full_soe["use_soe_graph"] is True
     assert full_soe["use_stage_attribution"] is True
     assert full_soe["verifier_mode"] == "decomposed"
+    assert full_soe_high_recall["method_version"] == "soe_v3"
+    assert full_soe_high_recall["max_evidence_per_event"] == 60
     assert without_soe_graph["method_version"] == "soe_v3"
     assert without_soe_graph["selector_mode"] == "coverage_optimized"
     assert without_soe_graph["use_soe_graph"] is False
     assert without_soe_graph["use_stage_attribution"] is False
     assert "use_stage_attribution" in PIPELINE_FLAG_KEYS
+    assert "max_evidence_per_event" in PIPELINE_FLAG_KEYS

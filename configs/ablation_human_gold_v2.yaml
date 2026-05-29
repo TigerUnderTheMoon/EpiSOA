@@ -12,18 +12,22 @@ data:
 output:
   runs_dir: outputs/runs_human_gold_v2
 ablation:
-  method_version: soe_v2
+  method_version: soe_v3
   max_evidence_per_event: 16
   max_tuples_per_event: 8
   evidence_selector:
-    mode: chain_aware
+    mode: coverage_optimized
   settings:
     - full_soe
-    - without_evidence_retrieval
-    - without_normalization
-    - without_llm_preannotation
-    - silver_only
-    - reduced_gold_50
+    - full_soe_high_recall
+    - direct_llm
+    - without_soe_graph
+    - without_chain_aware_selection
+    - quality_topk_selector
+    - bm25_selector
+    - random_selector
+    - without_decomposed_verifier
+    - oracle_evidence
 model:
   mode: real
   llm_mode: real
@@ -34,7 +38,7 @@ model:
   reranker_model: mock-reranker
   api_key: ""
   api_key_env: "OPENAI_API_KEY"
-  base_url: "https://api.openai.com/v1"
+  base_url: ""
   base_url_env: "OPENAI_BASE_URL"
   temperature: 0.1
   max_tokens: 8000

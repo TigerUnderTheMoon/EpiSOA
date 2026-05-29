@@ -27,7 +27,7 @@ model:
   reranker_model: mock-reranker
   api_key: ""
   api_key_env: "OPENAI_API_KEY"
-  base_url: "https://api.openai.com/v1"
+  base_url: ""
   base_url_env: "OPENAI_BASE_URL"
   temperature: 0.1
   max_tokens: 3000

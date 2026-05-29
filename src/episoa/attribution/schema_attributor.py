@@ -22,12 +22,85 @@ METHOD_VERSION = "soe_v2"
 SOE_V3_METHOD_VERSION = "soe_v3"
 ATTRIBUTION_MODE = "stakeholder_canonical"
 MAX_TUPLES_PER_EVENT = 8
-MAX_OPINION_CHARS = 40
-MAX_RATIONALE_CHARS = 60
-ALLOWED_SENTIMENT = {"positive", "negative", "neutral"}
+MAX_OPINION_CHARS = 120
+MAX_RATIONALE_CHARS = 120
+ALLOWED_SENTIMENT = {"positive", "negative", "neutral", "mixed"}
 ALLOWED_STAGE = {"trigger", "diffusion", "conflict", "response", "resolution", "follow_up", "mixed", "unknown"}
 ALLOWED_SUPPORT = {"candidate_supported", "candidate_partially_supported", "candidate_unclear"}
 STAGE_PRIORITY = ["conflict", "response", "resolution", "trigger", "diffusion", "follow_up"]
+MAX_STAKEHOLDER_CANDIDATES = 40
+GENERIC_STAKEHOLDER_LABELS = {
+    "项目",
+    "事件",
+    "报道",
+    "媒体",
+    "媒体报道",
+    "新闻报道",
+    "文章",
+    "政府部门",
+    "相关部门",
+    "有关部门",
+    "实施单位",
+    "项目方",
+}
+PSEUDO_STAKEHOLDER_TERMS = ("项目", "事件", "事故", "风波", "舆情", "报道", "新闻", "文章", "方案")
+ISSUE_DESCRIPTOR_TERMS = ("安全", "治理", "处置", "争议", "问题", "抽成")
+ACTOR_HINT_TERMS = (
+    "政府",
+    "局",
+    "委",
+    "办",
+    "法院",
+    "检察院",
+    "公安",
+    "医院",
+    "学校",
+    "公司",
+    "企业",
+    "集团",
+    "物业",
+    "业主",
+    "居民",
+    "住户",
+    "村民",
+    "公众",
+    "网友",
+    "家长",
+    "学生",
+    "患者",
+    "专家",
+    "律师",
+    "开发商",
+    "运营商",
+    "街道",
+    "社区",
+    "村委",
+    "党委",
+    "监管",
+    "消防",
+    "商户",
+    "平台",
+    "食堂",
+)
+SPECIFIC_ACTOR_TERMS = (
+    "政府",
+    "局",
+    "委",
+    "办",
+    "法院",
+    "检察院",
+    "公安",
+    "医院",
+    "学校",
+    "公司",
+    "集团",
+    "物业",
+    "街道",
+    "社区",
+    "村委",
+    "党委",
+    "协会",
+)
 
 SCHEMA_ATTRIBUTION_RESPONSE_FORMAT = json_schema_response_format(
     "schema_attribution_response",
@@ -156,8 +229,11 @@ Rules:
 6. Do not create tuples to reach a fixed count. There is no per-event target N.
 7. Every tuple must cite at least one evidence_id shown below.
 8. Prefer stakeholder names from stakeholder_candidates when they fit the evidence, but you may add an evidence-supported stakeholder missing from the list.
-9. sentiment must be positive, negative, or neutral. Official policy release, investigation, response, supervision, or corrective action is neutral unless the evidence explicitly states support/satisfaction/praise.
-10. Return strict JSON only. Do not output Markdown.
+9. stakeholder must be an actor or affected group. Do not use project names, event names, media reports, articles, generic "government department", "relevant department", or "implementing unit" as stakeholders.
+10. Use gold-style canonical stakeholder names: concrete institution/person/group when available, otherwise concise affected group labels. Prefer the stakeholder_candidates inventory as the canonical name list.
+11. sentiment must be positive, negative, neutral, or mixed. Use mixed when the same stakeholder has both support/benefit and concern/opposition in the evidence.
+12. Official policy release, investigation, response, supervision, or corrective action is neutral unless the evidence explicitly states support/satisfaction/praise or criticism/blame.
+13. Return strict JSON only. Do not output Markdown.
 
 event:
 event_id: {event_id}
@@ -184,9 +260,9 @@ JSON schema:
       "stakeholder_cluster_id": "stable cluster id within this event, e.g. stakeholder_001",
       "stakeholder": "canonical stakeholder name",
       "stakeholder_aliases": ["aliases merged into this stakeholder"],
-      "opinion": "evidence-supported opinion or action, <=40 Chinese chars when possible",
-      "sentiment": "positive|negative|neutral",
-      "rationale": "short evidence-grounded rationale, <=60 Chinese chars when possible",
+      "opinion": "evidence-supported opinion or action, <=120 Chinese chars when possible",
+      "sentiment": "positive|negative|neutral|mixed",
+      "rationale": "short evidence-grounded rationale, <=120 Chinese chars when possible",
       "evidence_ids": ["only evidence_id values shown above"],
       "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
       "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
@@ -221,7 +297,7 @@ JSON schema:
       "stakeholder": "canonical stakeholder",
       "stakeholder_aliases": [],
       "opinion": "evidence-supported opinion or action",
-      "sentiment": "positive|negative|neutral",
+      "sentiment": "positive|negative|neutral|mixed",
       "rationale": "short evidence-grounded rationale",
       "evidence_ids": ["evidence_id shown above"],
       "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
@@ -261,7 +337,7 @@ JSON schema:
       "stakeholder": "canonical stakeholder name",
       "stakeholder_aliases": [],
       "opinion": "opinion supported by evidence",
-      "sentiment": "positive|negative|neutral",
+      "sentiment": "positive|negative|neutral|mixed",
       "rationale": "short evidence-grounded rationale",
       "evidence_ids": ["evidence_id shown above"],
       "event_chain_stage": "unknown",
@@ -296,7 +372,7 @@ JSON schema:
       "stakeholder": "stakeholder",
       "stakeholder_aliases": [],
       "opinion": "opinion supported by evidence",
-      "sentiment": "positive|negative|neutral",
+      "sentiment": "positive|negative|neutral|mixed",
       "rationale": "short evidence-grounded rationale",
       "evidence_ids": ["evidence_id shown above"],
       "event_chain_stage": "unknown",
@@ -316,8 +392,9 @@ Use only the evidence below. Return strict JSON only.
 Rules:
 1. Extract candidates at evidence/stage level; do not merge stakeholders across stages.
 2. Every candidate must cite evidence_id values shown below.
-3. Keep opinion and rationale short and evidence-grounded.
-4. If no stage-level stakeholder opinion/action is supported, return an empty stage_candidates list.
+3. stakeholder must be an actor or affected group, not a project/event/media-report title or generic "government department/relevant department/implementing unit" label.
+4. Keep opinion and rationale concise but complete enough to preserve the stakeholder's core stance/action.
+5. If no stage-level stakeholder opinion/action is supported, return an empty stage_candidates list.
 
 event:
 event_id: {event_id}
@@ -339,7 +416,7 @@ JSON schema:
       "stage_candidate_id": "{event_id}_STAGE_001",
       "stakeholder": "evidence-supported stakeholder",
       "opinion": "evidence-supported opinion or action",
-      "sentiment": "positive|negative|neutral",
+      "sentiment": "positive|negative|neutral|mixed",
       "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
       "rationale": "short evidence-grounded rationale",
       "evidence_ids": ["evidence_id shown above"],
@@ -359,6 +436,8 @@ Rules:
 3. Split the same stakeholder only when stage_candidates show different opinions/actions; explain with opinion_split_reason.
 4. Keep all supporting evidence_ids and preserve relevant stage_candidate_ids.
 5. Do not invent stakeholders, opinions, evidence IDs, or stage_candidate_ids.
+6. Final stakeholder must be an actor or affected group, not a project/event/media-report title or generic "government department/relevant department/implementing unit" label.
+7. Use stakeholder_candidates as the canonical event-level inventory whenever a candidate fits the evidence.
 
 event:
 event_id: {event_id}
@@ -383,7 +462,7 @@ JSON schema:
       "stakeholder": "canonical stakeholder name",
       "stakeholder_aliases": ["aliases merged into this stakeholder"],
       "opinion": "merged evidence-supported opinion or action",
-      "sentiment": "positive|negative|neutral",
+      "sentiment": "positive|negative|neutral|mixed",
       "rationale": "short evidence-grounded rationale",
       "evidence_ids": ["evidence_id shown above"],
       "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
@@ -471,6 +550,9 @@ class SchemaAttributor:
             "- There is no fixed per-event tuple target.\n"
             "- Use only evidence_id values shown above.\n"
             "- Prefer stakeholder names from the stakeholder_candidates list when present.\n"
+            "- Stakeholder names must be actors or affected groups, not project/event/media-report titles.\n"
+            "- Do not use generic labels such as government department, relevant department, implementing unit, media report, project, or event.\n"
+            "- Use concise gold-style canonical stakeholder names and merge aliases within the event.\n"
             "- Emit multiple tuples for the same stakeholder only when the opinion/action differs.\n"
             f"- stakeholder_candidate_count: {len(stakeholder_candidates)}\n"
         )
@@ -614,8 +696,20 @@ class SchemaAttributor:
             raw_response_text = normalize_raw_response(retry_response)
             raw_response_id = getattr(retry_response, "response_id", "")
 
+        parsed_tuples, canonical_diagnostics = canonicalize_tuple_rows(
+            parsed.tuples,
+            event=event,
+            stakeholder_candidates=stakeholder_candidates,
+            evidence_items=evidence_items,
+        )
+        parsed.tuples = parsed_tuples
         request_summary["parsed_tuple_count"] = len(parsed.tuples)
         request_summary["rejected_tuple_count"] = len(parsed.rejected_rows or [])
+        request_summary["canonicalization"] = {
+            key: value
+            for key, value in canonical_diagnostics.items()
+            if key != "canonicalization_map"
+        }
         request_summary["supplemented_stakeholders"] = sorted(
             {
                 str(row.get("stakeholder", ""))
@@ -630,7 +724,10 @@ class SchemaAttributor:
             raw_response=raw_response_text,
             parse_success=parsed.parse_success,
             parse_error=parsed.parse_error,
-            parse_diagnostics={"rejected_rows": parsed.rejected_rows or []},
+            parse_diagnostics={
+                "rejected_rows": parsed.rejected_rows or [],
+                "canonicalization_map": canonical_diagnostics.get("canonicalization_map", []),
+            },
         )
 
     def build_stage_extraction_prompt(
@@ -786,8 +883,20 @@ class SchemaAttributor:
                 stage_candidates=[],
             )
 
+        stage_tuples, stage_canonical_diagnostics = canonicalize_stage_candidate_rows(
+            stage_parsed.tuples,
+            event=event,
+            stakeholder_candidates=stakeholder_candidates,
+            evidence_items=evidence_items,
+        )
+        stage_parsed.tuples = stage_tuples
         request_summary["stage_candidate_count"] = len(stage_parsed.tuples)
         request_summary["stage_rejected_candidate_count"] = len(stage_parsed.rejected_rows or [])
+        request_summary["stage_canonicalization"] = {
+            key: value
+            for key, value in stage_canonical_diagnostics.items()
+            if key != "canonicalization_map"
+        }
         if not stage_parsed.tuples:
             request_summary["parsed_tuple_count"] = 0
             return [], raw_record(
@@ -801,6 +910,7 @@ class SchemaAttributor:
                     "stage_candidates": [],
                     "stage_rejected_rows": stage_parsed.rejected_rows or [],
                     "rejected_rows": [],
+                    "stage_canonicalization_map": stage_canonical_diagnostics.get("canonicalization_map", []),
                 },
             )
 
@@ -860,6 +970,14 @@ class SchemaAttributor:
                 stage_candidates=stage_parsed.tuples,
             )
 
+        merge_tuples, merge_canonical_diagnostics = canonicalize_tuple_rows(
+            merge_parsed.tuples,
+            event=event,
+            stakeholder_candidates=stakeholder_candidates,
+            evidence_items=evidence_items,
+            stage_candidates=stage_parsed.tuples,
+        )
+        merge_parsed.tuples = merge_tuples
         for row in merge_parsed.tuples:
             row["attribution_pass"] = "soe_v3_two_pass"
             if not row.get("stage_candidate_ids"):
@@ -873,6 +991,11 @@ class SchemaAttributor:
                 row["evidence_spans"] = stage_spans
         request_summary["parsed_tuple_count"] = len(merge_parsed.tuples)
         request_summary["rejected_tuple_count"] = len(merge_parsed.rejected_rows or [])
+        request_summary["canonicalization"] = {
+            key: value
+            for key, value in merge_canonical_diagnostics.items()
+            if key != "canonicalization_map"
+        }
         request_summary["supplemented_stakeholders"] = sorted(
             {
                 str(row.get("stakeholder", ""))
@@ -891,6 +1014,8 @@ class SchemaAttributor:
                 "stage_candidates": stage_parsed.tuples,
                 "stage_rejected_rows": stage_parsed.rejected_rows or [],
                 "rejected_rows": merge_parsed.rejected_rows or [],
+                "stage_canonicalization_map": stage_canonical_diagnostics.get("canonicalization_map", []),
+                "canonicalization_map": merge_canonical_diagnostics.get("canonicalization_map", []),
             },
         )
 
@@ -1013,26 +1138,40 @@ def run_schema_attribution(
             chain = {}  # use empty chain so select_prompt_evidence falls back to quality_score
         elif float(chain.get("chain_confidence", 0) or 0) <= 0:
             no_chain_context_events.append(event_id)
-        stakeholder_candidates = stakeholders_by_event.get(event_id) or stakeholders_by_event.get("__global__", [])
+        event_evidence_rows = evidence_by_event.get(event_id, [])
+        graph_candidates = stakeholders_by_event.get(event_id)
+        candidate_scope = "event_graph"
+        if graph_candidates is None:
+            graph_candidates = stakeholders_by_event.get("__global__", [])
+            candidate_scope = "global_fallback"
+        initial_stakeholder_candidates = build_event_stakeholder_inventory(event, graph_candidates, event_evidence_rows)
         oracle_evidence_ids = (oracle_evidence_ids_by_event or {}).get(event_id)
         effective_selector_mode = "oracle" if oracle_evidence_ids is not None else selector_mode
         selection = select_evidence_for_prompt(
             event=event,
             chain=chain,
-            evidence_rows=evidence_by_event.get(event_id, []),
+            evidence_rows=event_evidence_rows,
             max_evidence=max_evidence_per_event,
             mode=effective_selector_mode,
             oracle_evidence_ids=oracle_evidence_ids,
             seed=seed,
-            stakeholder_candidates=stakeholder_candidates,
+            stakeholder_candidates=initial_stakeholder_candidates,
         )
         evidence_items = selection.evidence
+        stakeholder_candidates = build_event_stakeholder_inventory(
+            event,
+            initial_stakeholder_candidates,
+            evidence_items,
+        )
         selection_metadata = {
             "method_version": method_version,
             "attribution_mode": ATTRIBUTION_MODE,
             "selector_mode": effective_selector_mode,
             "enforce_candidate_constraints": enforce_candidate_constraints,
             "selection_diagnostics": selection.diagnostics,
+            "stakeholder_candidate_scope": candidate_scope,
+            "initial_stakeholder_candidates": initial_stakeholder_candidates,
+            "canonical_stakeholder_inventory": stakeholder_candidates,
         }
         selection_metadata.update(selection.diagnostics)
         if not evidence_items:
@@ -1105,6 +1244,8 @@ def run_schema_attribution(
     write_jsonl(stage_candidates_path, stage_candidates)
     write_jsonl(raw_path, raw_records)
     write_tuple_table(table_path, tuples)
+    write_stakeholder_candidate_scope_table(output_dir / "stakeholder_candidate_scope.csv", raw_records)
+    write_canonicalization_map_table(output_dir / "canonicalization_map.csv", raw_records)
     summary = build_summary(
         requested=len(selected_events),
         processed=len(selected_events) - len(no_chain_context_events),
@@ -1125,6 +1266,23 @@ def run_schema_attribution(
     summary["use_stage_attribution"] = bool(use_stage_attribution)
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
+
+
+def assert_no_total_api_failure(summary: dict[str, Any], output_dir: str | Path) -> None:
+    """Fail fast when attribution produced only API failures."""
+    api_calls = int(summary.get("num_api_calls", 0) or 0)
+    api_failures = int(summary.get("num_api_failures", 0) or 0)
+    if api_calls > 0 or api_failures == 0:
+        return
+
+    output_dir = Path(output_dir)
+    raise RuntimeError(
+        "Schema attribution made zero successful API calls and recorded "
+        f"{api_failures} API failures. Treating the run as failed instead of "
+        "writing all-zero metrics. Inspect "
+        f"{output_dir / 'schema_attribution_summary.json'} and "
+        f"{output_dir / 'raw_llm_responses.jsonl'}."
+    )
 
 
 def parse_response(
@@ -1507,6 +1665,249 @@ def char_overlap(left: str, right: str) -> float:
     return len(left_set & right_set) / len(left_set | right_set)
 
 
+def build_event_stakeholder_inventory(
+    event: dict[str, Any],
+    graph_candidates: list[str] | None,
+    evidence_rows: list[dict[str, Any]] | None = None,
+    stage_candidates: list[dict[str, Any]] | None = None,
+    *,
+    max_items: int = MAX_STAKEHOLDER_CANDIDATES,
+) -> list[str]:
+    """Build an event-scoped candidate inventory without reading gold tuples."""
+    raw: list[str] = []
+    raw.extend(str(item) for item in graph_candidates or [])
+    raw.extend(str(item) for item in event.get("stakeholder_hints", []) or [])
+    anchors = event.get("anchor_entities") if isinstance(event.get("anchor_entities"), dict) else {}
+    for value in anchors.values():
+        if isinstance(value, list):
+            raw.extend(str(item) for item in value)
+        else:
+            raw.append(str(value))
+    for row in evidence_rows or []:
+        if row.get("stakeholder_hint"):
+            raw.append(str(row.get("stakeholder_hint")))
+    for row in stage_candidates or []:
+        raw.append(str(row.get("stakeholder") or ""))
+        raw.extend(str(item) for item in row.get("stakeholder_aliases", []) or [])
+
+    candidates: list[str] = []
+    for value in raw:
+        candidate = normalize_stakeholder_label(value)
+        if not candidate:
+            continue
+        if is_pseudo_stakeholder(candidate, event):
+            continue
+        candidates.append(candidate)
+    return dedupe(candidates)[:max_items]
+
+
+def normalize_stakeholder_label(value: Any) -> str:
+    text = str(value or "").strip()
+    text = re.sub(r"^[，。；：、\s]+|[，。；：、\s]+$", "", text)
+    text = re.sub(r"^(记者|媒体|报道称|报道|据悉|其中|同时|目前|对此)", "", text).strip()
+    return text[:80]
+
+
+def is_pseudo_stakeholder(stakeholder: str, event: dict[str, Any] | None = None) -> bool:
+    name = normalize_stakeholder_label(stakeholder)
+    if not name:
+        return True
+    compact = normalize_token(name)
+    if name in GENERIC_STAKEHOLDER_LABELS or compact in {normalize_token(item) for item in GENERIC_STAKEHOLDER_LABELS}:
+        return True
+    if event:
+        event_name = normalize_token(str(event.get("event_name") or ""))
+        if event_name and normalize_token(name) == event_name:
+            return True
+    if name.endswith("项目") or "改造项目" in name or "建设项目" in name:
+        return True
+    if any(term in name for term in ISSUE_DESCRIPTOR_TERMS) and not any(term in name for term in SPECIFIC_ACTOR_TERMS):
+        return True
+    if any(term in name for term in PSEUDO_STAKEHOLDER_TERMS) and not any(term in name for term in ACTOR_HINT_TERMS):
+        return True
+    if ("媒体" in name or "报道" in name) and not any(term in name for term in ("记者", "报社", "电视台", "新闻社")):
+        return True
+    return False
+
+
+def canonicalize_tuple_rows(
+    rows: list[dict[str, Any]],
+    *,
+    event: dict[str, Any],
+    stakeholder_candidates: list[str],
+    evidence_items: list[dict[str, Any]],
+    stage_candidates: list[dict[str, Any]] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    inventory = build_event_stakeholder_inventory(event, stakeholder_candidates, evidence_items, stage_candidates)
+    canonical_rows: list[dict[str, Any]] = []
+    mapping_rows: list[dict[str, Any]] = []
+    dropped = 0
+    remapped = 0
+    for row in rows:
+        original = str(row.get("stakeholder") or "").strip()
+        canonical, action, reason = canonical_stakeholder(original, inventory, event)
+        mapping_rows.append(
+            {
+                "event_id": event.get("event_id", ""),
+                "original_stakeholder": original,
+                "canonical_stakeholder": canonical,
+                "action": action,
+                "reason": reason,
+                "tuple_id": row.get("tuple_id", ""),
+            }
+        )
+        if action == "drop":
+            dropped += 1
+            continue
+        new_row = dict(row)
+        if canonical != original:
+            remapped += 1
+            aliases = normalize_string_list(new_row.get("stakeholder_aliases", []), max_items=12, max_chars=80)
+            new_row["stakeholder_aliases"] = dedupe([original, *aliases, canonical])[:12]
+        new_row["stakeholder"] = canonical
+        new_row["stakeholder_id"] = make_stakeholder_id(str(event.get("event_id", "")), canonical)
+        new_row["matched_stakeholder_candidate"] = canonical if canonical in inventory else str(new_row.get("matched_stakeholder_candidate") or "")
+        new_row["stakeholder_candidate_match_status"] = "matched" if canonical in inventory else ("unmatched" if inventory else "no_candidates")
+        new_row["canonicalization_action"] = action
+        new_row["canonicalization_reason"] = reason
+        canonical_rows.append(new_row)
+
+    merged_rows, merge_count = merge_duplicate_canonical_rows(canonical_rows, str(event.get("event_id", "")))
+    diagnostics = {
+        "candidate_inventory": inventory,
+        "candidate_inventory_count": len(inventory),
+        "input_count": len(rows),
+        "output_count": len(merged_rows),
+        "dropped_pseudo_stakeholder_count": dropped,
+        "remapped_stakeholder_count": remapped,
+        "merged_duplicate_count": merge_count,
+        "canonicalization_map": mapping_rows,
+    }
+    return merged_rows, diagnostics
+
+
+def canonicalize_stage_candidate_rows(
+    rows: list[dict[str, Any]],
+    *,
+    event: dict[str, Any],
+    stakeholder_candidates: list[str],
+    evidence_items: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    inventory = build_event_stakeholder_inventory(event, stakeholder_candidates, evidence_items, rows)
+    output: list[dict[str, Any]] = []
+    mapping_rows: list[dict[str, Any]] = []
+    dropped = 0
+    remapped = 0
+    for row in rows:
+        original = str(row.get("stakeholder") or "").strip()
+        canonical, action, reason = canonical_stakeholder(original, inventory, event)
+        mapping_rows.append(
+            {
+                "event_id": event.get("event_id", ""),
+                "original_stakeholder": original,
+                "canonical_stakeholder": canonical,
+                "action": action,
+                "reason": reason,
+                "stage_candidate_id": row.get("stage_candidate_id", ""),
+            }
+        )
+        if action == "drop":
+            dropped += 1
+            continue
+        copied = dict(row)
+        copied["stakeholder"] = canonical
+        copied["canonicalization_action"] = action
+        copied["canonicalization_reason"] = reason
+        if canonical != original:
+            remapped += 1
+        output.append(copied)
+    return output, {
+        "candidate_inventory": inventory,
+        "candidate_inventory_count": len(inventory),
+        "input_count": len(rows),
+        "output_count": len(output),
+        "dropped_pseudo_stakeholder_count": dropped,
+        "remapped_stakeholder_count": remapped,
+        "canonicalization_map": mapping_rows,
+    }
+
+
+def canonical_stakeholder(
+    stakeholder: str,
+    inventory: list[str],
+    event: dict[str, Any],
+) -> tuple[str, str, str]:
+    original = normalize_stakeholder_label(stakeholder)
+    match = best_stakeholder_match(original, inventory)
+    if is_pseudo_stakeholder(original, event):
+        if match and not is_pseudo_stakeholder(match, event):
+            return match, "remap", "pseudo_stakeholder_mapped_to_inventory"
+        return original, "drop", "pseudo_stakeholder"
+    if match and not is_pseudo_stakeholder(match, event):
+        if match != original:
+            return match, "remap", "inventory_alias_match"
+        return original, "keep", "inventory_exact"
+    return original, "keep", "evidence_supported_outside_inventory"
+
+
+def merge_duplicate_canonical_rows(rows: list[dict[str, Any]], event_id: str) -> tuple[list[dict[str, Any]], int]:
+    merged: list[dict[str, Any]] = []
+    merge_count = 0
+    for row in rows:
+        target = None
+        for existing in merged:
+            if existing.get("stakeholder") != row.get("stakeholder"):
+                continue
+            if tuple_opinion_similarity(str(existing.get("opinion", "")), str(row.get("opinion", ""))) >= 0.62:
+                target = existing
+                break
+        if target is None:
+            merged.append(dict(row))
+            continue
+        merge_count += 1
+        target["evidence_ids"] = dedupe([*target.get("evidence_ids", []), *row.get("evidence_ids", [])])
+        target["stage_candidate_ids"] = dedupe([*target.get("stage_candidate_ids", []), *row.get("stage_candidate_ids", [])])
+        target["stakeholder_aliases"] = dedupe([*target.get("stakeholder_aliases", []), *row.get("stakeholder_aliases", [])])[:12]
+        if len(str(row.get("opinion", ""))) > len(str(target.get("opinion", ""))):
+            target["opinion"] = row.get("opinion", "")
+            target["opinion_id"] = make_opinion_id(event_id, str(target.get("opinion", "")))
+        if len(str(row.get("rationale", ""))) > len(str(target.get("rationale", ""))):
+            target["rationale"] = row.get("rationale", "")
+        target["confidence"] = max(float(target.get("confidence", 0) or 0), float(row.get("confidence", 0) or 0))
+        target["sentiment"] = merge_sentiment(str(target.get("sentiment", "")), str(row.get("sentiment", "")))
+
+    stakeholder_clusters: dict[str, str] = {}
+    for index, row in enumerate(merged, start=1):
+        row["tuple_id"] = f"{event_id}_SOA_{index:03d}"
+        stakeholder = str(row.get("stakeholder", ""))
+        seen_before = stakeholder in stakeholder_clusters
+        cluster_id = stakeholder_clusters.setdefault(stakeholder, f"stakeholder_{len(stakeholder_clusters) + 1:03d}")
+        if seen_before and row.get("stakeholder_cluster_id") != cluster_id:
+            row["opinion_split_reason"] = row.get("opinion_split_reason") or "same stakeholder has distinct evidence-supported opinion/action"
+        row["stakeholder_cluster_id"] = cluster_id
+    return merged, merge_count
+
+
+def tuple_opinion_similarity(left: str, right: str) -> float:
+    if not left or not right:
+        return 0.0
+    if left == right or left in right or right in left:
+        return 1.0
+    return char_overlap(left, right)
+
+
+def merge_sentiment(left: str, right: str) -> str:
+    if not left:
+        return right
+    if not right or left == right:
+        return left
+    if "mixed" in {left, right}:
+        return "mixed"
+    if {left, right} <= {"positive", "negative"}:
+        return "mixed"
+    return left
+
+
 def make_stakeholder_id(event_id: str, stakeholder: str) -> str:
     return f"stakeholder_entity:{event_id}:{normalize_token(stakeholder)}"
 
@@ -1694,7 +2095,7 @@ def stakeholder_candidates_by_event(graph_nodes: list[dict[str, Any]]) -> dict[s
         event_id = attrs.get("event_id")
         if event_id:
             by_event.setdefault(str(event_id), set()).add(name)
-    return {event_id: sorted(values | global_candidates) for event_id, values in by_event.items()} | {"__global__": sorted(global_candidates)}
+    return {event_id: sorted(values) for event_id, values in by_event.items()} | {"__global__": sorted(global_candidates)}
 
 
 def group_by_event(rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -1784,6 +2185,74 @@ def write_tuple_table(path: str | Path, tuples: list[dict[str, Any]]) -> None:
             flat["stakeholder_aliases"] = "|".join(row.get("stakeholder_aliases", []))
             flat["selection_diagnostics"] = json.dumps(row.get("selection_diagnostics", {}), ensure_ascii=False)
             writer.writerow(flat)
+
+
+def write_stakeholder_candidate_scope_table(path: str | Path, raw_records: list[dict[str, Any]]) -> None:
+    fieldnames = [
+        "event_id",
+        "candidate_scope",
+        "initial_candidate_count",
+        "final_candidate_count",
+        "selection_candidate_count",
+        "selected_evidence_count",
+        "stakeholder_candidate_coverage",
+        "initial_stakeholder_candidates",
+        "canonical_stakeholder_inventory",
+    ]
+    with Path(path).open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for record in raw_records:
+            summary = record.get("request_summary", {}) if isinstance(record.get("request_summary"), dict) else {}
+            selection = summary.get("selection_diagnostics", {}) if isinstance(summary.get("selection_diagnostics"), dict) else {}
+            initial = summary.get("initial_stakeholder_candidates", []) or []
+            final = summary.get("canonical_stakeholder_inventory") or summary.get("stakeholder_candidates") or []
+            writer.writerow(
+                {
+                    "event_id": record.get("event_id", ""),
+                    "candidate_scope": summary.get("stakeholder_candidate_scope", ""),
+                    "initial_candidate_count": len(initial),
+                    "final_candidate_count": len(final),
+                    "selection_candidate_count": selection.get("stakeholder_candidate_count", ""),
+                    "selected_evidence_count": selection.get("selected_evidence_count", ""),
+                    "stakeholder_candidate_coverage": selection.get("stakeholder_candidate_coverage", ""),
+                    "initial_stakeholder_candidates": "|".join(str(item) for item in initial),
+                    "canonical_stakeholder_inventory": "|".join(str(item) for item in final),
+                }
+            )
+
+
+def write_canonicalization_map_table(path: str | Path, raw_records: list[dict[str, Any]]) -> None:
+    fieldnames = [
+        "event_id",
+        "row_source",
+        "row_id",
+        "original_stakeholder",
+        "canonical_stakeholder",
+        "action",
+        "reason",
+    ]
+    with Path(path).open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for record in raw_records:
+            diagnostics = record.get("parse_diagnostics", {}) if isinstance(record.get("parse_diagnostics"), dict) else {}
+            for source_key, row_source in (
+                ("stage_canonicalization_map", "stage_candidate"),
+                ("canonicalization_map", "tuple"),
+            ):
+                for row in diagnostics.get(source_key, []) or []:
+                    writer.writerow(
+                        {
+                            "event_id": row.get("event_id") or record.get("event_id", ""),
+                            "row_source": row_source,
+                            "row_id": row.get("stage_candidate_id") or row.get("tuple_id") or "",
+                            "original_stakeholder": row.get("original_stakeholder", ""),
+                            "canonical_stakeholder": row.get("canonical_stakeholder", ""),
+                            "action": row.get("action", ""),
+                            "reason": row.get("reason", ""),
+                        }
+                    )
 
 
 def read_graph_nodes(graph_dir: str | Path) -> list[dict[str, Any]]:

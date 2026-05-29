@@ -71,6 +71,20 @@ def test_stakeholder_candidates_are_prioritized_before_selector_fill():
     assert [row["evidence_id"] for row in result.evidence] == ["ev-residents", "ev-agency"]
     assert result.diagnostics["covered_stakeholder_candidates"] == ["Agency", "Residents"]
     assert result.diagnostics["stakeholder_candidate_coverage"] == 1.0
+    assert result.evidence[0]["unmatched_candidate_allowed"] is False
+
+
+def test_selector_marks_unmatched_candidate_allowed_for_non_candidate_evidence():
+    result = select_evidence_for_prompt(
+        event=event_row(),
+        chain={},
+        evidence_rows=[evidence_row("ev-public", quality_score=0.99, text="Public background without named candidate")],
+        max_evidence=1,
+        mode="quality_topk",
+        stakeholder_candidates=["Residents"],
+    )
+
+    assert result.evidence[0]["unmatched_candidate_allowed"] is True
 
 
 def test_coverage_optimized_covers_stage_source_stakeholder_and_avoids_duplicate():

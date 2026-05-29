@@ -27,11 +27,19 @@ def main(argv: list[str] | None = None) -> int:
             output_dir=output_dir,
             annotators=tuple(split_csv(args.annotators)),
         )
-    else:
+    elif args.command == "audit":
         report = audit_independent_annotations(
             tuple_sheets=[Path(item) for item in split_csv(args.tuple_sheets)],
             chain_sheets=[Path(item) for item in split_csv(args.chain_sheets)],
             output_dir=output_dir,
+        )
+    else:
+        report = materialize_consensus_sheets(
+            tuple_sheets=[Path(item) for item in split_csv(args.tuple_sheets)],
+            chain_sheets=[Path(item) for item in split_csv(args.chain_sheets)],
+            output_dir=output_dir,
+            tuple_output=Path(args.tuple_output) if args.tuple_output else None,
+            chain_output=Path(args.chain_output) if args.chain_output else None,
         )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 1 if report.get("status") == "blocked" else 0
@@ -51,6 +59,13 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--tuple-sheets", required=True, help="Comma-separated completed tuple CSVs.")
     audit.add_argument("--chain-sheets", required=True, help="Comma-separated completed chain CSVs.")
     audit.add_argument("--output-dir", default="data/pubevent_soa_lite/human_gold_v1/independent_audit")
+
+    consensus = sub.add_parser("consensus", help="Write final consensus sheets when annotator rows agree.")
+    consensus.add_argument("--tuple-sheets", required=True, help="Comma-separated completed tuple CSVs.")
+    consensus.add_argument("--chain-sheets", required=True, help="Comma-separated completed chain CSVs.")
+    consensus.add_argument("--output-dir", default="data/pubevent_soa_lite/human_gold_v2")
+    consensus.add_argument("--tuple-output", default="")
+    consensus.add_argument("--chain-output", default="")
     return parser
 
 
@@ -116,6 +131,121 @@ def audit_independent_annotations(
     )
     (output_dir / "independent_annotation_iaa_report.md").write_text(render_markdown(report), encoding="utf-8")
     return report
+
+
+def materialize_consensus_sheets(
+    *,
+    tuple_sheets: list[Path],
+    chain_sheets: list[Path],
+    output_dir: Path,
+    tuple_output: Path | None = None,
+    chain_output: Path | None = None,
+) -> dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    tuple_output = tuple_output or output_dir / "adjudicated_human_tuple_sheet.csv"
+    chain_output = chain_output or output_dir / "adjudicated_human_chain_sheet.csv"
+    tuple_rows = consensus_rows(tuple_sheets, "tuple")
+    chain_rows = consensus_rows(chain_sheets, "chain")
+    write_csv(tuple_output, tuple_rows)
+    write_csv(chain_output, chain_rows)
+    return {
+        "status": "completed",
+        "reviewer_id": "consensus_ABC",
+        "tuple_rows": len(tuple_rows),
+        "chain_rows": len(chain_rows),
+        "outputs": {
+            "tuple_sheet": str(tuple_output),
+            "chain_sheet": str(chain_output),
+        },
+    }
+
+
+def consensus_rows(paths: list[Path], record_type: str) -> list[dict[str, str]]:
+    if len(paths) < 2:
+        raise ValueError("at least two independent annotator sheets are required")
+    id_field = "tuple_id" if record_type == "tuple" else "chain_id"
+    row_sets = [read_csv(path) for path in paths]
+    maps = [rows_by_key(rows, record_type, id_field, path) for rows, path in zip(row_sets, paths)]
+    first_keys = list(maps[0])
+    first_key_set = set(first_keys)
+    for path, row_map in zip(paths[1:], maps[1:]):
+        key_set = set(row_map)
+        if key_set != first_key_set:
+            missing = sorted(first_key_set - key_set)[:5]
+            extra = sorted(key_set - first_key_set)[:5]
+            raise ValueError(f"{path}: row key mismatch; missing={missing}; extra={extra}")
+    output = []
+    fields = consensus_compare_fields(record_type)
+    for key in first_keys:
+        rows = [row_map[key] for row_map in maps]
+        decisions = [normalize_decision(row.get("review_decision")) for row in rows]
+        if len(set(decisions)) != 1:
+            raise ValueError(f"{key}: conflicting review_decision values {decisions}")
+        statuses = [str(row.get("adjudication_status") or "").strip() for row in rows]
+        if any(status != "adjudicated_final" for status in statuses):
+            raise ValueError(f"{key}: all rows must be adjudicated_final, got {statuses}")
+        for field in fields:
+            values = [normalize_cell(row.get(field)) for row in rows]
+            if len(set(values)) != 1:
+                raise ValueError(f"{key}: conflicting {field} values")
+        item = dict(rows[0])
+        item["review_decision"] = decisions[0]
+        item["reviewer_id"] = "consensus_ABC"
+        if "annotator_id" in item:
+            item["annotator_id"] = "consensus_ABC"
+        item["adjudication_status"] = "adjudicated_final"
+        if "reviewer_note" in item:
+            item["reviewer_note"] = consensus_note(rows)
+        output.append(item)
+    return output
+
+
+def rows_by_key(rows: list[dict[str, str]], record_type: str, id_field: str, path: Path) -> dict[str, dict[str, str]]:
+    row_map: dict[str, dict[str, str]] = {}
+    for row in rows:
+        key = f"{record_type}:{row.get('event_id', '')}:{row.get(id_field, '')}"
+        if key in row_map:
+            raise ValueError(f"{path}: duplicate row key {key}")
+        row_map[key] = row
+    return row_map
+
+
+def consensus_compare_fields(record_type: str) -> tuple[str, ...]:
+    if record_type == "tuple":
+        return (
+            "event_id",
+            "tuple_id",
+            "stakeholder",
+            "opinion",
+            "sentiment",
+            "rationale",
+            "evidence_ids",
+            "support_label",
+            "review_decision",
+            "revised_stakeholder",
+            "revised_opinion",
+            "revised_sentiment",
+            "revised_rationale",
+            "revised_evidence_ids",
+        )
+    return (
+        "event_id",
+        "chain_id",
+        "event_chain",
+        "evidence_ids",
+        "review_decision",
+        "revised_event_chain",
+        "revised_evidence_ids",
+    )
+
+
+def normalize_cell(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def consensus_note(rows: list[dict[str, str]]) -> str:
+    notes = list(dict.fromkeys(str(row.get("reviewer_note") or "").strip() for row in rows if str(row.get("reviewer_note") or "").strip()))
+    return " / ".join(notes)
 
 
 def reset_for_annotator(rows: list[dict[str, str]], annotator: str) -> list[dict[str, str]]:

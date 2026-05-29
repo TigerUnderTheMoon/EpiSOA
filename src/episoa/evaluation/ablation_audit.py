@@ -126,13 +126,22 @@ def write_ablation_audit_report(
 
     lines.append("## Metrics")
     metric_columns = [
+        "Metric-Scope",
         "Num-Gold",
         "Num-Tuples",
+        "Num-Tuples-All",
+        "Excluded-Predictions",
+        "Excluded-Event-Count",
         "Tuple-F1-soft",
+        "Tuple-F1-strict-char@0.5",
+        "Tuple-F1-semantic",
         "Tuple-Precision",
         "Tuple-Recall",
+        "Tuple-Precision-semantic",
+        "Tuple-Recall-semantic",
         "Sentiment-Acc",
         "Stakeholder-Recall",
+        "Opinion-Recall",
         "ESR",
         "UTR",
         "Candidate-UTR",
@@ -351,13 +360,16 @@ def _audit_checks(
     same_events = bool(non_empty_event_sets) and all(events == non_empty_event_sets[0] for events in non_empty_event_sets)
     checks.append("PASS event_id sets are identical across settings" if same_events else "FAIL event_id sets differ or are missing")
 
-    without_verifier = metrics_by_setting.get("without_verifier", {})
-    esr = without_verifier.get("ESR")
-    checks.append("PASS without_verifier ESR is N/A/null" if esr is None else f"FAIL without_verifier ESR is {esr}")
-    if "Candidate-UTR" in without_verifier and without_verifier.get("UTR") is None:
-        checks.append("PASS without_verifier uses Candidate-UTR instead of verifier UTR")
+    if "without_verifier" in settings:
+        without_verifier = metrics_by_setting.get("without_verifier", {})
+        esr = without_verifier.get("ESR")
+        checks.append("PASS without_verifier ESR is N/A/null" if esr is None else f"FAIL without_verifier ESR is {esr}")
+        if "Candidate-UTR" in without_verifier and without_verifier.get("UTR") is None:
+            checks.append("PASS without_verifier uses Candidate-UTR instead of verifier UTR")
+        else:
+            checks.append("FAIL without_verifier Candidate-UTR/UTR separation is missing")
     else:
-        checks.append("FAIL without_verifier Candidate-UTR/UTR separation is missing")
+        checks.append("PASS no verifier-disabled setting is configured")
     return checks
 
 

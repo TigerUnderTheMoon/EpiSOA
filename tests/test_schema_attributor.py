@@ -1,14 +1,21 @@
 import json
 
+import pytest
+
 from episoa.attribution.schema_attributor import (
     MAX_OPINION_CHARS,
     MAX_RATIONALE_CHARS,
     SchemaAttributor,
+    assert_no_total_api_failure,
+    build_event_stakeholder_inventory,
+    canonicalize_tuple_rows,
+    is_pseudo_stakeholder,
     parse_response,
     parse_stage_response,
     run_schema_attribution,
     select_oracle_prompt_evidence,
     select_prompt_evidence,
+    stakeholder_candidates_by_event,
 )
 
 
@@ -25,6 +32,16 @@ class FakeLLMClient:
         return type("Response", (), {"content": content, "response_id": f"fake-{self.calls}", "raw": {}})()
 
 
+class FailingLLMClient:
+    def __init__(self, message="401 Unauthorized"):
+        self.message = message
+        self.calls = 0
+
+    def chat(self, **kwargs):
+        self.calls += 1
+        raise RuntimeError(self.message)
+
+
 def test_prompt_contains_event_and_evidence_id():
     attributor = SchemaAttributor(llm_client=None, model_name="fake")
     system_prompt, user_prompt = attributor.build_prompt(
@@ -39,6 +56,7 @@ def test_prompt_contains_event_and_evidence_id():
     assert "ev-1" in user_prompt
     assert "stakeholder-canonical" in user_prompt
     assert "There is no fixed per-event tuple target" in user_prompt
+    assert "not project/event/media-report titles" in user_prompt
     assert "Return strict JSON only" in system_prompt
 
 
@@ -135,6 +153,46 @@ def test_output_over_eight_tuples_is_not_event_capped_and_truncates_long_text():
     assert len(parsed.tuples[0]["opinion"]) <= MAX_OPINION_CHARS
     assert len(parsed.tuples[0]["rationale"]) <= MAX_RATIONALE_CHARS
     assert parsed.tuples[0]["confidence"] == 1.0
+
+
+def test_parse_response_accepts_mixed_sentiment_and_long_opinion():
+    opinion = "This stakeholder supports remediation while raising concerns about compensation timing."
+    payload = {
+        "event_id": "E012",
+        "tuples": [
+            {
+                **canonical_tuple("Residents", opinion, "stakeholder_001"),
+                "sentiment": "mixed",
+            }
+        ],
+    }
+
+    parsed = parse_response(
+        json.dumps(payload, ensure_ascii=False),
+        event_id="E012",
+        allowed_evidence_ids={"ev-1"},
+        model_name="fake",
+    )
+
+    assert parsed.parse_success is True
+    assert parsed.tuples[0]["sentiment"] == "mixed"
+    assert len(parsed.tuples[0]["opinion"]) > 40
+
+
+def test_parse_stage_response_accepts_mixed_sentiment():
+    payload = json.loads(stage_payload())
+    payload["stage_candidates"][0]["sentiment"] = "mixed"
+
+    parsed = parse_stage_response(
+        json.dumps(payload, ensure_ascii=False),
+        event_id="E012",
+        allowed_evidence_ids={"ev-1"},
+        evidence_context_by_id={"ev-1": prompt_evidence("ev-1")},
+        model_name="fake",
+    )
+
+    assert parsed.parse_success is True
+    assert parsed.tuples[0]["sentiment"] == "mixed"
 
 
 def test_invalid_evidence_id_rejects_tuple_rows():
@@ -236,6 +294,27 @@ def test_empty_llm_content_retries_with_short_prompt(tmp_path):
     assert summary["num_tuples_generated"] == 1
 
 
+def test_total_api_failure_guard_raises(tmp_path):
+    fake = FailingLLMClient()
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+    )
+
+    assert fake.calls == 1
+    assert summary["num_api_calls"] == 0
+    assert summary["num_api_failures"] == 1
+    with pytest.raises(RuntimeError, match="zero successful API calls"):
+        assert_no_total_api_failure(summary, tmp_path)
+
+
 def test_raw_response_records_ablation_request_summary_flags(tmp_path):
     fake = FakeLLMClient(valid_payload())
 
@@ -261,7 +340,9 @@ def test_raw_response_records_ablation_request_summary_flags(tmp_path):
     assert summary["hide_chain_in_prompt"] is True
     assert summary["skip_chain_ranking"] is True
     assert summary["attribution_mode"] == "stakeholder_canonical"
-    assert summary["selection_diagnostics"]["stakeholder_candidate_count"] == 0
+    assert summary["stakeholder_candidate_scope"] == "global_fallback"
+    assert summary["selection_diagnostics"]["stakeholder_candidate_count"] > 0
+    assert summary["canonical_stakeholder_inventory"]
 
 
 def test_module_does_not_read_or_generate_gold(tmp_path):
@@ -323,6 +404,8 @@ def test_output_candidate_tuple_fields_are_complete(tmp_path):
     assert expected <= set(rows[0])
     assert (tmp_path / "schema_attribution_summary.json").exists()
     assert (tmp_path / "schema_attribution_table.csv").exists()
+    assert (tmp_path / "stakeholder_candidate_scope.csv").exists()
+    assert (tmp_path / "canonicalization_map.csv").exists()
     assert (tmp_path / "raw_llm_responses.jsonl").exists()
     assert rows[0]["canonical_tuple"] is True
 
@@ -440,6 +523,73 @@ def test_candidate_outside_graph_is_kept_as_unmatched():
 
     assert len(parsed.tuples) == 1
     assert parsed.tuples[0]["stakeholder_candidate_match_status"] == "unmatched"
+
+
+def test_stakeholder_candidates_are_event_scoped_not_global():
+    nodes = [
+        {
+            "node_type": "stakeholder_candidate",
+            "node_id": "stakeholder:E1:agency",
+            "attributes": {"stakeholder": "Agency A", "event_id": "E1"},
+        },
+        {
+            "node_type": "stakeholder_candidate",
+            "node_id": "stakeholder:E2:residents",
+            "attributes": {"stakeholder": "Residents B", "event_id": "E2"},
+        },
+    ]
+
+    by_event = stakeholder_candidates_by_event(nodes)
+
+    assert by_event["E1"] == ["Agency A"]
+    assert by_event["E2"] == ["Residents B"]
+    assert set(by_event["__global__"]) == {"Agency A", "Residents B"}
+
+
+def test_event_inventory_filters_project_and_generic_stakeholders():
+    event = {"event_id": "E1", "event_name": "三元里村城中村改造项目", "stakeholder_hints": ["三元里村党委及村集体"]}
+
+    inventory = build_event_stakeholder_inventory(
+        event,
+        ["三元里村城中村改造项目", "政府部门", "三元里村党委及村集体"],
+        [{"title": "三元里村党委书记回应旧改", "text": "三元里村党委书记韦联建表示支持改造。"}],
+    )
+
+    assert "三元里村党委及村集体" in inventory
+    assert "三元里村城中村改造项目" not in inventory
+    assert "政府部门" not in inventory
+    assert is_pseudo_stakeholder("三元里村城中村改造项目", event) is True
+
+
+def test_post_extraction_canonicalizer_remaps_alias_and_drops_pseudo():
+    event = {"event_id": "E1", "event_name": "三元里村城中村改造项目", "stakeholder_hints": ["三元里村党委及村集体"]}
+    rows = [
+        {
+            **canonical_tuple("三元里村党委书记韦联建", "支持旧改并认为可提升集体收益", "stakeholder_001"),
+            "event_id": "E1",
+            "tuple_id": "E1_SOA_001",
+            "stakeholder_id": "old",
+            "opinion_id": "old",
+        },
+        {
+            **canonical_tuple("三元里村城中村改造项目", "不存在资金链断裂风险", "stakeholder_002"),
+            "event_id": "E1",
+            "tuple_id": "E1_SOA_002",
+            "stakeholder_id": "old",
+            "opinion_id": "old",
+        },
+    ]
+
+    canonical_rows, diagnostics = canonicalize_tuple_rows(
+        rows,
+        event=event,
+        stakeholder_candidates=["三元里村党委及村集体"],
+        evidence_items=[],
+    )
+
+    assert [row["stakeholder"] for row in canonical_rows] == ["三元里村党委及村集体"]
+    assert diagnostics["dropped_pseudo_stakeholder_count"] == 1
+    assert diagnostics["remapped_stakeholder_count"] == 1
 
 
 def test_select_prompt_evidence_prefers_chain_context():

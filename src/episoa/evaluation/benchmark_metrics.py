@@ -10,6 +10,7 @@ import math
 import time
 from pathlib import Path
 
+from episoa.evaluation.metrics import tuple_match_metrics, tuple_match_threshold_sweep
 from episoa.llm.client import json_schema_response_format
 
 
@@ -112,15 +113,17 @@ def eval_tuple_identification_llm_judge(
         if max_events and events_processed >= max_events:
             break
 
-        gold_tuples = p["output"]["gold_tuples"]
+        event_id = str(p.get("event_id", ""))
+        gold_tuples = _tuples_with_event_id(p["output"]["gold_tuples"], event_id)
         pred_data = p["prediction"]
-        pred_tuples = pred_data.get("tuples", [])
+        pred_tuples = _tuples_with_event_id(pred_data.get("tuples", []), event_id)
+
+        total_gold += len(gold_tuples)
+        total_pred += len(pred_tuples)
 
         if not gold_tuples or not pred_tuples:
             continue
 
-        total_gold += len(gold_tuples)
-        total_pred += len(pred_tuples)
         events_processed += 1
 
         # Build prompt
@@ -162,6 +165,7 @@ def eval_tuple_identification_llm_judge(
 
         matches = parsed.get("matches", [])
         matched_gold_indices = set()
+        matched_pred_indices = set()
 
         for match in matches:
             gold_idx = match.get("gold_index", -1)
@@ -169,9 +173,10 @@ def eval_tuple_identification_llm_judge(
             is_match = match.get("match", False)
 
             if is_match and gold_idx >= 0 and gold_idx < len(gold_tuples) and pred_idx < len(pred_tuples):
-                if gold_idx not in matched_gold_indices:
+                if gold_idx not in matched_gold_indices and pred_idx not in matched_pred_indices:
                     total_tp += 1
                     matched_gold_indices.add(gold_idx)
+                    matched_pred_indices.add(pred_idx)
                     # Check sentiment match
                     gt = gold_tuples[gold_idx]
                     pt = pred_tuples[pred_idx]
@@ -188,6 +193,7 @@ def eval_tuple_identification_llm_judge(
 
     return {
         "task": "tuple_identification",
+        "metric_scope": _metric_scope(total_gold),
         "gold_tuples": total_gold,
         "pred_tuples": total_pred,
         "true_positives_llm_judge": total_tp,
@@ -201,75 +207,57 @@ def eval_tuple_identification_llm_judge(
 
 
 def eval_tuple_identification(predictions: list[dict]) -> dict:
-    total_gold = 0
-    total_pred = 0
-    total_tp = 0
-    total_tp_soft = 0
-    sentiment_correct = 0
-    sentiment_total = 0
+    all_gold: list[dict] = []
+    all_pred: list[dict] = []
     event_f1_soft_values: list[float] = []
 
     for p in predictions:
-        gold_tuples = p["output"]["gold_tuples"]
+        event_id = str(p.get("event_id", ""))
+        gold_tuples = _tuples_with_event_id(p["output"]["gold_tuples"], event_id)
         pred_data = p["prediction"]
-        pred_tuples = pred_data.get("tuples", [])
+        pred_tuples = _tuples_with_event_id(pred_data.get("tuples", []), event_id)
 
-        total_gold += len(gold_tuples)
-        total_pred += len(pred_tuples)
+        all_gold.extend(gold_tuples)
+        all_pred.extend(pred_tuples)
+        event_soft = tuple_match_metrics(gold_tuples, pred_tuples, matcher="char_jaccard", threshold=0.5)
+        event_f1_soft_values.append(float(event_soft["f1"]))
 
-        event_tp_soft = 0
-        for gt in gold_tuples:
-            sentiment_total += 1
-            best_soft = 0.0
-            for pt in pred_tuples:
-                stakeholder_sim = _char_overlap(
-                    gt.get("stakeholder", ""), pt.get("stakeholder", "")
-                )
-                opinion_sim = _char_overlap(
-                    gt.get("opinion", ""), pt.get("opinion", "")
-                )
-                if (gt.get("stakeholder", "").strip() == pt.get("stakeholder", "").strip()
-                        and gt.get("opinion", "").strip() == pt.get("opinion", "").strip()):
-                    total_tp += 1
-                    if gt.get("sentiment") == pt.get("sentiment"):
-                        sentiment_correct += 1
-                    break
-                combined = 0.5 * stakeholder_sim + 0.5 * opinion_sim
-                if combined > best_soft:
-                    best_soft = combined
-            if best_soft >= 0.5:
-                total_tp_soft += 1
-                event_tp_soft += 1
-        event_precision_soft = event_tp_soft / len(pred_tuples) if pred_tuples else 0
-        event_recall_soft = event_tp_soft / len(gold_tuples) if gold_tuples else 0
-        event_f1_soft_values.append(
-            2 * event_precision_soft * event_recall_soft / (event_precision_soft + event_recall_soft)
-            if (event_precision_soft + event_recall_soft) > 0 else 0
-        )
-
-    precision = total_tp / total_pred if total_pred > 0 else 0
-    recall = total_tp / total_gold if total_gold > 0 else 0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
-
-    precision_soft = total_tp_soft / total_pred if total_pred > 0 else 0
-    recall_soft = total_tp_soft / total_gold if total_gold > 0 else 0
-    f1_soft = 2 * precision_soft * recall_soft / (precision_soft + recall_soft) if (precision_soft + recall_soft) > 0 else 0
-
-    sentiment_acc = sentiment_correct / sentiment_total if sentiment_total > 0 else 0
+    exact = tuple_match_metrics(all_gold, all_pred, matcher="exact", threshold=1.0)
+    soft = tuple_match_metrics(all_gold, all_pred, matcher="char_jaccard", threshold=0.5)
 
     return {
         "task": "tuple_identification",
-        "gold_tuples": total_gold,
-        "pred_tuples": total_pred,
-        "true_positives": total_tp,
-        "true_positives_soft": total_tp_soft,
-        "precision": round(precision, 4),
-        "recall": round(recall, 4),
-        "stakeholder_opinion_f1": round(f1, 4),
-        "stakeholder_opinion_f1_soft": round(f1_soft, 4),
+        "metric_scope": _metric_scope(len(all_gold)),
+        "gold_tuples": len(all_gold),
+        "pred_tuples": len(all_pred),
+        "true_positives": exact["true_positives"],
+        "true_positives_soft": soft["true_positives"],
+        "precision": exact["precision"],
+        "recall": exact["recall"],
+        "stakeholder_opinion_f1": exact["f1"],
+        "stakeholder_opinion_f1_soft": soft["f1"],
         "stakeholder_opinion_f1_soft_ci95": mean_ci95(event_f1_soft_values),
-        "sentiment_accuracy": round(sentiment_acc, 4),
+        "sentiment_accuracy": soft["sentiment_accuracy"],
+        "threshold_sensitivity": tuple_match_threshold_sweep(all_gold, all_pred),
     }
+
+
+def _tuples_with_event_id(rows: list[dict], event_id: str) -> list[dict]:
+    normalized: list[dict] = []
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        item = dict(row)
+        item.setdefault("event_id", event_id)
+        item.setdefault("sentiment", "unknown")
+        item.setdefault("rationale", "")
+        item.setdefault("evidence_ids", [])
+        normalized.append(item)
+    return normalized
+
+
+def _metric_scope(gold_count: int) -> str:
+    return "smoke_only" if gold_count == 0 else "formal"
 
 
 def eval_evidence_support(predictions: list[dict]) -> dict:
@@ -301,6 +289,7 @@ def eval_evidence_support(predictions: list[dict]) -> dict:
 
     return {
         "task": "evidence_support_classification",
+        "metric_scope": _metric_scope(total),
         "total": total,
         "accuracy": round(correct / total, 4) if total > 0 else 0,
         "accuracy_ci95": proportion_ci95(correct, total),
@@ -350,6 +339,7 @@ def eval_chain_construction(predictions: list[dict]) -> dict:
 
     return {
         "task": "chain_construction",
+        "metric_scope": _metric_scope(total_gold_chains),
         "events": total_events,
         "events_with_chain_match": events_with_chain_match,
         "gold_chains": total_gold_chains,

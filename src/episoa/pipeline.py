@@ -6,7 +6,6 @@ from collections import defaultdict
 import csv
 from datetime import datetime, timezone
 import json
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -22,6 +21,7 @@ from episoa.attribution.schema_attributor import (
     MAX_TUPLES_PER_EVENT,
     PROMPT_VERSION,
     SOE_V3_METHOD_VERSION,
+    assert_no_total_api_failure,
     run_schema_attribution,
 )
 from episoa.collector.cfsm_collector import collect_evidence
@@ -38,7 +38,15 @@ from episoa.evaluation.ablation_audit import (
     write_ablation_audit_report,
     write_ablation_delta_audits,
 )
-from episoa.evaluation.metrics import soft_tuple_f1
+from episoa.evaluation.metrics import (
+    filter_predictions_to_gold_events,
+    match_tuples,
+    opinion_recall,
+    semantic_tuple_f1,
+    soft_tuple_f1,
+    tuple_match_threshold_sweep,
+    tuple_pair_score,
+)
 from episoa.graph.evidence_graph import EvidenceGraph, build_event_soa_graph, build_stakeholder_event_evidence_graph, write_evidence_graph
 from episoa.llm.client import OpenAICompatibleClient
 from episoa.retrieval.event_chain_retriever import retrieve_event_chains
@@ -59,6 +67,19 @@ def _create_llm_client(config) -> OpenAICompatibleClient:
     )
 
 
+def _resolved_model_status(config) -> dict[str, object]:
+    resolved = resolve_api_config(config.model, label="model")
+    return {
+        "provider": str(config.model.get("provider", "openai_compatible")),
+        "model_name": str(config.model.get("llm_model", "unknown")),
+        "base_url": str(resolved["base_url"]),
+        "base_url_source": str(resolved["base_url_source"]),
+        "base_url_env": str(config.model.get("base_url_env", "")),
+        "temperature": config.model.get("temperature", 0.1),
+        "max_tokens": config.model.get("max_tokens", 3000),
+    }
+
+
 def _get_git_commit() -> str:
     """Return current git HEAD commit hash, or 'unknown' on failure."""
     try:
@@ -67,6 +88,72 @@ def _get_git_commit() -> str:
         ).strip()
     except Exception:
         return "unknown"
+
+
+def _validate_pipeline_data(config) -> dict:
+    """Validate configured pipeline inputs while preserving the legacy default gate."""
+    validation = validate_paper_data()
+    if validation["paper_data_ready"]:
+        return validation
+
+    configured = _validate_configured_data_paths(config)
+    if configured["paper_data_ready"]:
+        return configured
+    return validation
+
+
+def _validate_configured_data_paths(config) -> dict:
+    required_keys = {
+        "events": "events_path",
+        "evidence": "evidence_path",
+        "gold_tuples": "gold_tuples_path",
+        "gold_event_chains": "gold_event_chains_path",
+    }
+    errors: list[str] = []
+    records: dict[str, list[dict]] = {}
+
+    for name, key in required_keys.items():
+        raw_path = config.data.get(key)
+        if not raw_path:
+            errors.append(f"missing config data path: data.{key}")
+            records[name] = []
+            continue
+        path = Path(raw_path)
+        if not path.exists():
+            errors.append(f"missing required data file: {path}")
+            records[name] = []
+            continue
+        try:
+            records[name] = read_jsonl(path)
+        except ValueError as exc:
+            errors.append(str(exc))
+            records[name] = []
+        if not records[name]:
+            errors.append(f"{path} is empty")
+
+    raw_posts = []
+    raw_posts_path = config.data.get("raw_posts_path")
+    if raw_posts_path and Path(raw_posts_path).exists():
+        raw_posts = read_jsonl(Path(raw_posts_path))
+
+    events = records.get("events", [])
+    for index, event in enumerate(events, start=1):
+        errors.extend(validate_formal_event_record(event, f"events:{index}"))
+
+    return {
+        "paper_data_ready": not errors,
+        "dataset": {
+            "is_formal_dataset": not errors,
+            "num_events": len(events),
+            "num_raw_posts": len(raw_posts),
+            "num_evidence": len(records.get("evidence", [])),
+            "num_gold_tuples": len(records.get("gold_tuples", [])),
+            "num_gold_event_chains": len(records.get("gold_event_chains", [])),
+            "errors": errors,
+            "warnings": [],
+            "source": "configured_data_paths",
+        },
+    }
 
 
 def _write_input_manifest(
@@ -88,14 +175,7 @@ def _write_input_manifest(
         "git_commit": git_commit,
         "setting": setting,
         "mode": "ablation",
-        "model": {
-            "provider": config.model.get("provider", "openai_compatible"),
-            "model_name": config.model.get("llm_model", "unknown"),
-            "base_url": os.environ.get(config.model.get("base_url_env", ""), config.model.get("base_url", "")),
-            "base_url_env": config.model.get("base_url_env", ""),
-            "temperature": config.model.get("temperature", 0.1),
-            "max_tokens": config.model.get("max_tokens", 3000),
-        },
+        "model": _resolved_model_status(config),
         "data": {
             "events_path": config.data.get("events_path", ""),
             "evidence_path": config.data.get("evidence_path", ""),
@@ -127,6 +207,7 @@ def _write_prompt_manifest(setting_dir: Path, config, flags: dict | None = None)
         "verifier_threshold": float(config.verifier.get("threshold", 0.75)),
         "verifier_mode": flags.get("verifier_mode", config.verifier.get("mode", "decomposed")),
         "evidence_selector_mode": flags.get("selector_mode", (config.ablation.get("evidence_selector", {}) or {}).get("mode", "chain_aware")),
+        "max_evidence_per_event": int(flags.get("max_evidence_per_event", config.ablation.get("max_evidence_per_event", 12))),
         "retrieval_top_k": int(config.retrieval.get("top_k", 5)),
     }
     (setting_dir / "prompt_manifest.json").write_text(
@@ -141,12 +222,13 @@ def _write_event_level_csv(path: Path, gold, predictions) -> None:
     for g in gold:
         gold_by_event[g.event_id].append(g)
     for p in predictions:
-        pred_by_event[p.event_id].append(p)
+        if p.event_id in gold_by_event:
+            pred_by_event[p.event_id].append(p)
 
-    all_event_ids = sorted(set(gold_by_event) | set(pred_by_event))
+    all_event_ids = sorted(gold_by_event)
     fieldnames = [
         "event_id", "precision", "recall", "f1", "tp",
-        "num_gold", "num_pred", "sentiment_acc",
+        "num_gold", "num_pred", "sentiment_acc", "semantic_f1", "opinion_recall",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -155,6 +237,7 @@ def _write_event_level_csv(path: Path, gold, predictions) -> None:
             gt = gold_by_event.get(event_id, [])
             pt = pred_by_event.get(event_id, [])
             soft = soft_tuple_f1(gt, pt, threshold=0.5)
+            semantic = semantic_tuple_f1(gt, pt, threshold=0.5)
             writer.writerow({
                 "event_id": event_id,
                 "precision": soft["precision"],
@@ -164,7 +247,168 @@ def _write_event_level_csv(path: Path, gold, predictions) -> None:
                 "num_gold": len(gt),
                 "num_pred": len(pt),
                 "sentiment_acc": soft["sentiment_accuracy"],
+                "semantic_f1": semantic["f1"],
+                "opinion_recall": opinion_recall(gt, pt),
             })
+
+
+def _write_excluded_predictions_csv(path: Path, gold, predictions) -> dict[str, object]:
+    _scored, excluded, excluded_event_ids = filter_predictions_to_gold_events(gold, predictions)
+    fieldnames = ["event_id", "tuple_id", "stakeholder", "opinion", "sentiment", "exclusion_reason"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in excluded:
+            writer.writerow(
+                {
+                    "event_id": getattr(row, "event_id", ""),
+                    "tuple_id": getattr(row, "tuple_id", ""),
+                    "stakeholder": getattr(row, "stakeholder", ""),
+                    "opinion": getattr(row, "opinion", ""),
+                    "sentiment": getattr(row, "sentiment", ""),
+                    "exclusion_reason": "heldout_no_gold",
+                }
+            )
+    return {
+        "excluded_prediction_count": len(excluded),
+        "excluded_event_ids": excluded_event_ids,
+    }
+
+
+def _write_threshold_sensitivity_csv(path: Path, gold, predictions) -> None:
+    scored, _excluded, _excluded_event_ids = filter_predictions_to_gold_events(gold, predictions)
+    rows = tuple_match_threshold_sweep(gold, scored)
+    fieldnames = ["matcher", "threshold", "precision", "recall", "f1", "true_positives"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+def _write_tuple_match_diagnostics_csv(path: Path, gold, predictions) -> None:
+    scored, excluded, _excluded_event_ids = filter_predictions_to_gold_events(gold, predictions)
+    match_result = match_tuples(gold, scored, matcher="char_jaccard", threshold=0.5)
+    scored_by_event: dict[str, list] = defaultdict(list)
+    for index, row in enumerate(scored):
+        scored_by_event[str(row.event_id)].append((index, row))
+    fieldnames = [
+        "event_id",
+        "row_type",
+        "gold_index",
+        "pred_index",
+        "score",
+        "stakeholder_sim",
+        "opinion_sim",
+        "gold_stakeholder",
+        "pred_stakeholder",
+        "gold_opinion",
+        "pred_opinion",
+        "gold_sentiment",
+        "pred_sentiment",
+        "failure_reason",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for gold_index in match_result["unmatched_gold_indices"]:
+            gold_row = gold[int(gold_index)]
+            best_index, best_pred, score, field_scores = _best_same_event_candidate(gold_row, scored_by_event)
+            writer.writerow(
+                {
+                    "event_id": gold_row.event_id,
+                    "row_type": "unmatched_gold",
+                    "gold_index": gold_index,
+                    "pred_index": "" if best_index is None else best_index,
+                    "score": round(score, 4),
+                    "stakeholder_sim": round(field_scores.get("stakeholder", 0.0), 4),
+                    "opinion_sim": round(field_scores.get("opinion", 0.0), 4),
+                    "gold_stakeholder": gold_row.stakeholder,
+                    "pred_stakeholder": "" if best_pred is None else best_pred.stakeholder,
+                    "gold_opinion": gold_row.opinion,
+                    "pred_opinion": "" if best_pred is None else best_pred.opinion,
+                    "gold_sentiment": gold_row.sentiment,
+                    "pred_sentiment": "" if best_pred is None else best_pred.sentiment,
+                    "failure_reason": _tuple_failure_reason(gold_row, best_pred, field_scores),
+                }
+            )
+        for pred_index in match_result["unmatched_pred_indices"]:
+            pred = scored[int(pred_index)]
+            writer.writerow(
+                {
+                    "event_id": pred.event_id,
+                    "row_type": "unmatched_pred",
+                    "gold_index": "",
+                    "pred_index": pred_index,
+                    "score": "",
+                    "stakeholder_sim": "",
+                    "opinion_sim": "",
+                    "gold_stakeholder": "",
+                    "pred_stakeholder": pred.stakeholder,
+                    "gold_opinion": "",
+                    "pred_opinion": pred.opinion,
+                    "gold_sentiment": "",
+                    "pred_sentiment": pred.sentiment,
+                    "failure_reason": "unmatched_prediction",
+                }
+            )
+        for pred in excluded:
+            writer.writerow(
+                {
+                    "event_id": pred.event_id,
+                    "row_type": "excluded_prediction",
+                    "gold_index": "",
+                    "pred_index": "",
+                    "score": "",
+                    "stakeholder_sim": "",
+                    "opinion_sim": "",
+                    "gold_stakeholder": "",
+                    "pred_stakeholder": pred.stakeholder,
+                    "gold_opinion": "",
+                    "pred_opinion": pred.opinion,
+                    "gold_sentiment": "",
+                    "pred_sentiment": pred.sentiment,
+                    "failure_reason": "heldout_no_gold",
+                }
+            )
+
+
+def _best_same_event_candidate(gold_row: GoldTuple, scored_by_event: dict[str, list]) -> tuple[int | None, PredictionTuple | None, float, dict[str, float]]:
+    best_index: int | None = None
+    best_pred: PredictionTuple | None = None
+    best_score = 0.0
+    best_fields: dict[str, float] = {}
+    for pred_index, pred in scored_by_event.get(str(gold_row.event_id), []):
+        score, field_scores = tuple_pair_score(gold_row, pred, matcher="char_jaccard")
+        if score > best_score:
+            best_index = pred_index
+            best_pred = pred
+            best_score = score
+            best_fields = field_scores
+    return best_index, best_pred, best_score, best_fields
+
+
+def _tuple_failure_reason(gold_row: GoldTuple, pred_row: PredictionTuple | None, field_scores: dict[str, float]) -> str:
+    if pred_row is None:
+        return "no_same_event_prediction"
+    if field_scores.get("stakeholder", 0.0) < 0.5:
+        return "stakeholder_mismatch"
+    if gold_row.sentiment == "mixed" and pred_row.sentiment != "mixed":
+        return "sentiment_schema_gap"
+    if len(str(pred_row.opinion)) < min(40, len(str(gold_row.opinion)) / 2):
+        return "opinion_too_short"
+    if field_scores.get("opinion", 0.0) < 0.5:
+        return "opinion_mismatch"
+    return "below_threshold"
+
+
+def _write_scoring_artifacts(run_dir: Path, gold, predictions) -> dict[str, object]:
+    _write_event_level_csv(run_dir / "event_level_metrics.csv", gold, predictions)
+    excluded_summary = _write_excluded_predictions_csv(run_dir / "excluded_predictions.csv", gold, predictions)
+    _write_threshold_sensitivity_csv(run_dir / "metric_threshold_sensitivity.csv", gold, predictions)
+    _write_tuple_match_diagnostics_csv(run_dir / "tuple_match_diagnostics.csv", gold, predictions)
+    _write_tuple_match_diagnostics_csv(run_dir / "tuple_failure_audit.csv", gold, predictions)
+    return excluded_summary
 
 
 def _run_core_pipeline(
@@ -186,6 +430,7 @@ def _run_core_pipeline(
     verifier_mode="decomposed",
     method_version="legacy",
     max_tuples_per_event=None,
+    max_evidence_per_event=None,
     enforce_candidate_constraints=None,
     use_stage_attribution=None,
 ):
@@ -228,10 +473,10 @@ def _run_core_pipeline(
     selector_mode = selector_mode or configured_selector_mode or "chain_aware"
     if use_stage_attribution is None:
         use_stage_attribution = bool(use_soe_graph and method_version == SOE_V3_METHOD_VERSION)
-    max_evidence_per_event = int(config.ablation.get("max_evidence_per_event", 12))
+    max_evidence_per_event = int(max_evidence_per_event or config.ablation.get("max_evidence_per_event", 12))
     max_tuples = int(max_tuples_per_event or config.ablation.get("max_tuples_per_event", MAX_TUPLES_PER_EVENT))
     oracle_evidence_ids_by_event = _oracle_evidence_ids_by_event(gold) if oracle_evidence else None
-    run_schema_attribution(
+    attribution_summary = run_schema_attribution(
         events=[e.model_dump() for e in events],
         evidence_rows=[e.model_dump() for e in collected],
         chains=chains,
@@ -250,6 +495,7 @@ def _run_core_pipeline(
         enforce_candidate_constraints=enforce_candidate_constraints,
         use_stage_attribution=use_stage_attribution,
     )
+    assert_no_total_api_failure(attribution_summary, run_dir)
 
     candidates = _attribution_to_predictions(
         read_jsonl(run_dir / "candidate_soa_tuples.jsonl")
@@ -317,7 +563,7 @@ def _oracle_evidence_ids_by_event(gold: list[GoldTuple]) -> dict[str, list[str]]
 def run_paper_pipeline(config_path: str | Path) -> dict:
     config = load_config(config_path)
     print_api_config_status(config)
-    validation = validate_paper_data()
+    validation = _validate_pipeline_data(config)
     run_dir = config.run_dir
     if not validation["paper_data_ready"]:
         return {
@@ -349,6 +595,10 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
     )
 
     metrics = evaluate_main(gold, verified)
+    scoring_scope = _write_scoring_artifacts(run_dir, gold, verified)
+    (run_dir / "scoring_scope.json").write_text(
+        json.dumps(scoring_scope, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
     (run_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     _write_csv(run_dir / "main_results.csv", "Method", "EpiSOA", metrics)
@@ -362,6 +612,7 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
         "num_evidence": len(evidence),
         "num_predictions": len(verified),
         "metrics": metrics,
+        "scoring_scope": scoring_scope,
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
@@ -415,6 +666,7 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
 ABLATION_SETTINGS = {
     "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "legacy"},
     "full_soe":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "full_soe_high_recall":        {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
     "full_oracle_evidence":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
     "oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "direct_llm":                 {"use_graph": False, "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True,  "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "direct_llm"},
@@ -449,6 +701,7 @@ PIPELINE_FLAG_KEYS = {
     "verifier_mode",
     "method_version",
     "max_tuples_per_event",
+    "max_evidence_per_event",
     "enforce_candidate_constraints",
 }
 
@@ -464,7 +717,7 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
     """
     config = load_config(config_path)
     print_api_config_status(config)
-    validation = validate_paper_data()
+    validation = _validate_pipeline_data(config)
     if not validation["paper_data_ready"]:
         return {"status": "blocked", "reason": "paper data is not ready", "validation": validation}
 
@@ -520,12 +773,15 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
         )
 
         metrics = evaluate_ablation(gold, verified, verifier_enabled=bool(flags["use_verifier"]))
+        scoring_scope = _write_scoring_artifacts(setting_dir, gold, verified)
         all_metrics[setting] = metrics
 
         (setting_dir / "metrics.json").write_text(
             json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
-        _write_event_level_csv(setting_dir / "event_level_metrics.csv", gold, verified)
+        (setting_dir / "scoring_scope.json").write_text(
+            json.dumps(scoring_scope, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
 
         print(f"  [{setting}] Tuple-F1-soft={metrics.get('Tuple-F1-soft', 'N/A')}, "
               f"Num-Tuples={metrics.get('Num-Tuples', 'N/A')}")
@@ -734,20 +990,29 @@ def _write_csv(path: Path, label_name: str, label: str, metrics: dict[str, float
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow([label_name, *metrics.keys()])
-        writer.writerow([label, *[f"{value:.4f}" for value in metrics.values()]])
+        writer.writerow([label, *[_format_csv_value(value) for value in metrics.values()]])
 
 
 def _write_ablation_csv(path: Path, all_metrics: dict[str, dict[str, float | None]]) -> None:
     """Write ablation comparison CSV: rows = settings, columns = metrics."""
     path.parent.mkdir(parents=True, exist_ok=True)
     preferred = [
+        "Metric-Scope",
         "Num-Gold",
         "Num-Tuples",
+        "Num-Tuples-All",
+        "Excluded-Predictions",
+        "Excluded-Event-Count",
         "Tuple-F1-soft",
+        "Tuple-F1-strict-char@0.5",
+        "Tuple-F1-semantic",
         "Tuple-Precision",
         "Tuple-Recall",
+        "Tuple-Precision-semantic",
+        "Tuple-Recall-semantic",
         "Sentiment-Acc",
         "Stakeholder-Recall",
+        "Opinion-Recall",
         "ESR",
         "UTR",
         "Candidate-UTR",
@@ -769,3 +1034,15 @@ def _write_ablation_csv(path: Path, all_metrics: dict[str, dict[str, float | Non
                 else:
                     row.append(str(value))
             writer.writerow(row)
+
+
+def _format_csv_value(value) -> str:
+    if value is None:
+        return "N/A"
+    if isinstance(value, float):
+        return f"{value:.4f}"
+    if isinstance(value, int):
+        return f"{value:.4f}"
+    if isinstance(value, (list, tuple, dict)):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return str(value)

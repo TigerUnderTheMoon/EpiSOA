@@ -59,6 +59,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prompt-dir", default="prompts", help="Directory with benchmark prompt .md files (default: prompts/)")
     parser.add_argument("--cost-per-sample", type=float, default=0.0, help="Optional externally estimated API cost per task row.")
     parser.add_argument("--human-effort-ratio", type=float, default=0.0, help="Optional human minutes / total minutes ratio for reporting.")
+    parser.add_argument(
+        "--allow-prediction-errors",
+        action="store_true",
+        help="Allow predictions containing _error to be included in metrics.",
+    )
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -74,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         task_names = [t.strip() for t in args.tasks.split(",")]
 
     all_metrics: dict[str, dict] = {}
+    fatal_prediction_errors: list[dict[str, object]] = []
 
     if not args.dry_run:
         client = build_llm_client(cfg.model)
@@ -104,9 +110,16 @@ def main(argv: list[str] | None = None) -> int:
         existing_predictions = []
         completed_ids = set()
         if args.resume and pred_file.exists():
-            existing_predictions = read_jsonl(pred_file)
+            loaded_predictions = read_jsonl(pred_file)
+            error_predictions = _prediction_error_rows(loaded_predictions)
+            existing_predictions = [
+                pred for pred in loaded_predictions
+                if not _prediction_error_message(pred)
+            ]
             completed_ids = {p["task_id"] for p in existing_predictions if "task_id" in p}
             print(f"  Resume: {len(completed_ids)} already completed, {len(rows)} total rows")
+            if error_predictions:
+                print(f"  Resume: retrying {len(error_predictions)} prior error predictions")
 
         pending_rows = [r for r in rows if r["task_id"] not in completed_ids]
 
@@ -135,6 +148,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"    [{i+1}/{len(pending_rows)}] saved")
             elapsed = time.time() - t0
             print(f"  Completed in {elapsed:.0f}s ({elapsed/len(pending_rows):.1f}s per row)")
+        write_jsonl(pred_file, predictions)
         print(f"  Saved {len(predictions)} predictions to {pred_file}")
 
         # Recompute metrics from full prediction set
@@ -147,10 +161,24 @@ def main(argv: list[str] | None = None) -> int:
         metrics["cost_per_sample"] = args.cost_per_sample
         metrics["estimated_total_cost"] = round(args.cost_per_sample * len(predictions), 6)
         metrics["human_effort_ratio"] = args.human_effort_ratio
+        prediction_errors = _prediction_error_rows(predictions)
+        metrics["prediction_error_count"] = len(prediction_errors)
+        if prediction_errors:
+            metrics["prediction_error_examples"] = _prediction_error_examples(prediction_errors)
         all_metrics[task_name] = metrics
 
         for k, v in metrics.items():
             print(f"  {k}: {v}")
+
+        if prediction_errors and not args.allow_prediction_errors:
+            fatal_prediction_errors.append(
+                {
+                    "task": task_name,
+                    "prediction_error_count": len(prediction_errors),
+                    "first_error": _prediction_error_message(prediction_errors[0]),
+                }
+            )
+            break
 
     if not args.dry_run:
         metrics_file = output_dir / "metrics.json"
@@ -173,6 +201,12 @@ def main(argv: list[str] | None = None) -> int:
         }
         (output_dir / "config.yaml").write_text(yaml.dump(config_snapshot, allow_unicode=True), encoding="utf-8")
 
+    if fatal_prediction_errors:
+        print("\nPrediction errors detected; exiting nonzero instead of reporting them as valid zero metrics.")
+        for item in fatal_prediction_errors:
+            print(f"  {item['task']}: {item['prediction_error_count']} errors; first_error={item['first_error']}")
+        return 1
+
     return 0
 
 
@@ -190,6 +224,29 @@ def _recompute_metrics(task_name: str, predictions: list[dict]) -> dict:
     elif task_name == "chain_construction":
         return eval_chain_construction(predictions)
     return {"error": f"unknown task: {task_name}"}
+
+
+def _prediction_error_message(prediction_row: dict) -> str:
+    prediction = prediction_row.get("prediction")
+    if isinstance(prediction, dict):
+        return str(prediction.get("_error") or "")
+    return ""
+
+
+def _prediction_error_rows(predictions: list[dict]) -> list[dict]:
+    return [pred for pred in predictions if _prediction_error_message(pred)]
+
+
+def _prediction_error_examples(predictions: list[dict], limit: int = 3) -> list[dict[str, str]]:
+    examples = []
+    for pred in predictions[:limit]:
+        examples.append(
+            {
+                "task_id": str(pred.get("task_id", "")),
+                "error": _prediction_error_message(pred).splitlines()[0],
+            }
+        )
+    return examples
 
 
 def latency_summary(predictions: list[dict]) -> dict:

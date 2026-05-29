@@ -11,7 +11,7 @@ def evaluate_ablation(
     predictions: list[PredictionTuple],
     *,
     verifier_enabled: bool = True,
-) -> dict[str, float | None]:
+) -> dict[str, float | int | str | None]:
     """Evaluate one ablation setting against gold.
 
     Uses soft-match tuple F1 so that different ablation settings produce

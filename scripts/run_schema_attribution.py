@@ -5,7 +5,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from episoa.attribution.schema_attributor import read_chains, read_graph_nodes, run_schema_attribution
+from episoa.attribution.schema_attributor import (
+    assert_no_total_api_failure,
+    read_chains,
+    read_graph_nodes,
+    run_schema_attribution,
+)
 from episoa.config import load_config, resolve_api_config
 from episoa.data.loader import read_jsonl
 from episoa.llm.client import build_llm_client
@@ -70,6 +75,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"num_api_failures: {summary['num_api_failures']}")
     print(f"candidate_soa_tuples: {output_dir / 'candidate_soa_tuples.jsonl'}")
     print(f"summary: {output_dir / 'schema_attribution_summary.json'}")
+    if not args.dry_run:
+        assert_no_total_api_failure(summary, output_dir)
     return 0
 
 

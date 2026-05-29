@@ -311,9 +311,9 @@ def select_coverage_optimized(
                 for candidate in stakeholder_candidates
                 if candidate not in covered_stakeholders and evidence_mentions_stakeholder(row, candidate)
             }
-            stage_bonus = 0.14 if stage != "unknown" and stage not in covered_stages else 0.0
-            source_bonus = 0.10 if source and source not in covered_sources else 0.0
-            stakeholder_bonus = min(0.24, 0.12 * len(matched))
+            stage_bonus = 0.10 if stage != "unknown" and stage not in covered_stages else 0.0
+            source_bonus = 0.06 if source and source not in covered_sources else 0.0
+            stakeholder_bonus = min(0.48, 0.24 * len(matched))
             redundancy_penalty = max_redundancy_penalty(row, selected)
             objective = (
                 components["base_score"]
@@ -479,6 +479,7 @@ def annotate_matched_stakeholders(
             for candidate in stakeholder_candidates
             if evidence_mentions_stakeholder(row, candidate)
         ]
+        row["unmatched_candidate_allowed"] = bool(stakeholder_candidates and not row["matched_stakeholder_candidates"])
         output.append(row)
     return output
 

@@ -1,0 +1,119 @@
+{
+  "source_files": {
+    "events": "data/pubevent_soa_lite/events.jsonl",
+    "evidence": "data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl",
+    "tuples": "data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl",
+    "chains": "data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl"
+  },
+  "input_counts": {
+    "events": 50,
+    "event_ids": 50,
+    "evidence": 1461,
+    "tuples": 174,
+    "chains": 110
+  },
+  "task_counts": {
+    "tuple_identification": 50,
+    "evidence_support_classification": 1492,
+    "chain_construction": 50
+  },
+  "evidence_support_label_distribution": {
+    "supported": 1144,
+    "not_enough_info": 348
+  },
+  "negative_sampling": {
+    "negative_per_tuple": 2,
+    "seed": 42,
+    "strategy": "same-event evidence not listed in tuple.evidence_ids"
+  },
+  "held_out_policy": {
+    "stage": "Stage 1 event registry",
+    "test_events_must_have_held_out_true": true,
+    "llm_preannotation_and_development_must_not_read_test_split": true,
+    "split_policy": {
+      "strategy": "event_registry",
+      "held_out_policy": "only split=test may have held_out=true"
+    }
+  },
+  "validation": {
+    "missing_tuple_evidence_refs_count": 0,
+    "missing_chain_evidence_refs_count": 0,
+    "missing_tuple_evidence_refs": [],
+    "missing_chain_evidence_refs": []
+  },
+  "splits": {
+    "train": [
+      "E001",
+      "E003",
+      "E004",
+      "E005",
+      "E010",
+      "E011",
+      "E012",
+      "E013",
+      "E014",
+      "E017",
+      "E019",
+      "E020",
+      "E021",
+      "E022",
+      "E023",
+      "E024",
+      "E025",
+      "E026",
+      "E027",
+      "E028",
+      "E029",
+      "E030",
+      "E031",
+      "E032",
+      "E033",
+      "E034",
+      "E036",
+      "E037",
+      "E038",
+      "E039",
+      "E040",
+      "E042",
+      "E043",
+      "E044",
+      "E045",
+      "E046",
+      "E047",
+      "E048",
+      "E049",
+      "E050"
+    ],
+    "dev": [
+      "E006",
+      "E007",
+      "E009",
+      "E015",
+      "E035"
+    ],
+    "test": [
+      "E002",
+      "E008",
+      "E016",
+      "E018",
+      "E041"
+    ]
+  },
+  "split_row_counts": {
+    "tuple_identification": {
+      "train": 40,
+      "dev": 5,
+      "test": 5
+    },
+    "evidence_support_classification": {
+      "train": 1391,
+      "dev": 101,
+      "test": 0
+    },
+    "chain_construction": {
+      "train": 40,
+      "dev": 5,
+      "test": 5
+    }
+  }
+}

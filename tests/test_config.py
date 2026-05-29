@@ -45,6 +45,18 @@ def test_resolve_api_config_uses_env_fallback(monkeypatch):
     assert resolved["base_url_source"] == "env:OPENAI_BASE_URL"
 
 
+def test_main_model_configs_use_environment_base_url(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "env-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example/v1")
+
+    for config_path in ("configs/paper.yaml", "configs/ablation_human_gold_v2.yaml"):
+        config = load_config(config_path)
+        resolved = resolve_api_config(config.model, label="model")
+
+        assert resolved["base_url"] == "https://env.example/v1"
+        assert resolved["base_url_source"] == "env:OPENAI_BASE_URL"
+
+
 def test_resolve_api_config_reports_missing(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
