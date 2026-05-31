@@ -710,7 +710,7 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
     """Run ablation experiments for every setting in config.ablation.settings.
 
     Each setting runs the full pipeline independently in its own output directory
-    under outputs/runs/ablation_{setting}/.  Paper-final mode never reuses cached
+    under the configured runs directory as ablation_{setting}/. Paper-final mode never reuses cached
     results; every configured setting always runs from scratch.
 
     When force=True, existing setting directories are removed before running.
@@ -921,19 +921,22 @@ def _write_deltas_csv(path: Path, deltas: list[dict]) -> None:
 
 def paper_status() -> dict:
     config = load_config("configs/paper.yaml")
+    ablation_config = load_config("configs/ablation.yaml")
     validation = validate_paper_data()
     events_status = _events_status(Path(config.data["events_path"]))
-    latest_run = Path("outputs/runs/pubevent-soa-lite-paper")
+    latest_run = config.run_dir
     artifacts = {
         name: (latest_run / name).exists()
         for name in (
             "main_results.csv",
-            "ablation_results.csv",
             "retrieval_results.csv",
             "verifier_results.csv",
             "case_studies.jsonl",
         )
     }
+    artifacts["ablation_results.csv"] = (
+        Path(ablation_config.output.get("runs_dir", "outputs/runs")) / "ablation_results.csv"
+    ).exists()
     return {
         "dataset": validation["dataset"],
         "artifacts": artifacts,

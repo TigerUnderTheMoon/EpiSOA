@@ -37,26 +37,27 @@ data/pubevent_soa_lite/
 |-- events.jsonl
 |-- raw/
 |-- interim/
-|-- annotation_full_v3_repaired_plus_low37/
+|-- annotation_fulltext_stakeholder_canonical_nonheldout/
 |   |-- llm_gold_tuples.jsonl
 |   `-- llm_gold_event_chains.jsonl
-|-- silver_v1/
-|-- human_gold_v1/
 |-- human_gold_v2_stakeholder_canonical/
 |   `-- independent/
 |       |-- annotator_A/humanA_tuple_adjudication_sheet.csv
 |       |-- annotator_B/humanB_tuple_adjudication_sheet.csv
 |       `-- annotator_C/humanC_tuple_adjudication_sheet.csv
+|-- human_gold_v2/
+|   |-- human_gold_tuples_v2.jsonl
+|   `-- human_gold_event_chains_v2.jsonl
 |-- evidence_v3_repaired_plus_low37.jsonl
 `-- README.md
 ```
 
-`annotation_full_v3_repaired_plus_low37/llm_gold_*` files are LLM
+`annotation_fulltext_stakeholder_canonical_nonheldout/llm_gold_*` files are LLM
 preannotation artifacts. They are silver/pseudo-gold, not final human-verified
 gold. Use `scripts/export_silver_benchmark.py`,
 `scripts/build_human_adjudication_sheet.py`,
 `scripts/convert_adjudication_to_human_gold.py`, and
-`scripts/audit_human_gold.py` to create `human_gold_v1` before final paper
+`scripts/audit_human_gold.py` to create `human_gold_v2` before final paper
 experiments.
 
 Formal data flow:
@@ -271,7 +272,7 @@ collector:
 Formal runs write artifacts to:
 
 ```text
-outputs/runs/{run_id}/
+outputs/runs_human_gold_v2/{run_id}/
 |-- config.yaml
 |-- predictions.jsonl
 |-- candidate_soa_tuples.jsonl
@@ -279,9 +280,11 @@ outputs/runs/{run_id}/
 |-- metrics.json
 |-- summary.json
 |-- main_results.csv
-|-- ablation_results.csv
 |-- retrieval_results.csv
 |-- verifier_results.csv
 |-- human_eval_sheet.csv
 `-- case_studies.jsonl
 ```
+
+Ablation aggregates are written under `outputs/runs_human_gold_v2/`, with one
+`ablation_{setting}/` directory per setting.

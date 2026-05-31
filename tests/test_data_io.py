@@ -272,3 +272,14 @@ def test_validate_paper_data_empty_dir(tmp_path):
     result = validate_paper_data(data_dir=tmp_path, outputs_dir=tmp_path / "out")
     assert not result["paper_data_ready"]
     assert any("events.jsonl" in e for e in result["dataset"]["errors"])
+
+
+@pytest.mark.unit
+def test_validate_paper_data_defaults_to_human_gold_v2(tmp_path):
+    result = validate_paper_data(data_dir=tmp_path, outputs_dir=tmp_path / "out")
+
+    errors = "\n".join(result["dataset"]["errors"])
+    assert "human_gold_v2" in errors
+    assert "human_gold_tuples_v2.jsonl" in errors
+    assert "human_gold_event_chains_v2.jsonl" in errors
+    assert "annotation_full_v3_repaired_plus_low37" not in errors

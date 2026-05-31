@@ -65,7 +65,7 @@ inside each annotator directory.
 
 ```bash
 python scripts/run_paper_experiment.py --config configs/paper.yaml
-python scripts/run_ablation.py --config configs/ablation_human_gold_v2.yaml --force
+python scripts/run_ablation.py --config configs/ablation.yaml --force
 ```
 
 Every setting writes input and prompt manifests with seed, git commit, model configuration, and flags.
@@ -74,7 +74,7 @@ Every setting writes input and prompt manifests with seed, git commit, model con
 
 ```bash
 python scripts/build_benchmark_tasks.py --events data/pubevent_soa_lite/events.jsonl --evidence data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl --tuples data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl --chains data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl --output-dir data/benchmark/pubevent_soa_lite_human_gold_v2 --make-splits
-python scripts/run_benchmark_eval.py --benchmark-dir data/benchmark/pubevent_soa_lite_human_gold_v2/splits/test --config configs/ablation_human_gold_v2.yaml --output-dir outputs/benchmark_runs/pubevent-soa-lite-human-gold-v2-test_gpt-5.5 --resume
+python scripts/run_benchmark_eval.py --benchmark-dir data/benchmark/pubevent_soa_lite_human_gold_v2/splits/test --config configs/ablation.yaml --output-dir outputs/benchmark_runs/pubevent-soa-lite-human-gold-v2-test_gpt-5.5 --resume
 ```
 
 The benchmark builder uses Stage 1 registry splits. Random splits require explicit `--allow-random-splits` and are not paper-grade.

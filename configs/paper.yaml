@@ -1,4 +1,4 @@
-run_id: pubevent-soa-lite-paper
+run_id: pubevent-soa-lite-human-gold-v2-paper
 mode: paper
 seed: 42
 data:
@@ -6,11 +6,11 @@ data:
   raw_posts_path: data/pubevent_soa_lite/raw/raw_posts.jsonl
   evidence_candidates_path: data/pubevent_soa_lite/interim/evidence_candidates.jsonl
   evidence_path: data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
-  annotation_sheet_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/annotation_sheet.csv
-  gold_tuples_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl
-  gold_event_chains_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl
+  annotation_sheet_path: data/pubevent_soa_lite/human_gold_v2/adjudicated_human_tuple_sheet.csv
+  gold_tuples_path: data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl
+  gold_event_chains_path: data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl
 output:
-  runs_dir: outputs/runs
+  runs_dir: outputs/runs_human_gold_v2
 ablation:
   method_version: soe_v3
   max_evidence_per_event: 16
@@ -30,9 +30,9 @@ model:
   base_url: ""
   base_url_env: "OPENAI_BASE_URL"
   temperature: 0.1
-  max_tokens: 3000
+  max_tokens: 8000
   timeout_seconds: 180
-  max_retries: 1
+  max_retries: 2
 search:
   provider: custom
   api_key: ""
@@ -55,4 +55,4 @@ collector:
 retrieval:
   top_k: 5
 verifier:
-  threshold: 0.8
+  threshold: 0.75

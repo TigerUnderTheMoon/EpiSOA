@@ -48,7 +48,7 @@ TASK_CONFIG = {
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run benchmark evaluation with LLM")
     parser.add_argument("--config", default="configs/paper.yaml", help="YAML config with model settings")
-    parser.add_argument("--benchmark-dir", default="data/benchmark/pubevent_soa_lite_v3_repaired_plus_low37_gold")
+    parser.add_argument("--benchmark-dir", default="data/benchmark/pubevent_soa_lite_human_gold_v2")
     parser.add_argument("--output-dir", default=None, help="Output directory (default: outputs/benchmark_runs/<run_id>)")
     parser.add_argument("--tasks", default="tuple_identification,evidence_support_classification,chain_construction",
                         help="Comma-separated task names; 'all' for all three")

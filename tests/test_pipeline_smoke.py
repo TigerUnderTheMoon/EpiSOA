@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from episoa.config import load_config
 from episoa.pipeline import ABLATION_SETTINGS, PIPELINE_FLAG_KEYS, paper_status
 
@@ -11,12 +13,20 @@ def test_paper_status_returns_valid_structure() -> None:
     assert "dataset" in status
     assert "num_gold_tuples" in status["dataset"]
     assert status["next_commands"] is not None
+    if Path("outputs/runs_human_gold_v2/ablation_results.csv").exists():
+        assert status["artifacts"]["ablation_results.csv"] is True
 
 
 def test_main_configs_use_soe_v3_coverage_optimized() -> None:
     paper = load_config("configs/paper.yaml")
     ablation = load_config("configs/ablation.yaml")
 
+    assert paper.data["gold_tuples_path"] == "data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl"
+    assert paper.data["gold_event_chains_path"] == "data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl"
+    assert paper.output["runs_dir"] == "outputs/runs_human_gold_v2"
+    assert ablation.data["gold_tuples_path"] == "data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl"
+    assert ablation.data["gold_event_chains_path"] == "data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl"
+    assert ablation.output["runs_dir"] == "outputs/runs_human_gold_v2"
     assert paper.ablation["method_version"] == "soe_v3"
     assert paper.ablation["evidence_selector"]["mode"] == "coverage_optimized"
     assert paper.ablation["max_evidence_per_event"] == 16

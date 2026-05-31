@@ -9,12 +9,12 @@ from episoa.data.loader import read_jsonl
 from episoa.data.schema import EventRecord
 
 DATA_DIR = Path("data/pubevent_soa_lite")
-CANONICAL_ANNOTATION_DIR = DATA_DIR / "annotation_full_v3_repaired_plus_low37"
+CANONICAL_ANNOTATION_DIR = DATA_DIR / "human_gold_v2"
 REQUIRED_FILES = {
     "events": DATA_DIR / "events.jsonl",
     "evidence": DATA_DIR / "evidence_v3_repaired_plus_low37.jsonl",
-    "gold_tuples": CANONICAL_ANNOTATION_DIR / "llm_gold_tuples.jsonl",
-    "gold_event_chains": CANONICAL_ANNOTATION_DIR / "llm_gold_event_chains.jsonl",
+    "gold_tuples": CANONICAL_ANNOTATION_DIR / "human_gold_tuples_v2.jsonl",
+    "gold_event_chains": CANONICAL_ANNOTATION_DIR / "human_gold_event_chains_v2.jsonl",
 }
 MOCK_MARKERS = ("mock", "sample", "demo", "fictional", "example.org")
 SOURCE_ALIASES = {"social_media": "public_social"}
@@ -28,8 +28,8 @@ def validate_paper_data(data_dir: str | Path = DATA_DIR, outputs_dir: str | Path
     paths = {
         "events": data_dir / "events.jsonl",
         "evidence": data_dir / "evidence_v3_repaired_plus_low37.jsonl",
-        "gold_tuples": data_dir / "annotation_full_v3_repaired_plus_low37" / "llm_gold_tuples.jsonl",
-        "gold_event_chains": data_dir / "annotation_full_v3_repaired_plus_low37" / "llm_gold_event_chains.jsonl",
+        "gold_tuples": data_dir / "human_gold_v2" / "human_gold_tuples_v2.jsonl",
+        "gold_event_chains": data_dir / "human_gold_v2" / "human_gold_event_chains_v2.jsonl",
     }
     errors: list[str] = []
     warnings: list[str] = []

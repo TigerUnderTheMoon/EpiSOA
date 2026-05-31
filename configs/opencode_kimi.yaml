@@ -4,10 +4,10 @@ seed: 42
 data:
   events_path: data/pubevent_soa_lite/events.jsonl
   evidence_path: data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
-  gold_tuples_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl
-  gold_event_chains_path: data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl
+  gold_tuples_path: data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl
+  gold_event_chains_path: data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl
 output:
-  runs_dir: outputs/runs
+  runs_dir: outputs/runs_human_gold_v2
 model:
   mode: real
   llm_mode: real

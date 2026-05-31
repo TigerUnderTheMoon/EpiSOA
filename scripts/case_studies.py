@@ -129,13 +129,13 @@ def main():
     parser.add_argument("--events", nargs="+", default=["E001", "E003", "E018"],
                         help="Event IDs for case studies")
     parser.add_argument("--output", default="outputs/paper_tables/case_studies.md")
-    parser.add_argument("--run-dir", default="outputs/benchmark_runs/pubevent-soa-lite-paper_gpt-5.5")
+    parser.add_argument("--run-dir", default="outputs/benchmark_runs/pubevent-soa-lite-human-gold-v2-test_gpt-5.5")
     args = parser.parse_args()
 
     events = load_jsonl("data/pubevent_soa_lite/events.jsonl")
     evidence = load_jsonl("data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl")
-    gold_tuples = load_jsonl("data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_tuples.jsonl")
-    gold_chains = load_jsonl("data/pubevent_soa_lite/annotation_full_v3_repaired_plus_low37/llm_gold_event_chains.jsonl")
+    gold_tuples = load_jsonl("data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl")
+    gold_chains = load_jsonl("data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl")
     tuple_preds = load_jsonl(Path(args.run_dir) / "tuple_identification_predictions.jsonl")
     chain_preds = load_jsonl(Path(args.run_dir) / "chain_construction_predictions.jsonl")
 

@@ -206,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run baseline methods on benchmark tasks")
     parser.add_argument("--baseline", choices=["rule", "direct_llm"], default="rule")
     parser.add_argument("--config", default="configs/paper.yaml")
-    parser.add_argument("--benchmark-dir", default="data/benchmark/pubevent_soa_lite_v3_repaired_plus_low37_gold")
+    parser.add_argument("--benchmark-dir", default="data/benchmark/pubevent_soa_lite_human_gold_v2")
     parser.add_argument("--output-dir", default=None)
     parser.add_argument("--task", default="all", help="Which task to run")
     parser.add_argument("--max-tasks", type=int, default=0)
