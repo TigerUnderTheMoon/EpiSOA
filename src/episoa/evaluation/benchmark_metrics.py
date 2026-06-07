@@ -224,6 +224,8 @@ def eval_tuple_identification(predictions: list[dict]) -> dict:
 
     exact = tuple_match_metrics(all_gold, all_pred, matcher="exact", threshold=1.0)
     soft = tuple_match_metrics(all_gold, all_pred, matcher="char_jaccard", threshold=0.5)
+    semantic_03 = tuple_match_metrics(all_gold, all_pred, matcher="semantic", threshold=0.3)
+    semantic_05 = tuple_match_metrics(all_gold, all_pred, matcher="semantic", threshold=0.5)
 
     return {
         "task": "tuple_identification",
@@ -236,6 +238,8 @@ def eval_tuple_identification(predictions: list[dict]) -> dict:
         "recall": exact["recall"],
         "stakeholder_opinion_f1": exact["f1"],
         "stakeholder_opinion_f1_soft": soft["f1"],
+        "stakeholder_opinion_f1_semantic@0.3": semantic_03["f1"],
+        "stakeholder_opinion_f1_semantic@0.5": semantic_05["f1"],
         "stakeholder_opinion_f1_soft_ci95": mean_ci95(event_f1_soft_values),
         "sentiment_accuracy": soft["sentiment_accuracy"],
         "threshold_sensitivity": tuple_match_threshold_sweep(all_gold, all_pred),

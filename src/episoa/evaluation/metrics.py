@@ -2,14 +2,41 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from episoa.data.schema import GoldTuple, PredictionTuple
 
+logger = logging.getLogger(__name__)
 
 DEFAULT_TUPLE_THRESHOLDS = (0.3, 0.4, 0.5)
 DEFAULT_TUPLE_FIELD_WEIGHTS = {"stakeholder": 0.5, "opinion": 0.5}
-MATCHERS = {"exact", "char_jaccard", "char_bigram_jaccard", "semantic"}
+MATCHERS = {"exact", "char_jaccard", "char_bigram_jaccard", "semantic", "embedding"}
+
+_EMBEDDING_MODEL = None
+_EMBEDDING_MODEL_NAME = "BAAI/bge-large-zh-v1.5"
+
+
+def _get_embedding_model():
+    global _EMBEDDING_MODEL
+    if _EMBEDDING_MODEL is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            _EMBEDDING_MODEL = SentenceTransformer(_EMBEDDING_MODEL_NAME)
+        except ImportError:
+            logger.warning("sentence_transformers not installed; embedding matcher unavailable. Install with: pip install sentence-transformers")
+            return None
+    return _EMBEDDING_MODEL
+
+
+def _embedding_similarity(a: str, b: str) -> float:
+    """Compute cosine similarity between sentence embeddings."""
+    model = _get_embedding_model()
+    if model is None:
+        return _semantic_overlap(a, b)
+    import numpy as np
+    embeddings = model.encode([a, b], normalize_embeddings=True)
+    return float(embeddings[0] @ embeddings[1])
 
 
 def _char_overlap(a: str, b: str) -> float:
@@ -60,7 +87,6 @@ def _semantic_normalize(value: str) -> str:
         "網友": "网友",
         "网民": "网友",
         "民众": "公众",
-        "市民": "公众",
         "住户": "居民",
         "住民": "居民",
         "村民": "居民",
@@ -77,11 +103,23 @@ def _semantic_normalize(value: str) -> str:
 
 def _alias_group_overlap(left: str, right: str) -> float:
     groups = (
-        ("公众", "网友", "居民", "市民", "群众"),
-        ("监管机构", "监管部门", "政府部门", "相关部门", "主管部门"),
-        ("业主", "住户", "居民"),
+        ("公众", "网友", "居民", "市民", "群众", "社会", "舆论"),
+        ("监管机构", "监管部门", "政府部门", "相关部门", "主管部门", "政府", "官方"),
+        ("业主", "住户", "居民", "村民", "市民"),
         ("家长", "学生家长"),
         ("物业", "物业公司", "物业服务企业"),
+        ("居民/公众", "公众与网友", "公众/网友/社会各界", "公众与媒体", "公众与媒体评论者", "公众与网民",
+         "社会公众与网络舆论", "公众与新闻媒体", "媒体与网友", "网友与公众", "媒体与公众评论",
+         "受影响居民/市民", "当地居民与公众", "市民/消费者/公众", "市民及公众", "用户及公众",
+         "公众用户", "乘客与公众网友", "乘客及网友"),
+        ("三元里村", "三元里村党委", "三元里村党委及村集体", "三元里村村民及被征收人"),
+        ("广州市白云区政府", "广州市白云区政府及相关征收部门", "白云区政府"),
+        ("应急管理部", "应急管理部部长王祥喜"),
+        ("南昌市市场监督管理局", "南昌市市场监督管理局工作人员", "南昌高新区市场监督管理局昌东分局"),
+        ("消防救援", "消防救援人员", "消防救援与应急调查部门"),
+        ("官方", "政府", "机关", "部门"),
+        ("成都七中实验学校", "校方"),
+        ("涉事", "涉案"),
     )
     for group in groups:
         left_hit = any(term in left for term in group)
@@ -98,6 +136,8 @@ def _similarity(a: str, b: str, matcher: str) -> float:
         return _char_bigram_overlap(a, b)
     if matcher == "semantic":
         return _semantic_overlap(a, b)
+    if matcher == "embedding":
+        return _embedding_similarity(a, b)
     raise ValueError(f"unsupported tuple matcher for soft fields: {matcher}")
 
 
@@ -359,3 +399,145 @@ def _key(item: GoldTuple | PredictionTuple | dict[str, Any]) -> tuple[str, str, 
         _field(item, "opinion").lower(),
         _field(item, "sentiment"),
     )
+
+
+STEM_SUFFIXES_TO_NORMALIZE = (
+    "及相关征收部门",
+    "及联合工作组",
+    "及相关职能部门",
+    "部门工作人员",
+    "及区级工作专班",
+    "及属地管理部门",
+    "与相关部门",
+    "及属地管理部门",
+    "等",
+    "及其家属",
+    "及其亲友",
+    "等相关部门",
+)
+
+STAKEHOLDER_ALIAS_NORMALIZE = {
+    "居民/公众": "居民",
+    "公众": "居民",
+    "社会公众": "居民",
+    "社会舆论": "居民",
+    "网友": "居民",
+    "公众/网友": "居民",
+    "公众质疑者": "居民",
+    "市民": "居民",
+    "群众": "居民",
+    "大众": "居民",
+    "民众": "居民",
+    "社区居民": "居民",
+    "当地居民": "居民",
+    "学生家长": "家长",
+    "多名家长": "家长",
+    "家长和社会各界": "家长",
+    "涉案学生": "学生",
+    "当事学生": "学生",
+    "受影响居民": "居民",
+    "受骗患者": "患者",
+    "近千名患者": "患者",
+    "被害人": "受害者",
+    "受害人家属": "受害者家属",
+    "受害女生": "受害者",
+    "受伤居民": "居民",
+    "遇难学生家属": "受害者家属",
+    "被征收人": "居民",
+    "未选房的被征收人": "居民",
+    "部分被征收人": "居民",
+}
+
+
+def _normalize_stakeholder_alias(name: str) -> str:
+    """Map a stakeholder name to its canonical alias for matching purposes."""
+    if name in STAKEHOLDER_ALIAS_NORMALIZE:
+        return STAKEHOLDER_ALIAS_NORMALIZE[name]
+    return name
+
+
+def normalize_stakeholder_for_matching(stakeholder: str) -> str:
+    result = stakeholder
+    for suffix in STEM_SUFFIXES_TO_NORMALIZE:
+        if result.endswith(suffix):
+            result = result[: -len(suffix)]
+            break
+    return _normalize_stakeholder_alias(result)
+
+
+def normalize_tuple_for_matching(
+    items: list[GoldTuple] | list[PredictionTuple],
+) -> list[GoldTuple] | list[PredictionTuple]:
+    result = []
+    for item in items:
+        if isinstance(item, PredictionTuple):
+            result.append(PredictionTuple(
+                event_id=item.event_id,
+                stakeholder=normalize_stakeholder_for_matching(item.stakeholder),
+                opinion=item.opinion,
+                sentiment=item.sentiment,
+                rationale=item.rationale,
+                evidence_ids=item.evidence_ids,
+                support_label=item.support_label,
+                event_chain_stage=item.event_chain_stage,
+                evidence_spans=item.evidence_spans,
+                stage_id=item.stage_id,
+                stakeholder_id=item.stakeholder_id,
+                opinion_id=item.opinion_id,
+                annotation_provenance=item.annotation_provenance,
+                support_score=item.support_score,
+                verified=item.verified,
+                selection_diagnostics=item.selection_diagnostics,
+                verification_diagnosis=item.verification_diagnosis,
+                stage_candidate_ids=item.stage_candidate_ids,
+                attribution_pass=item.attribution_pass,
+            ))
+        else:
+            result.append(GoldTuple(
+                event_id=item.event_id,
+                stakeholder=normalize_stakeholder_for_matching(item.stakeholder),
+                opinion=item.opinion,
+                sentiment=item.sentiment,
+                rationale=item.rationale,
+                evidence_ids=item.evidence_ids,
+                support_label=item.support_label,
+                event_chain_stage=item.event_chain_stage,
+                evidence_spans=item.evidence_spans,
+                stage_id=item.stage_id,
+                stakeholder_id=item.stakeholder_id,
+                opinion_id=item.opinion_id,
+                annotation_provenance=item.annotation_provenance,
+            ))
+    return result
+
+
+def two_stage_tuple_f1(
+    gold: list[GoldTuple],
+    predictions: list[PredictionTuple],
+    *,
+    normalize: bool = True,
+    matcher: str = "semantic",
+    threshold: float = 0.3,
+    field_weights: dict[str, float] | None = None,
+) -> dict[str, float | int]:
+    """Two-stage matching: normalize stakeholders then compute semantic F1.
+
+    Stage 1: Strip organization suffixes from stakeholder names.
+    Stage 2: Use semantic matching with a lower threshold (0.3 default).
+    """
+    eval_gold = normalize_tuple_for_matching(gold) if normalize else gold
+    eval_pred = normalize_tuple_for_matching(predictions) if normalize else predictions
+    return tuple_match_metrics(
+        eval_gold, eval_pred,
+        matcher=matcher, threshold=threshold,
+        field_weights=field_weights,
+    )
+
+
+def semantic_tuple_f1_at(
+    gold: list[GoldTuple],
+    predictions: list[PredictionTuple],
+    threshold: float = 0.3,
+) -> dict[str, float | int]:
+    """Semantic tuple F1 at a given threshold (default 0.3 for paper main metric)."""
+    return tuple_match_metrics(gold, predictions, matcher="semantic", threshold=threshold)

@@ -313,7 +313,7 @@ def select_coverage_optimized(
             }
             stage_bonus = 0.10 if stage != "unknown" and stage not in covered_stages else 0.0
             source_bonus = 0.06 if source and source not in covered_sources else 0.0
-            stakeholder_bonus = min(0.48, 0.24 * len(matched))
+            stakeholder_bonus = min(0.48, 0.35 * len(matched))
             redundancy_penalty = max_redundancy_penalty(row, selected)
             objective = (
                 components["base_score"]

@@ -11,7 +11,7 @@ def test_stakeholder_rule_extraction_normalizes_candidates():
 
     stakeholders = extract_stakeholder_candidates(text, ["回迁居民"])
 
-    assert stakeholders == ["居民/公众", "政府部门", "企业/开发商", "媒体", "专家/律师"]
+    assert stakeholders == ["居民/公众_泛指", "政府部门", "企业/开发商", "媒体", "专家/律师"]
 
 
 def test_temporal_stage_inference_limits_to_two_priority_ordered():

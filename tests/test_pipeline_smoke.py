@@ -29,7 +29,7 @@ def test_main_configs_use_soe_v3_coverage_optimized() -> None:
     assert ablation.output["runs_dir"] == "outputs/runs_human_gold_v2"
     assert paper.ablation["method_version"] == "soe_v3"
     assert paper.ablation["evidence_selector"]["mode"] == "coverage_optimized"
-    assert paper.ablation["max_evidence_per_event"] == 16
+    assert paper.ablation["max_evidence_per_event"] == 24
     assert ablation.ablation["method_version"] == "soe_v3"
     assert ablation.ablation["evidence_selector"]["mode"] == "coverage_optimized"
 

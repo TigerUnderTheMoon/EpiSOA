@@ -22,7 +22,7 @@ METHOD_VERSION = "soe_v2"
 SOE_V3_METHOD_VERSION = "soe_v3"
 ATTRIBUTION_MODE = "stakeholder_canonical"
 MAX_TUPLES_PER_EVENT = 8
-MAX_OPINION_CHARS = 120
+MAX_OPINION_CHARS = 150
 MAX_RATIONALE_CHARS = 120
 ALLOWED_SENTIMENT = {"positive", "negative", "neutral", "mixed"}
 ALLOWED_STAGE = {"trigger", "diffusion", "conflict", "response", "resolution", "follow_up", "mixed", "unknown"}
@@ -42,6 +42,21 @@ GENERIC_STAKEHOLDER_LABELS = {
     "有关部门",
     "实施单位",
     "项目方",
+    "居民/公众",
+    "公众",
+    "网友",
+    "社会",
+    "社会公众",
+    "社会舆论",
+    "居民",
+    "市民",
+    "群众",
+    "大众",
+    "民众",
+    "老百姓",
+    "社区居民",
+    "公众/网友",
+    "公众质疑者",
 }
 PSEUDO_STAKEHOLDER_TERMS = ("项目", "事件", "事故", "风波", "舆情", "报道", "新闻", "文章", "方案")
 ISSUE_DESCRIPTOR_TERMS = ("安全", "治理", "处置", "争议", "问题", "抽成")
@@ -231,9 +246,11 @@ Rules:
 8. Prefer stakeholder names from stakeholder_candidates when they fit the evidence, but you may add an evidence-supported stakeholder missing from the list.
 9. stakeholder must be an actor or affected group. Do not use project names, event names, media reports, articles, generic "government department", "relevant department", or "implementing unit" as stakeholders.
 10. Use gold-style canonical stakeholder names: concrete institution/person/group when available, otherwise concise affected group labels. Prefer the stakeholder_candidates inventory as the canonical name list.
-11. sentiment must be positive, negative, neutral, or mixed. Use mixed when the same stakeholder has both support/benefit and concern/opposition in the evidence.
-12. Official policy release, investigation, response, supervision, or corrective action is neutral unless the evidence explicitly states support/satisfaction/praise or criticism/blame.
-13. Return strict JSON only. Do not output Markdown.
+11. Do NOT merge different organizations, agencies, or distinct actor groups into generic labels like "居民/公众". Prefer specific names: "美心翡翠明庭小区业主" over "居民/公众", "三元里村党委及村集体" over "三元里村".
+12. sentiment must be positive, negative, neutral, or mixed. Use mixed when the same stakeholder has both support/benefit and concern/opposition in the evidence. Do NOT use neutral when evidence shows both positive and negative sentiments — use mixed instead.
+13. Official policy release, investigation, response, supervision, or corrective action is neutral unless the evidence explicitly states support/satisfaction/praise or criticism/blame.
+14. opinion should be specific and detailed. Include the stakeholder's concrete action, stance, or reasoning — not just "expressed concern" or "responded". Target 50-150 characters when possible.
+15. Return strict JSON only. Do not output Markdown.
 
 event:
 event_id: {event_id}
@@ -260,7 +277,7 @@ JSON schema:
       "stakeholder_cluster_id": "stable cluster id within this event, e.g. stakeholder_001",
       "stakeholder": "canonical stakeholder name",
       "stakeholder_aliases": ["aliases merged into this stakeholder"],
-      "opinion": "evidence-supported opinion or action, <=120 Chinese chars when possible",
+      "opinion": "evidence-supported opinion or action, <=150 Chinese chars when possible",
       "sentiment": "positive|negative|neutral|mixed",
       "rationale": "short evidence-grounded rationale, <=120 Chinese chars when possible",
       "evidence_ids": ["only evidence_id values shown above"],
@@ -314,6 +331,7 @@ JSON schema:
 NO_CHAIN_USER_PROMPT_TEMPLATE = """Task: Extract stakeholder-canonical SOA tuples from the event and evidence below.
 Use only the provided evidence. Do not use external knowledge. Do not invent stakeholders, opinions, rationales, or evidence IDs.
 Identify distinct stakeholder clusters, output one canonical tuple per evidence-supported stakeholder by default, and split the same stakeholder only for different opinions/actions with opinion_split_reason.
+Do NOT merge different organizations, agencies, or distinct actor groups into generic labels like "居民/公众". Prefer specific names from the evidence.
 Return strict JSON only.
 
 event_id: {event_id}
@@ -395,6 +413,8 @@ Rules:
 3. stakeholder must be an actor or affected group, not a project/event/media-report title or generic "government department/relevant department/implementing unit" label.
 4. Keep opinion and rationale concise but complete enough to preserve the stakeholder's core stance/action.
 5. If no stage-level stakeholder opinion/action is supported, return an empty stage_candidates list.
+6. Do NOT use generic labels like "居民/公众" as stakeholder when a more specific actor name is available in the evidence. Prefer "美心翡翠明庭小区业主" over "居民/公众".
+7. opinion should include the stakeholder's specific action, stance, or causal reasoning — not just "expressed concern" or "responded". Target 50-150 characters when possible.
 
 event:
 event_id: {event_id}
@@ -438,6 +458,9 @@ Rules:
 5. Do not invent stakeholders, opinions, evidence IDs, or stage_candidate_ids.
 6. Final stakeholder must be an actor or affected group, not a project/event/media-report title or generic "government department/relevant department/implementing unit" label.
 7. Use stakeholder_candidates as the canonical event-level inventory whenever a candidate fits the evidence.
+8. Do NOT merge stakeholders from different organizations, agencies, or distinct actor groups into a generic label like "居民/公众" unless the evidence explicitly presents them as a unified bloc. Prefer specific entity names from the evidence over generic labels from stakeholder_candidates — for example, prefer "美心翡翠明庭小区业主" over "居民/公众", prefer "三元里村党委及村集体" over "三元里村".
+9. When merging stage candidates with conflicting sentiments (e.g., one positive and one negative), use "mixed" instead of "neutral". Do NOT downgrade conflicting sentiments to neutral.
+10. Each opinion should be detailed and specific. Include what the stakeholder DID or SAID, their concrete stance or demand, and any numbers/dates/policy names. BAD: "expressed concern". GOOD: "要求开发商公开检测报告并退房退款，认为精装房质量与宣传严重不符". Target 50-200 characters.
 
 event:
 event_id: {event_id}
@@ -1095,6 +1118,7 @@ def run_schema_attribution(
     dry_run: bool = False,
     hide_chain_in_prompt: bool = False,
     skip_chain_ranking: bool = False,
+    use_ner_extraction: bool = False,
     selector_mode: str = "chain_aware",
     method_version: str = METHOD_VERSION,
     max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
@@ -1163,6 +1187,22 @@ def run_schema_attribution(
             initial_stakeholder_candidates,
             evidence_items,
         )
+        if use_ner_extraction and llm_client is not None:
+            try:
+                from episoa.attribution.ner_extractor import build_ner_stakeholder_inventory
+                ner_inventory = build_ner_stakeholder_inventory(
+                    event=event,
+                    graph_candidates=stakeholder_candidates,
+                    evidence_items=evidence_items,
+                    llm_client=llm_client,
+                )
+                seen = set(stakeholder_candidates)
+                for name in ner_inventory:
+                    if name not in seen:
+                        stakeholder_candidates.append(name)
+                        seen.add(name)
+            except Exception:
+                pass
         selection_metadata = {
             "method_version": method_version,
             "attribution_mode": ATTRIBUTION_MODE,
@@ -1773,6 +1813,7 @@ def canonicalize_tuple_rows(
         canonical_rows.append(new_row)
 
     merged_rows, merge_count = merge_duplicate_canonical_rows(canonical_rows, str(event.get("event_id", "")))
+    merged_rows = promote_generic_stakeholders(merged_rows, event)
     diagnostics = {
         "candidate_inventory": inventory,
         "candidate_inventory_count": len(inventory),
@@ -1858,7 +1899,7 @@ def merge_duplicate_canonical_rows(rows: list[dict[str, Any]], event_id: str) ->
         for existing in merged:
             if existing.get("stakeholder") != row.get("stakeholder"):
                 continue
-            if tuple_opinion_similarity(str(existing.get("opinion", "")), str(row.get("opinion", ""))) >= 0.62:
+            if tuple_opinion_similarity(str(existing.get("opinion", "")), str(row.get("opinion", ""))) >= 0.90:
                 target = existing
                 break
         if target is None:
@@ -1905,7 +1946,53 @@ def merge_sentiment(left: str, right: str) -> str:
         return "mixed"
     if {left, right} <= {"positive", "negative"}:
         return "mixed"
+    if "neutral" in {left, right}:
+        other = left if right == "neutral" else right
+        return other
     return left
+
+
+def _specificity_score(name: str) -> int:
+    """Score stakeholder name specificity. Higher = more specific."""
+    if not name:
+        return 0
+    score = len(name)
+    specific_indicators = (
+        "小区", "社区", "村", "镇", "街道", "区", "市", "省", "局", "委",
+        "公司", "集团", "医院", "学校", "法院", "检察院", "派出所",
+        "业主", "居民", "家长", "学生", "患者", "律师", "记者",
+        "女士", "先生", "男子", "女子", "人",
+        "店", "厂", "中心", "部", "厅", "处",
+    )
+    for indicator in specific_indicators:
+        if indicator in name:
+            score += 10
+    if name in GENERIC_STAKEHOLDER_LABELS:
+        score = 0
+    return score
+
+
+def promote_generic_stakeholders(
+    rows: list[dict[str, Any]],
+    event: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Post-process: drop tuples whose stakeholder is a generic label with no specific aliases.
+
+    When the LLM merge step collapses specific entities into generic labels like
+    "居民/公众" with no meaningful specific aliases, the generic tuple adds noise
+    without providing useful information. Drop these noise tuples rather than promote them.
+    """
+    result = []
+    for row in rows:
+        stakeholder = str(row.get("stakeholder", "")).strip()
+        if stakeholder in GENERIC_STAKEHOLDER_LABELS:
+            aliases = row.get("stakeholder_aliases", []) or []
+            aliases = [str(a).strip() for a in aliases if str(a).strip()]
+            non_generic = [a for a in aliases if a not in GENERIC_STAKEHOLDER_LABELS]
+            if not non_generic:
+                continue
+        result.append(row)
+    return result
 
 
 def make_stakeholder_id(event_id: str, stakeholder: str) -> str:

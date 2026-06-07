@@ -433,6 +433,7 @@ def _run_core_pipeline(
     max_evidence_per_event=None,
     enforce_candidate_constraints=None,
     use_stage_attribution=None,
+    use_ner_extraction=False,
 ):
     """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
     collected = collect_evidence(events, evidence)
@@ -494,6 +495,7 @@ def _run_core_pipeline(
         seed=int(config.ablation.get("seed", 42)),
         enforce_candidate_constraints=enforce_candidate_constraints,
         use_stage_attribution=use_stage_attribution,
+        use_ner_extraction=use_ner_extraction,
     )
     assert_no_total_api_failure(attribution_summary, run_dir)
 
@@ -665,7 +667,7 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
 
 ABLATION_SETTINGS = {
     "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "legacy"},
-    "full_soe":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+"full_soe":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "full_soe_high_recall":        {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
     "full_oracle_evidence":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
     "oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
@@ -703,6 +705,7 @@ PIPELINE_FLAG_KEYS = {
     "max_tuples_per_event",
     "max_evidence_per_event",
     "enforce_candidate_constraints",
+    "use_ner_extraction",
 }
 
 

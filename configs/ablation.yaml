@@ -13,7 +13,7 @@ output:
   runs_dir: outputs/runs_human_gold_v2
 ablation:
   method_version: soe_v3
-  max_evidence_per_event: 16
+  max_evidence_per_event: 24
   max_tuples_per_event: 8
   evidence_selector:
     mode: coverage_optimized
