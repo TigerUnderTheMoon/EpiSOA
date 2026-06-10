@@ -1,0 +1,48 @@
+ablation:
+  evidence_selector:
+    mode: coverage_optimized
+  max_evidence_per_event: 24
+  max_tuples_per_event: 8
+  method_version: soe_v3
+  settings:
+  - full_soe_high_recall
+data:
+  annotation_sheet_path: data/pubevent_soa_lite/human_gold_v2/adjudicated_human_tuple_sheet.csv
+  events_path: data/pubevent_soa_lite/events.jsonl
+  evidence_candidates_path: data/pubevent_soa_lite/interim/evidence_candidates.jsonl
+  evidence_path: data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl
+  gold_event_chains_path: data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl
+  gold_tuples_path: data/pubevent_soa_lite/human_gold_v2/human_gold_tuples_v2.jsonl
+  raw_posts_path: data/pubevent_soa_lite/raw/raw_posts.jsonl
+mode: ablation
+model:
+  api_key: ''
+  api_key_env: OPENAI_API_KEY
+  base_url: ''
+  base_url_env: OPENAI_BASE_URL
+  embedding_model: mock-embedding
+  llm_mode: real
+  llm_model: gpt-5.5
+  max_retries: 2
+  max_tokens: 8000
+  mode: real
+  model_name: gpt-5.5
+  provider: openai_compatible
+  reranker_model: mock-reranker
+  temperature: 0.1
+  timeout_seconds: 180
+output:
+  runs_dir: outputs/runs_human_gold_v2
+retrieval:
+  top_k: 5
+run_id: pubevent-soa-lite-human-gold-v2-ablation
+search:
+  api_key_env: SEARCH_API_KEY
+  base_url_env: SEARCH_BASE_URL
+  max_retries: 2
+  provider: custom
+  timeout_seconds: 30
+seed: 42
+verifier:
+  mode: decomposed
+  threshold: 0.75

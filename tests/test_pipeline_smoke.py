@@ -1,7 +1,8 @@
 from pathlib import Path
 
+from episoa.data.schema import PredictionTuple
 from episoa.config import load_config
-from episoa.pipeline import ABLATION_SETTINGS, PIPELINE_FLAG_KEYS, paper_status
+from episoa.pipeline import ABLATION_SETTINGS, PIPELINE_FLAG_KEYS, _apply_verifier_quality_gate, paper_status
 
 
 def test_paper_status_returns_valid_structure() -> None:
@@ -43,12 +44,66 @@ def test_full_soe_v3_and_without_soe_graph_ablation_flags() -> None:
     assert full_soe["selector_mode"] == "coverage_optimized"
     assert full_soe["use_soe_graph"] is True
     assert full_soe["use_stage_attribution"] is True
+    assert full_soe["use_event_level_safety_net"] is True
+    assert full_soe["use_hybrid_refinement"] is True
+    assert full_soe["use_verifier_quality_gate"] is True
     assert full_soe["verifier_mode"] == "decomposed"
     assert full_soe_high_recall["method_version"] == "soe_v3"
     assert full_soe_high_recall["max_evidence_per_event"] == 60
+    assert full_soe_high_recall["use_event_level_safety_net"] is True
+    assert full_soe_high_recall["use_hybrid_refinement"] is True
+    assert full_soe_high_recall["use_verifier_quality_gate"] is True
     assert without_soe_graph["method_version"] == "soe_v3"
     assert without_soe_graph["selector_mode"] == "coverage_optimized"
     assert without_soe_graph["use_soe_graph"] is False
     assert without_soe_graph["use_stage_attribution"] is False
+    assert without_soe_graph.get("use_event_level_safety_net", False) is False
+    assert without_soe_graph.get("use_hybrid_refinement", False) is False
+    assert without_soe_graph["use_verifier_quality_gate"] is True
+    assert ABLATION_SETTINGS["without_decomposed_verifier"].get("use_verifier_quality_gate", False) is False
     assert "use_stage_attribution" in PIPELINE_FLAG_KEYS
+    assert "use_event_level_safety_net" in PIPELINE_FLAG_KEYS
+    assert "use_hybrid_refinement" in PIPELINE_FLAG_KEYS
+    assert "use_verifier_quality_gate" in PIPELINE_FLAG_KEYS
     assert "max_evidence_per_event" in PIPELINE_FLAG_KEYS
+
+
+def test_verifier_quality_gate_keeps_only_verified_predictions() -> None:
+    supported = prediction("supported", verified=True, score=0.95)
+    partial = prediction("partially_supported", verified=False, score=0.5)
+    insufficient = prediction("insufficient_evidence", verified=False, score=0.0)
+
+    kept, summary = _apply_verifier_quality_gate([supported, partial, insufficient], enabled=True)
+
+    assert kept == [supported]
+    assert summary == {
+        "verifier_quality_gate_enabled": True,
+        "num_before_quality_gate": 3,
+        "num_after_quality_gate": 1,
+        "num_removed_by_quality_gate": 2,
+    }
+
+
+def test_verifier_quality_gate_is_opt_in() -> None:
+    supported = prediction("supported", verified=True, score=0.95)
+    partial = prediction("partially_supported", verified=False, score=0.5)
+
+    kept, summary = _apply_verifier_quality_gate([supported, partial], enabled=False)
+
+    assert kept == [supported, partial]
+    assert summary["verifier_quality_gate_enabled"] is False
+    assert summary["num_removed_by_quality_gate"] == 0
+
+
+def prediction(label: str, *, verified: bool, score: float) -> PredictionTuple:
+    return PredictionTuple(
+        event_id="E1",
+        stakeholder="Residents",
+        opinion="complain about safety",
+        sentiment="negative",
+        rationale="Residents complain",
+        evidence_ids=["ev1"],
+        support_label=label,
+        support_score=score,
+        verified=verified,
+    )

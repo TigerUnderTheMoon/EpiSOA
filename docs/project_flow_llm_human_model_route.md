@@ -24,7 +24,7 @@
 | Preannotation | `scripts/run_llm_gold_preannotation.py` | 生成 tuple 与 event chain silver | 中文抽取强、证据约束强、严格 JSON Schema |
 | Annotation expansion | `scripts/run_annotation_expansion.py` | 扩展 tuple / chain 候选 | 同上，适合小批量质量优先 |
 | Schema attribution | `src/episoa/attribution/schema_attributor.py` | 从事件链和证据生成 SOA tuple | 严格结构化输出、可解释 rationale |
-| Faithfulness verifier | `src/episoa/verification/faithfulness_verifier.py` | 判断 tuple 是否被证据支持 | 证据忠实性判断、保守输出 |
+| Faithfulness verifier | `src/episoa/verifier/faithfulness_verifier.py` (pipeline); `src/episoa/verification/faithfulness_verifier.py` (scripts/tests) | 判断 tuple 是否被证据支持 | 证据忠实性判断、保守输出 |
 | Benchmark eval | `src/episoa/evaluation/benchmark_runner.py` | tuple identification / evidence support / chain construction | 结构化预测、可比较指标 |
 | LLM judge | `src/episoa/evaluation/benchmark_metrics.py` | 可选语义等价裁判 | 稳定 JSON、低幻觉 |
 

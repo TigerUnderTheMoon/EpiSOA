@@ -22,6 +22,7 @@ class PaperConfig:
     retrieval: dict[str, Any]
     verifier: dict[str, Any]
     ablation: dict[str, Any]
+    runtime: dict[str, Any]
 
     @property
     def run_dir(self) -> Path:
@@ -41,6 +42,7 @@ def load_config(path: str | Path) -> PaperConfig:
         retrieval=dict(raw.get("retrieval", {"top_k": 5})),
         verifier=dict(raw.get("verifier", {"threshold": 0.75})),
         ablation=dict(raw.get("ablation", {})),
+        runtime=dict(raw.get("runtime", {})),
     )
 
 

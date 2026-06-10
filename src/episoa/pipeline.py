@@ -5,9 +5,11 @@ from __future__ import annotations
 from collections import defaultdict
 import csv
 from datetime import datetime, timezone
+import hashlib
 import json
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import yaml
@@ -47,7 +49,14 @@ from episoa.evaluation.metrics import (
     tuple_match_threshold_sweep,
     tuple_pair_score,
 )
-from episoa.graph.evidence_graph import EvidenceGraph, build_event_soa_graph, build_stakeholder_event_evidence_graph, write_evidence_graph
+from episoa.graph.evidence_graph import (
+    EvidenceGraph,
+    GraphEdge,
+    GraphNode,
+    build_event_soa_graph,
+    build_stakeholder_event_evidence_graph,
+    write_evidence_graph,
+)
 from episoa.llm.client import OpenAICompatibleClient
 from episoa.retrieval.event_chain_retriever import retrieve_event_chains
 from episoa.verifier.faithfulness_verifier import verify_tuples
@@ -168,6 +177,8 @@ def _write_input_manifest(
     evidence_count: int,
     gold_count: int,
     flags: dict[str, bool],
+    diagnostic_only: bool = False,
+    runtime_options: dict[str, object] | None = None,
 ) -> None:
     manifest = {
         "run_id": run_id,
@@ -186,6 +197,8 @@ def _write_input_manifest(
             "num_gold_tuples": gold_count,
         },
         "flags": flags,
+        "diagnostic_only": bool(diagnostic_only),
+        "runtime_options": runtime_options or {},
     }
     (setting_dir / "input_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -434,16 +447,39 @@ def _run_core_pipeline(
     enforce_candidate_constraints=None,
     use_stage_attribution=None,
     use_ner_extraction=False,
+    use_event_level_safety_net=False,
+    use_hybrid_refinement=False,
+    use_verifier_quality_gate=False,
+    cache_dir: str | Path | None = None,
+    resume: bool = False,
+    max_api_concurrency: int = 1,
+    reuse_attribution_dir: str | Path | None = None,
+    run_id: str | None = None,
+    output_dir: str | Path | None = None,
+    diagnostic_only: bool = False,
 ):
     """Run one pipeline variant. Returns (predictions, retrieval_metrics, verifier_metrics)."""
+    run_dir = Path(output_dir or run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    phase_timings: list[dict[str, object]] = []
+
+    def timed_phase(name: str, func):
+        started = time.perf_counter()
+        value = func()
+        phase_timings.append({"phase": name, "elapsed_seconds": round(time.perf_counter() - started, 4)})
+        return value
+
     collected = collect_evidence(events, evidence)
 
     if use_graph:
-        graph = build_stakeholder_event_evidence_graph(
-            [event.model_dump() for event in events],
-            [item.model_dump() for item in collected],
+        graph = _load_or_build_graph(
+            cache_dir=cache_dir,
+            run_dir=run_dir,
+            events=events,
+            collected=collected,
+            enabled=True,
+            phase_timings=phase_timings,
         )
-        write_evidence_graph(graph, run_dir / "evidence_graph")
         graph_nodes = graph.node_records()
     else:
         write_evidence_graph(
@@ -464,7 +500,14 @@ def _run_core_pipeline(
         graph_nodes = []
 
     if use_event_chain:
-        chains = retrieve_event_chains(events, collected, int(config.retrieval.get("top_k", 5)))
+        chains = _load_or_build_chains(
+            cache_dir=cache_dir,
+            run_dir=run_dir,
+            events=events,
+            collected=collected,
+            top_k=int(config.retrieval.get("top_k", 5)),
+            phase_timings=phase_timings,
+        )
     else:
         chains = []
 
@@ -477,27 +520,38 @@ def _run_core_pipeline(
     max_evidence_per_event = int(max_evidence_per_event or config.ablation.get("max_evidence_per_event", 12))
     max_tuples = int(max_tuples_per_event or config.ablation.get("max_tuples_per_event", MAX_TUPLES_PER_EVENT))
     oracle_evidence_ids_by_event = _oracle_evidence_ids_by_event(gold) if oracle_evidence else None
-    attribution_summary = run_schema_attribution(
-        events=[e.model_dump() for e in events],
-        evidence_rows=[e.model_dump() for e in collected],
-        chains=chains,
-        graph_nodes=graph_nodes,
-        llm_client=llm_client,
-        model_name=model_name,
-        output_dir=run_dir,
-        max_evidence_per_event=max_evidence_per_event,
-        oracle_evidence_ids_by_event=oracle_evidence_ids_by_event,
-        hide_chain_in_prompt=hide_chain_in_prompt,
-        skip_chain_ranking=skip_chain_ranking,
-        selector_mode=selector_mode,
-        method_version=method_version,
-        max_tuples_per_event=max_tuples,
-        seed=int(config.ablation.get("seed", 42)),
-        enforce_candidate_constraints=enforce_candidate_constraints,
-        use_stage_attribution=use_stage_attribution,
-        use_ner_extraction=use_ner_extraction,
-    )
-    assert_no_total_api_failure(attribution_summary, run_dir)
+    if reuse_attribution_dir is not None:
+        attribution_summary = _reuse_attribution_artifacts(Path(reuse_attribution_dir), run_dir)
+    else:
+        attribution_summary = timed_phase(
+            "schema_attribution",
+            lambda: run_schema_attribution(
+                events=[e.model_dump() for e in events],
+                evidence_rows=[e.model_dump() for e in collected],
+                chains=chains,
+                graph_nodes=graph_nodes,
+                llm_client=llm_client,
+                model_name=model_name,
+                output_dir=run_dir,
+                max_evidence_per_event=max_evidence_per_event,
+                oracle_evidence_ids_by_event=oracle_evidence_ids_by_event,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+                skip_chain_ranking=skip_chain_ranking,
+                selector_mode=selector_mode,
+                method_version=method_version,
+                max_tuples_per_event=max_tuples,
+                seed=int(config.ablation.get("seed", 42)),
+                enforce_candidate_constraints=enforce_candidate_constraints,
+                use_stage_attribution=use_stage_attribution,
+                use_ner_extraction=use_ner_extraction,
+                use_event_level_safety_net=use_event_level_safety_net,
+                use_hybrid_refinement=use_hybrid_refinement,
+                cache_dir=cache_dir,
+                resume=resume,
+                max_api_concurrency=max_api_concurrency,
+            ),
+        )
+        assert_no_total_api_failure(attribution_summary, run_dir)
 
     candidates = _attribution_to_predictions(
         read_jsonl(run_dir / "candidate_soa_tuples.jsonl")
@@ -512,14 +566,24 @@ def _run_core_pipeline(
         write_evidence_graph(soe_graph, run_dir / "soe_graph")
 
     if use_verifier:
-        verified = verify_tuples(
+        verified_all = verify_tuples(
             candidates,
             collected,
             float(config.verifier.get("threshold", 0.75)),
             llm_client=llm_client,
             mode=verifier_mode,
+            cache_dir=cache_dir,
+            max_api_concurrency=max_api_concurrency,
         )
-        verifier_metrics = evaluate_verifier(verified)
+        verifier_metrics = evaluate_verifier(verified_all)
+        verified, gate_summary = _apply_verifier_quality_gate(
+            verified_all,
+            enabled=bool(use_verifier_quality_gate and verifier_mode == "decomposed"),
+        )
+        write_jsonl(run_dir / "verifier_diagnostics_all.jsonl", verified_all)
+        (run_dir / "verifier_quality_gate.json").write_text(
+            json.dumps(gate_summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     else:
         verified = candidates
         verifier_metrics = {"verifier_skipped": 1.0}
@@ -528,7 +592,276 @@ def _run_core_pipeline(
     write_jsonl(run_dir / "predictions.jsonl", verified)
 
     retrieval_metrics = evaluate_retrieval([item.model_dump() for item in gold_chains], chains)
+    _write_phase_timings(run_dir / "phase_timings.csv", phase_timings)
+    _write_runtime_manifest(
+        run_dir,
+        {
+            "run_id": run_id or run_dir.name,
+            "diagnostic_only": bool(diagnostic_only),
+            "resume": bool(resume),
+            "cache_dir": str(cache_dir or ""),
+            "max_api_concurrency": int(max_api_concurrency or 1),
+            "reuse_attribution_dir": str(reuse_attribution_dir or ""),
+            "attribution_cache": attribution_summary.get("cache", {}) if isinstance(attribution_summary, dict) else {},
+        },
+    )
     return verified, retrieval_metrics, verifier_metrics
+
+
+def _load_or_build_graph(
+    *,
+    cache_dir: str | Path | None,
+    run_dir: Path,
+    events,
+    collected,
+    enabled: bool,
+    phase_timings: list[dict[str, object]],
+) -> EvidenceGraph:
+    del enabled
+    key = _phase_cache_key(
+        "graph",
+        {
+            "events": [event.model_dump() for event in events],
+            "evidence": [item.model_dump() for item in collected],
+        },
+    )
+    cache_path = Path(cache_dir) / "graph" / f"{key}.json" if cache_dir is not None else None
+    started = time.perf_counter()
+    if cache_path is not None and cache_path.exists():
+        try:
+            payload = json.loads(cache_path.read_text(encoding="utf-8"))
+            graph = _graph_from_cache_payload(payload)
+            write_evidence_graph(graph, run_dir / "evidence_graph")
+            phase_timings.append({"phase": "graph", "elapsed_seconds": round(time.perf_counter() - started, 4), "cache": "hit"})
+            return graph
+        except (OSError, ValueError, TypeError):
+            pass
+    graph = build_stakeholder_event_evidence_graph(
+        [event.model_dump() for event in events],
+        [item.model_dump() for item in collected],
+    )
+    write_evidence_graph(graph, run_dir / "evidence_graph")
+    if cache_path is not None:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(json.dumps(_graph_cache_payload(graph), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    phase_timings.append({"phase": "graph", "elapsed_seconds": round(time.perf_counter() - started, 4), "cache": "miss"})
+    return graph
+
+
+def _graph_cache_payload(graph: EvidenceGraph) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "nodes": graph.node_records(),
+        "edges": graph.edge_records(),
+        "summary": graph.summary,
+    }
+
+
+def _graph_from_cache_payload(payload: dict[str, object]) -> EvidenceGraph:
+    nodes = []
+    for row in payload.get("nodes", []) if isinstance(payload, dict) else []:
+        if not isinstance(row, dict):
+            continue
+        attributes = row.get("attributes", {}) if isinstance(row.get("attributes"), dict) else {}
+        nodes.append(
+            GraphNode(
+                node_id=str(row.get("node_id", "")),
+                node_type=str(row.get("node_type", "")),
+                label=str(attributes.get("label", "")),
+                attributes=attributes,
+            )
+        )
+    edges = []
+    for row in payload.get("edges", []) if isinstance(payload, dict) else []:
+        if not isinstance(row, dict):
+            continue
+        attributes = row.get("attributes", {}) if isinstance(row.get("attributes"), dict) else {}
+        edges.append(
+            GraphEdge(
+                source=str(row.get("source_node_id", "")),
+                target=str(row.get("target_node_id", "")),
+                relation=str(row.get("edge_type", "")),
+                evidence_id=attributes.get("evidence_id"),
+                weight=float(row.get("weight", 1.0) or 1.0),
+                attributes=attributes,
+            )
+        )
+    return EvidenceGraph(nodes=nodes, edges=edges, summary=dict(payload.get("summary", {})))
+
+
+def _load_or_build_chains(
+    *,
+    cache_dir: str | Path | None,
+    run_dir: Path,
+    events,
+    collected,
+    top_k: int,
+    phase_timings: list[dict[str, object]],
+) -> list[dict]:
+    key = _phase_cache_key(
+        "chains",
+        {
+            "top_k": top_k,
+            "events": [event.model_dump() for event in events],
+            "evidence": [item.model_dump() for item in collected],
+        },
+    )
+    cache_path = Path(cache_dir) / "chains" / f"{key}.jsonl" if cache_dir is not None else None
+    output_path = run_dir / "retrieved_event_chains.jsonl"
+    started = time.perf_counter()
+    if cache_path is not None and cache_path.exists():
+        try:
+            chains = read_jsonl(cache_path)
+            write_jsonl(output_path, chains)
+            phase_timings.append({"phase": "event_chains", "elapsed_seconds": round(time.perf_counter() - started, 4), "cache": "hit"})
+            return chains
+        except (OSError, ValueError):
+            pass
+    chains = retrieve_event_chains(events, collected, top_k)
+    write_jsonl(output_path, chains)
+    if cache_path is not None:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        write_jsonl(cache_path, chains)
+    phase_timings.append({"phase": "event_chains", "elapsed_seconds": round(time.perf_counter() - started, 4), "cache": "miss"})
+    return chains
+
+
+def _phase_cache_key(phase: str, payload: dict[str, object]) -> str:
+    encoded = json.dumps({"phase": phase, **payload}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _reuse_attribution_artifacts(source_dir: Path, target_dir: Path) -> dict[str, object]:
+    required = [
+        "candidate_soa_tuples.jsonl",
+        "stage_soa_candidates.jsonl",
+        "raw_llm_responses.jsonl",
+        "schema_attribution_table.csv",
+        "stakeholder_candidate_scope.csv",
+        "canonicalization_map.csv",
+        "schema_attribution_summary.json",
+        "progress.jsonl",
+        "cache_manifest.json",
+    ]
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for name in required:
+        src = source_dir / name
+        if src.exists():
+            shutil.copyfile(src, target_dir / name)
+    summary_path = target_dir / "schema_attribution_summary.json"
+    summary = {}
+    if summary_path.exists():
+        try:
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            summary = {}
+    summary["attribution_reused"] = True
+    summary["reuse_source_dir"] = str(source_dir)
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return summary
+
+
+def _write_phase_timings(path: Path, rows: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = ["phase", "elapsed_seconds", "cache"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+def _write_runtime_manifest(run_dir: Path, payload: dict[str, object]) -> None:
+    run_dir.mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "schema_version": 1,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        **payload,
+    }
+    (run_dir / "runtime_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def _default_cache_dir(cache_dir: str | Path | None) -> Path:
+    return Path(cache_dir) if cache_dir is not None else Path("outputs/cache/pipeline")
+
+
+def _resolve_runtime_options(
+    config,
+    *,
+    resume: bool | None,
+    max_api_concurrency: int | None,
+    cache_dir: str | Path | None,
+    diagnostic: bool | None,
+    max_events: int | None,
+    event_ids: list[str] | None,
+    skip_llm_verifier: bool | None,
+) -> dict[str, object]:
+    runtime = dict(getattr(config, "runtime", {}) or {})
+    resolved_max_events = max_events if max_events is not None else runtime.get("max_events")
+    return {
+        "resume": bool(runtime.get("resume", False) if resume is None else resume),
+        "max_api_concurrency": max(1, int(max_api_concurrency if max_api_concurrency is not None else runtime.get("max_api_concurrency", 4))),
+        "cache_dir": _default_cache_dir(cache_dir if cache_dir is not None else runtime.get("cache_dir")),
+        "diagnostic": bool(runtime.get("diagnostic", False) if diagnostic is None else diagnostic),
+        "max_events": None if resolved_max_events is None else int(resolved_max_events),
+        "event_ids": _normalize_id_list(event_ids if event_ids is not None else runtime.get("event_ids")),
+        "skip_llm_verifier": bool(runtime.get("skip_llm_verifier", False) if skip_llm_verifier is None else skip_llm_verifier),
+    }
+
+
+def _normalize_id_list(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return [str(item) for item in value if str(item)]
+
+
+def _diagnostic_run_dir(path: Path) -> Path:
+    return path.with_name(path.name + "_diagnostic")
+
+
+def _filter_events(events, *, event_ids: list[str] | None = None, max_events: int | None = None) -> list:
+    selected = list(events)
+    if event_ids:
+        wanted = {str(event_id) for event_id in event_ids}
+        selected = [
+            event
+            for event in selected
+            if str(getattr(event, "event_id", event.get("event_id") if isinstance(event, dict) else "")) in wanted
+        ]
+    if max_events is not None:
+        selected = selected[: max(0, int(max_events))]
+    return selected
+
+
+def _attribution_reuse_source(setting: str, completed_setting_dirs: dict[str, Path]) -> str | None:
+    if setting == "without_decomposed_verifier" and "full_soe" in completed_setting_dirs:
+        return "full_soe"
+    return None
+
+
+def _write_reuse_manifest(
+    setting_dir: Path,
+    *,
+    setting: str,
+    source_setting: str,
+    source_dir: Path,
+    reason: str,
+) -> dict[str, object]:
+    payload = {
+        "schema_version": 1,
+        "setting": setting,
+        "reuse_source_setting": source_setting,
+        "reuse_source_dir": str(source_dir),
+        "reason": reason,
+    }
+    (setting_dir / "reuse_manifest.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return payload
 
 
 def _oracle_evidence_ids_by_event(gold: list[GoldTuple]) -> dict[str, list[str]]:
@@ -562,11 +895,31 @@ def _oracle_evidence_ids_by_event(gold: list[GoldTuple]) -> dict[str, list[str]]
     return output
 
 
-def run_paper_pipeline(config_path: str | Path) -> dict:
+def run_paper_pipeline(
+    config_path: str | Path,
+    *,
+    resume: bool | None = None,
+    max_api_concurrency: int | None = None,
+    cache_dir: str | Path | None = None,
+    diagnostic: bool | None = None,
+    max_events: int | None = None,
+    event_ids: list[str] | None = None,
+    skip_llm_verifier: bool | None = None,
+) -> dict:
     config = load_config(config_path)
     print_api_config_status(config)
     validation = _validate_pipeline_data(config)
-    run_dir = config.run_dir
+    runtime = _resolve_runtime_options(
+        config,
+        resume=resume,
+        max_api_concurrency=max_api_concurrency,
+        cache_dir=cache_dir,
+        diagnostic=diagnostic,
+        max_events=max_events,
+        event_ids=event_ids,
+        skip_llm_verifier=skip_llm_verifier,
+    )
+    run_dir = _diagnostic_run_dir(config.run_dir) if runtime["diagnostic"] else config.run_dir
     if not validation["paper_data_ready"]:
         return {
             "status": "blocked",
@@ -581,8 +934,14 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
     evidence = read_typed_jsonl(config.data["evidence_path"], EvidenceRecord)
     gold = read_typed_jsonl(config.data["gold_tuples_path"], GoldTuple)
     gold_chains = read_typed_jsonl(config.data["gold_event_chains_path"], GoldEventChain)
+    events = _filter_events(
+        events,
+        event_ids=runtime["event_ids"],
+        max_events=runtime["max_events"],
+    )
 
     llm_client = _create_llm_client(config)
+    effective_cache_dir = Path(runtime["cache_dir"])
 
     verified, retrieval_metrics, verifier_metrics = _run_core_pipeline(
         events, evidence, gold, gold_chains, config, run_dir, llm_client,
@@ -591,9 +950,17 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
         use_verifier=True,
         use_soe_graph=True,
         selector_mode="coverage_optimized",
-        verifier_mode="decomposed",
+        verifier_mode="id_only" if runtime["skip_llm_verifier"] else "decomposed",
         method_version=SOE_V3_METHOD_VERSION,
         use_stage_attribution=True,
+        use_event_level_safety_net=True,
+        use_hybrid_refinement=True,
+        use_verifier_quality_gate=True,
+        cache_dir=effective_cache_dir,
+        resume=bool(runtime["resume"]),
+        max_api_concurrency=int(runtime["max_api_concurrency"]),
+        run_id=config.run_id,
+        diagnostic_only=bool(runtime["diagnostic"]),
     )
 
     metrics = evaluate_main(gold, verified)
@@ -610,6 +977,14 @@ def run_paper_pipeline(config_path: str | Path) -> dict:
 
     summary = {
         "status": "completed",
+        "diagnostic_only": bool(runtime["diagnostic"]),
+        "resume": bool(runtime["resume"]),
+        "run_dir": str(run_dir),
+        "cache_dir": str(effective_cache_dir),
+        "max_api_concurrency": int(runtime["max_api_concurrency"]),
+        "max_events": runtime["max_events"],
+        "event_ids": runtime["event_ids"],
+        "skip_llm_verifier": bool(runtime["skip_llm_verifier"]),
         "num_events": len(events),
         "num_evidence": len(evidence),
         "num_predictions": len(verified),
@@ -665,29 +1040,38 @@ def _attribution_to_predictions(attribution_results: list[dict]) -> list[Predict
     return predictions
 
 
+def _apply_verifier_quality_gate(
+    predictions: list[PredictionTuple],
+    *,
+    enabled: bool,
+) -> tuple[list[PredictionTuple], dict[str, int | bool]]:
+    if enabled:
+        kept = [row for row in predictions if row.verified]
+    else:
+        kept = list(predictions)
+    return kept, {
+        "verifier_quality_gate_enabled": bool(enabled),
+        "num_before_quality_gate": len(predictions),
+        "num_after_quality_gate": len(kept),
+        "num_removed_by_quality_gate": len(predictions) - len(kept),
+    }
+
+
 ABLATION_SETTINGS = {
-    "full":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "legacy"},
-"full_soe":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "full_soe_high_recall":        {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
-    "full_oracle_evidence":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
-    "oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "direct_llm":                 {"use_graph": False, "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True,  "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "direct_llm"},
-    "without_soe_graph":          {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "without_chain_aware_selection": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "quality_topk_selector":      {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "bm25_selector":              {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "bm25_keyword", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "random_selector":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True,  "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "random", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "without_decomposed_verifier": {"use_graph": True, "use_event_chain": True, "use_verifier": True, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "without_graph":              {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed"},
-    "without_event_chain":        {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed"},
-    "without_verifier":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware"},
-    "without_event_chain_prompt":  {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed"},
-    "without_event_chain_ranking": {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed"},
-    "without_evidence_retrieval":  {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "ablation_component": "evidence_retrieval"},
-    "without_normalization":       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "raw_or_un-normalized_evidence"},
-    "without_llm_preannotation":   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "random_initialized_annotation_seed"},
-    "silver_only":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "silver_v1_gold_paths"},
-    "reduced_gold_50":             {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "selector_mode": "chain_aware", "verifier_mode": "decomposed", "requires_input_variant": "50_percent_human_gold_subset"},
+    "full_soe":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "full_soe_high_recall":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
+    "full_oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
+    "oracle_evidence":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "direct_llm":                      {"use_graph": False, "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True,  "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "direct_llm"},
+    "without_soe_graph":               {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_chain_aware_selection":   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "quality_topk_selector":          {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "bm25_selector":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "bm25_keyword", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "random_selector":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "random", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_decomposed_verifier":     {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_graph":                   {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_event_chain":             {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_verifier":                {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
 }
 
 PIPELINE_FLAG_KEYS = {
@@ -699,6 +1083,9 @@ PIPELINE_FLAG_KEYS = {
     "oracle_evidence",
     "use_soe_graph",
     "use_stage_attribution",
+    "use_event_level_safety_net",
+    "use_hybrid_refinement",
+    "use_verifier_quality_gate",
     "selector_mode",
     "verifier_mode",
     "method_version",
@@ -709,7 +1096,19 @@ PIPELINE_FLAG_KEYS = {
 }
 
 
-def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
+def run_ablation_pipeline(
+    config_path: str | Path,
+    force: bool = False,
+    *,
+    resume: bool | None = None,
+    max_api_concurrency: int | None = None,
+    cache_dir: str | Path | None = None,
+    diagnostic: bool | None = None,
+    max_events: int | None = None,
+    event_ids: list[str] | None = None,
+    settings: list[str] | None = None,
+    skip_llm_verifier: bool | None = None,
+) -> dict:
     """Run ablation experiments for every setting in config.ablation.settings.
 
     Each setting runs the full pipeline independently in its own output directory
@@ -724,25 +1123,73 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
     if not validation["paper_data_ready"]:
         return {"status": "blocked", "reason": "paper data is not ready", "validation": validation}
 
-    runs_dir = Path(config.output.get("runs_dir", "outputs/runs"))
+    runtime = _resolve_runtime_options(
+        config,
+        resume=resume,
+        max_api_concurrency=max_api_concurrency,
+        cache_dir=cache_dir,
+        diagnostic=diagnostic,
+        max_events=max_events,
+        event_ids=event_ids,
+        skip_llm_verifier=skip_llm_verifier,
+    )
+    configured_runs_dir = Path(config.output.get("runs_dir", "outputs/runs"))
+    runs_dir = _diagnostic_run_dir(configured_runs_dir) if runtime["diagnostic"] else configured_runs_dir
+    runs_dir.mkdir(parents=True, exist_ok=True)
 
     events = read_typed_jsonl(config.data["events_path"], EventRecord)
     evidence = read_typed_jsonl(config.data["evidence_path"], EvidenceRecord)
     gold = read_typed_jsonl(config.data["gold_tuples_path"], GoldTuple)
     gold_chains = read_typed_jsonl(config.data["gold_event_chains_path"], GoldEventChain)
+    events = _filter_events(
+        events,
+        event_ids=runtime["event_ids"],
+        max_events=runtime["max_events"],
+    )
 
     llm_client = _create_llm_client(config)
     timestamp = datetime.now(timezone.utc).isoformat()
     git_commit = _get_git_commit()
+    effective_cache_dir = Path(runtime["cache_dir"])
+    runtime_options = {
+        "resume": bool(runtime["resume"]),
+        "max_api_concurrency": int(runtime["max_api_concurrency"]),
+        "cache_dir": str(effective_cache_dir),
+        "diagnostic_only": bool(runtime["diagnostic"]),
+        "max_events": runtime["max_events"],
+        "event_ids": runtime["event_ids"],
+        "skip_llm_verifier": bool(runtime["skip_llm_verifier"]),
+    }
 
     all_metrics: dict[str, dict[str, float]] = {}
-    settings: list[str] = config.ablation.get("settings", list(ABLATION_SETTINGS))
+    selected_settings = _normalize_id_list(settings if settings is not None else config.ablation.get("settings", list(ABLATION_SETTINGS)))
+    completed_setting_dirs: dict[str, Path] = {}
+    reuse: dict[str, dict[str, object]] = {}
+    _write_runtime_manifest(
+        runs_dir,
+        {
+            "run_id": "ablation",
+            "diagnostic_only": bool(runtime["diagnostic"]),
+            "resume": bool(runtime["resume"]),
+            "cache_dir": str(effective_cache_dir),
+            "max_api_concurrency": int(runtime["max_api_concurrency"]),
+            "max_events": runtime["max_events"],
+            "event_ids": runtime["event_ids"],
+            "settings": selected_settings,
+        },
+    )
 
-    for setting in settings:
-        flags = ABLATION_SETTINGS.get(setting)
+    for setting in selected_settings:
+        flags = dict(ABLATION_SETTINGS.get(setting) or {})
         if flags is None:
             print(f"  [SKIP] unknown ablation setting: {setting}")
             continue
+        if not flags:
+            print(f"  [SKIP] unknown ablation setting: {setting}")
+            continue
+        if runtime["skip_llm_verifier"]:
+            flags["verifier_mode"] = "id_only"
+            flags["use_verifier_quality_gate"] = False
 
         setting_dir = runs_dir / f"ablation_{setting}"
 
@@ -766,18 +1213,39 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
             evidence_count=len(evidence),
             gold_count=len(gold),
             flags=flags,
+            diagnostic_only=bool(runtime["diagnostic"]),
+            runtime_options=runtime_options,
         )
         _write_prompt_manifest(setting_dir, config, flags)
+        reuse_source_setting = _attribution_reuse_source(setting, completed_setting_dirs)
+        reuse_source_dir = completed_setting_dirs.get(reuse_source_setting) if reuse_source_setting else None
+        if reuse_source_setting and reuse_source_dir is not None:
+            reuse[setting] = _write_reuse_manifest(
+                setting_dir,
+                setting=setting,
+                source_setting=reuse_source_setting,
+                source_dir=reuse_source_dir,
+                reason="same_attribution_inputs_verifier_only_change",
+            )
+            reuse[setting]["source_setting"] = reuse_source_setting
 
         print(f"  [RUN] {setting} → {setting_dir}")
         verified, _retrieval_metrics, _verifier_metrics = _run_core_pipeline(
             events, evidence, gold, gold_chains, config, setting_dir, llm_client,
+            cache_dir=effective_cache_dir,
+            resume=bool(runtime["resume"]),
+            max_api_concurrency=int(runtime["max_api_concurrency"]),
+            reuse_attribution_dir=reuse_source_dir,
+            run_id=f"ablation_{setting}",
+            output_dir=setting_dir,
+            diagnostic_only=bool(runtime["diagnostic"]),
             **{key: value for key, value in flags.items() if key in PIPELINE_FLAG_KEYS},
         )
 
         metrics = evaluate_ablation(gold, verified, verifier_enabled=bool(flags["use_verifier"]))
         scoring_scope = _write_scoring_artifacts(setting_dir, gold, verified)
         all_metrics[setting] = metrics
+        completed_setting_dirs[setting] = setting_dir
 
         (setting_dir / "metrics.json").write_text(
             json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -785,6 +1253,7 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
         (setting_dir / "scoring_scope.json").write_text(
             json.dumps(scoring_scope, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
+        _write_ablation_csv(runs_dir / "ablation_results.csv", all_metrics)
 
         print(f"  [{setting}] Tuple-F1-soft={metrics.get('Tuple-F1-soft', 'N/A')}, "
               f"Num-Tuples={metrics.get('Num-Tuples', 'N/A')}")
@@ -795,12 +1264,12 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
     delta_paths = write_ablation_delta_audits(
         runs_dir=runs_dir,
         gold_tuples=gold,
-        settings=[setting for setting in CHAIN_ABLATION_SETTINGS if setting in settings],
+        settings=[setting for setting in CHAIN_ABLATION_SETTINGS if setting in selected_settings],
     )
     audit_report_path = write_ablation_audit_report(
         runs_dir=runs_dir,
-        settings=settings,
-        flags_by_setting={setting: ABLATION_SETTINGS.get(setting, {}) for setting in settings},
+        settings=selected_settings,
+        flags_by_setting={setting: ABLATION_SETTINGS.get(setting, {}) for setting in selected_settings},
     )
 
     summary = {
@@ -809,8 +1278,17 @@ def run_ablation_pipeline(config_path: str | Path, force: bool = False) -> dict:
         "timestamp": timestamp,
         "git_commit": git_commit,
         "force": force,
+        "resume": bool(runtime["resume"]),
+        "diagnostic_only": bool(runtime["diagnostic"]),
+        "runs_dir": str(runs_dir),
+        "cache_dir": str(effective_cache_dir),
+        "max_api_concurrency": int(runtime["max_api_concurrency"]),
+        "max_events": runtime["max_events"],
+        "event_ids": runtime["event_ids"],
+        "skip_llm_verifier": bool(runtime["skip_llm_verifier"]),
         "settings": list(all_metrics.keys()),
         "metrics": all_metrics,
+        "reuse": reuse,
         "delta_audits": {setting: str(path) for setting, path in delta_paths.items()},
         "audit_report": str(audit_report_path),
     }

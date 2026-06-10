@@ -95,6 +95,7 @@ Evidence collection uses these source categories:
 
 - `news`: publicly accessible news pages
 - `official`: public government / institutional pages
+- `public_interaction`: government-citizen interaction platforms (领导留言板, 12345 hotlines, 政民互动)
 - `forum`: public forum and discussion pages
 - `public_social`: public social-media-related pages, search-indexed post snippets, or social-media content quoted by news/forums/aggregators
 - `public_web`: other publicly accessible web pages
@@ -133,12 +134,14 @@ src/episoa/
   data/          # Pydantic schemas, JSONL loader, validator
   collector/     # C-FSM evidence collection (heuristic planner, repair loop, search client, coverage extractor)
   graph/         # Evidence graph linking events through shared evidence
-  retrieval/     # Rule-based event-chain retriever (6 lifecycle stages)
-  attribution/   # Tuple generation from chains (LLM schema attributor + simple mapper)
-  verification/  # LLM-assisted faithfulness verifier
+  retrieval/     # Rule-based event-chain retriever (6 lifecycle stages) + evidence selector + deterministic reranker
+  attribution/   # Tuple generation from chains (LLM schema attributor; tuple_generator.py is deprecated)
+  verification/  # Full LLM-assisted faithfulness verifier (used by scripts and tests; pipeline uses verifier/ instead)
+  verifier/      # Pipeline-integrated faithfulness verifier (id_only and decomposed modes)
   evaluation/    # F1, support rate, ablation eval harnesses
   llm/           # Thin OpenAI-compatible client over httpx
   annotation/    # Gold dataset annotation tooling
+  utils/         # I/O helpers, logging configuration
   config.py      # PaperConfig dataclass, API key resolution
   pipeline.py    # Full paper pipeline orchestrator
   cli.py         # `episoa` CLI entry point
@@ -152,5 +155,5 @@ All intermediate artifacts (`raw/`, `interim/`, `annotation/`, `evidence.jsonl`,
 
 - `coverage.json` is a JSON snapshot (read with `json.load`, not as JSONL).
 - The collector writes planner diagnostics to `data/pubevent_soa_lite/interim/query_planner_debug.json`.
-- Paper runs write to `outputs/runs/{run_id}/` with predictable filenames (`metrics.json`, `summary.json`, `main_results.csv`, etc.).
+- Paper runs write to `outputs/runs_human_gold_v2/{run_id}/` (configured in `paper.yaml`) with predictable filenames (`metrics.json`, `summary.json`, `main_results.csv`, etc.).
 - `events.jsonl` must contain only accepted concrete public events with factual locations, time windows, triggers, structured anchor entities, anchor URLs, source scopes, and query seeds.

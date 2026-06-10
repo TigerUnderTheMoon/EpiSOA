@@ -44,10 +44,14 @@ data/pubevent_soa_lite/events.jsonl    (formal event registry)
   → scripts/normalize_evidence.py      (QC, dedup, source classification)
   → scripts/make_annotation_sheet.py   (CSV for annotators)
   → scripts/run_llm_gold_preannotation.py
-  → scripts/build_gold_review_sheets.py
-  → scripts/convert_review_sheets_to_gold.py → gold_tuples.jsonl
+  → scripts/export_silver_benchmark.py
+  → scripts/build_human_adjudication_sheet.py
+  # after human review:
+  → scripts/convert_adjudication_to_human_gold.py
+  → scripts/audit_human_gold.py
   → scripts/validate_gold_dataset.py
   → scripts/run_paper_experiment.py    (full EpiSOA pipeline)
+  → scripts/run_ablation.py --config configs/ablation.yaml --force
 ```
 
 All intermediate artifacts (raw/, interim/, annotation/, evidence.jsonl, gold_*.jsonl, outputs/) are gitignored. Use `scripts/reset_workspace.py` to return to a clean data skeleton.
@@ -60,8 +64,9 @@ All intermediate artifacts (raw/, interim/, annotation/, evidence.jsonl, gold_*.
 | `collector/` | C-FSM evidence collection — heuristic query planner (`query_planner.py`), coverage-based repair loop (`cfsm_collector.py`), search API client (`search_client.py`), rule-based source/stakeholder/stance/temporal coverage extraction (`coverage_extractor.py`) |
 | `graph/` | Builds evidence graphs linking events through shared evidence |
 | `retrieval/` | Rule-based event-chain retrieval (`EventChainRetriever`) that scores evidence into 6 lifecycle stages (trigger, diffusion, conflict, response, resolution, follow_up) using keyword matching, source priors, and stakeholder signals. No LLM or gold labels involved. |
-| `attribution/` | Generates candidate `<stakeholder, opinion, sentiment>` tuples from retrieved chains. `schema_attributor.py` uses LLM; `tuple_generator.py` is a simple evidence-to-prediction mapper. |
-| `verification/` | LLM-assisted faithfulness verifier that checks each candidate tuple against evidence text. Strict Chinese prompts, JSON-only output, rule pre-checks before LLM calls. |
+| `attribution/` | Generates candidate `<stakeholder, opinion, sentiment>` tuples from retrieved chains. `schema_attributor.py` uses LLM for two-pass stakeholder-canonical attribution. |
+| `verification/` | Full LLM-assisted faithfulness verifier (used by scripts and tests). The runtime pipeline uses `verifier/` instead. |
+| `verifier/` | Pipeline-integrated faithfulness verifier (id_only and decomposed modes). |
 | `evaluation/` | F1, support rate metrics; evaluation harnesses for main, ablation, retrieval, and verifier. |
 | `llm/` | Thin `OpenAICompatibleClient` over httpx — accepts system/user prompts, returns raw text. No LangChain. |
 | `annotation/` | Gold dataset annotation tooling (preannotation prompts, review sheet builders, gold export). |
@@ -112,7 +117,7 @@ python scripts/validate_gold_dataset.py
 
 # Run experiments after paper_data_ready=true
 python scripts/run_paper_experiment.py --config configs/paper.yaml
-python scripts/run_ablation.py --config configs/ablation.yaml
+python scripts/run_ablation.py --config configs/ablation.yaml --force
 
 # Reset workspace
 python scripts/reset_workspace.py

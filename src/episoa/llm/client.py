@@ -42,6 +42,12 @@ class OpenAICompatibleClient:
         self.max_tokens = max_tokens
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
+        self._client: httpx.Client | None = None
+
+    def _get_client(self) -> httpx.Client:
+        if self._client is None:
+            self._client = httpx.Client(timeout=httpx.Timeout(self.timeout_seconds))
+        return self._client
 
     def chat(
         self,
@@ -67,23 +73,22 @@ class OpenAICompatibleClient:
         attempts = max(1, self.max_retries + 1)
         for attempt in range(attempts):
             try:
-                with httpx.Client(timeout=httpx.Timeout(self.timeout_seconds)) as client:
-                    response = client.post(
-                        url,
-                        headers={
-                            "Authorization": f"Bearer {self.api_key}",
-                            "Content-Type": "application/json",
-                        },
-                        json=payload,
-                    )
-                    response.raise_for_status()
-                    raw = response.json()
-                    content = raw.get("choices", [{}])[0].get("message", {}).get("content", "")
-                    return LLMResponse(
-                        content=str(content or ""),
-                        response_id=str(raw.get("id", "")),
-                        raw=raw,
-                    )
+                response = self._get_client().post(
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+                response.raise_for_status()
+                raw = response.json()
+                content = raw.get("choices", [{}])[0].get("message", {}).get("content", "")
+                return LLMResponse(
+                    content=str(content or ""),
+                    response_id=str(raw.get("id", "")),
+                    raw=raw,
+                )
             except (httpx.HTTPStatusError, httpx.HTTPError, ValueError) as exc:
                 last_error = exc
                 if response_format and attempt == 0 and _looks_like_response_format_error(exc):
