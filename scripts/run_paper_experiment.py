@@ -11,9 +11,37 @@ from episoa.pipeline import run_paper_pipeline
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/paper.yaml")
+    parser.add_argument("--resume", action="store_true", default=None)
+    parser.add_argument("--max-api-concurrency", type=int, default=None)
+    parser.add_argument("--cache-dir", default=None)
+    parser.add_argument("--diagnostic", action="store_true", default=None)
+    parser.add_argument("--max-events", type=int, default=None)
+    parser.add_argument("--event-ids", default=None, help="Comma-separated event IDs for diagnostic runs")
+    parser.add_argument("--skip-llm-verifier", action="store_true", default=None)
     args = parser.parse_args(argv)
-    print(json.dumps(run_paper_pipeline(args.config), ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            run_paper_pipeline(
+                args.config,
+                resume=args.resume,
+                max_api_concurrency=args.max_api_concurrency,
+                cache_dir=args.cache_dir,
+                diagnostic=args.diagnostic,
+                max_events=args.max_events,
+                event_ids=_split_csv(args.event_ids),
+                skip_llm_verifier=args.skip_llm_verifier,
+            ),
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
+
+
+def _split_csv(value: str | None) -> list[str] | None:
+    if value is None:
+        return None
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 if __name__ == "__main__":

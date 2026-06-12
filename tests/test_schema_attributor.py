@@ -5,7 +5,9 @@ import pytest
 from episoa.attribution.schema_attributor import (
     MAX_OPINION_CHARS,
     MAX_RATIONALE_CHARS,
+    PROMPT_VERSION,
     SchemaAttributor,
+    _write_attribution_cache,
     assert_no_total_api_failure,
     build_event_stakeholder_inventory,
     canonicalize_tuple_rows,
@@ -17,6 +19,7 @@ from episoa.attribution.schema_attributor import (
     select_prompt_evidence,
     stakeholder_candidates_by_event,
 )
+from episoa.verifier.faithfulness_verifier import _write_verifier_cache
 
 
 class FakeLLMClient:
@@ -40,6 +43,10 @@ class FailingLLMClient:
     def chat(self, **kwargs):
         self.calls += 1
         raise RuntimeError(self.message)
+
+
+def test_formal_attribution_prompt_version_matches_cache_contract():
+    assert PROMPT_VERSION == "schema_attribution_v3_stakeholder_canonical_json"
 
 
 def test_prompt_contains_event_and_evidence_id():
@@ -287,6 +294,7 @@ def test_empty_llm_content_retries_with_short_prompt(tmp_path):
         model_name="fake",
         output_dir=tmp_path,
         dry_run=False,
+        method_version="legacy",
     )
 
     assert fake.calls == 2
@@ -306,12 +314,36 @@ def test_total_api_failure_guard_raises(tmp_path):
         model_name="fake",
         output_dir=tmp_path,
         dry_run=False,
+        method_version="legacy",
     )
 
     assert fake.calls == 1
     assert summary["num_api_calls"] == 0
     assert summary["num_api_failures"] == 1
     with pytest.raises(RuntimeError, match="zero successful API calls"):
+        assert_no_total_api_failure(summary, tmp_path)
+
+
+def test_total_parse_failure_guard_raises(tmp_path):
+    fake = FakeLLMClient("")
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="legacy",
+    )
+
+    assert fake.calls == 2
+    assert summary["num_api_calls"] == 2
+    assert summary["num_tuples_generated"] == 0
+    assert summary["parse_failed_events"] == ["E012"]
+    with pytest.raises(RuntimeError, match="zero parsed attribution tuples"):
         assert_no_total_api_failure(summary, tmp_path)
 
 
@@ -375,6 +407,7 @@ def test_output_candidate_tuple_fields_are_complete(tmp_path):
         model_name="fake",
         output_dir=tmp_path,
         dry_run=False,
+        method_version="legacy",
     )
 
     rows = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -408,6 +441,68 @@ def test_output_candidate_tuple_fields_are_complete(tmp_path):
     assert (tmp_path / "canonicalization_map.csv").exists()
     assert (tmp_path / "raw_llm_responses.jsonl").exists()
     assert rows[0]["canonical_tuple"] is True
+
+
+def test_canonicalization_preserves_specific_actor_over_generic_inventory():
+    rows = [
+        {
+            "event_id": "E999",
+            "tuple_id": "E999_SOA_001",
+            "stakeholder": "金钻豪园项目业主",
+            "stakeholder_aliases": [],
+            "opinion": "质疑旧改停滞并要求明确后续安排。",
+            "sentiment": "negative",
+            "rationale": "业主持续追问项目进展。",
+            "evidence_ids": ["ev-1"],
+        }
+    ]
+
+    canonical_rows, diagnostics = canonicalize_tuple_rows(
+        rows,
+        event=event_row(),
+        stakeholder_candidates=["业主", "企业/开发商"],
+        evidence_items=[evidence_row("ev-1")],
+    )
+
+    assert canonical_rows[0]["stakeholder"] == "金钻豪园项目业主"
+    assert canonical_rows[0]["canonicalization_reason"] == "specific_stakeholder_preserved"
+    assert diagnostics["canonicalization_map"][0]["canonical_stakeholder"] == "金钻豪园项目业主"
+
+
+def test_canonicalization_preserves_specific_actor_over_short_inventory_name():
+    rows = [
+        {
+            "event_id": "E999",
+            "tuple_id": "E999_SOA_001",
+            "stakeholder": "美吉姆（中国）总部",
+            "stakeholder_aliases": [],
+            "opinion": "承诺支持加盟中心继续经营并处理退费。",
+            "sentiment": "neutral",
+            "rationale": "品牌总部发布声明。",
+            "evidence_ids": ["ev-1"],
+        }
+    ]
+
+    canonical_rows, diagnostics = canonicalize_tuple_rows(
+        rows,
+        event=event_row(),
+        stakeholder_candidates=["美吉姆"],
+        evidence_items=[evidence_row("ev-1")],
+    )
+
+    assert canonical_rows[0]["stakeholder"] == "美吉姆（中国）总部"
+    assert canonical_rows[0]["canonicalization_reason"] == "specific_stakeholder_preserved"
+    assert diagnostics["canonicalization_map"][0]["canonical_stakeholder"] == "美吉姆（中国）总部"
+
+
+def test_cache_write_failures_are_best_effort(monkeypatch, tmp_path):
+    def deny_replace(self, target):
+        raise PermissionError("locked cache")
+
+    monkeypatch.setattr("pathlib.Path.replace", deny_replace)
+
+    _write_attribution_cache(tmp_path / "attribution.json", {"record": {}, "tuples": [], "stage_candidates": []})
+    _write_verifier_cache(tmp_path / "verifier.json", {"score": 1.0})
 
 
 def test_soe_v3_two_pass_writes_stage_candidates_and_final_tuples(tmp_path):
@@ -465,6 +560,169 @@ def test_soe_v3_two_pass_falls_back_to_single_pass_after_stage_parse_failure(tmp
     assert summary["num_api_calls"] == 3
     assert candidates[0]["attribution_pass"] == "legacy_single_pass"
     assert raw_rows[0]["request_summary"]["fallback_mode"] == "legacy_single_pass"
+
+
+def test_soe_v3_two_pass_falls_back_to_single_pass_after_empty_stage_candidates(tmp_path):
+    fake = FakeLLMClient([empty_stage_payload(), valid_payload()])
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="soe_v3",
+        selector_mode="coverage_optimized",
+        use_stage_attribution=True,
+    )
+
+    candidates = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
+    raw_rows = [json.loads(line) for line in (tmp_path / "raw_llm_responses.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert fake.calls == 2
+    assert summary["num_api_calls"] == 2
+    assert summary["empty_tuple_events"] == []
+    assert candidates[0]["attribution_pass"] == "legacy_single_pass"
+    assert raw_rows[0]["request_summary"]["fallback_mode"] == "legacy_single_pass"
+    assert raw_rows[0]["request_summary"]["fallback_reason"] == "empty_stage_candidates"
+    assert raw_rows[0]["request_summary"]["stage_candidate_count"] == 0
+
+
+def test_canonical_merge_prompt_requires_cross_stage_stakeholder_merge():
+    attributor = SchemaAttributor(llm_client=None, model_name="fake")
+
+    _system_prompt, user_prompt = attributor.build_canonical_merge_prompt(
+        event=event_row(),
+        evidence_items=[prompt_evidence("ev-1"), prompt_evidence("ev-2")],
+        stage_candidates=json.loads(duplicate_stage_payload())["stage_candidates"],
+        stakeholder_candidates=["parents"],
+    )
+
+    assert "Cross-stage merge guard" in user_prompt
+    assert "Do not copy stage-specific candidates into one final tuple per stage" in user_prompt
+    assert "opinion_split_reason" in user_prompt
+
+
+def test_two_pass_merge_deduplicates_same_stakeholder_stage_variants(tmp_path):
+    fake = FakeLLMClient([duplicate_stage_payload(), duplicate_merge_payload()])
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1"), evidence_row("ev-2")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="soe_v3",
+        selector_mode="coverage_optimized",
+        use_stage_attribution=True,
+    )
+
+    candidates = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert fake.calls == 2
+    assert summary["num_stage_soa_candidates"] == 2
+    assert len(candidates) == 1
+    assert candidates[0]["stakeholder"] == "parents"
+    assert candidates[0]["stage_candidate_ids"] == ["E012_STAGE_001", "E012_STAGE_002"]
+
+
+def test_two_pass_event_level_safety_net_prefers_event_level_and_supplements_stage(tmp_path):
+    fake = FakeLLMClient([stage_payload(), merge_payload(), safety_net_payload()])
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1"), evidence_row("ev-2")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="soe_v3",
+        selector_mode="coverage_optimized",
+        use_stage_attribution=True,
+        use_event_level_safety_net=True,
+    )
+
+    candidates = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
+    raw_rows = [json.loads(line) for line in (tmp_path / "raw_llm_responses.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert fake.calls == 3
+    assert summary["num_api_calls"] == 3
+    assert len(candidates) == 2
+    parents = next(row for row in candidates if row["stakeholder"] == "parents")
+    school = next(row for row in candidates if row["stakeholder"] == "school")
+    assert parents["opinion"] == "parents report food safety problems"
+    assert parents["attribution_pass"] == "soe_v3_event_level_safety_net"
+    assert parents["stage_candidate_ids"] == ["E012_STAGE_001"]
+    assert school["attribution_pass"] == "soe_v3_event_level_safety_net"
+    assert raw_rows[0]["request_summary"]["event_level_safety_net"] is True
+    assert raw_rows[0]["request_summary"]["event_level_safety_net_tuple_count"] == 2
+    assert raw_rows[0]["request_summary"]["stage_merge_tuple_count"] == 1
+    assert raw_rows[0]["request_summary"]["parsed_tuple_count"] == 2
+
+
+def test_two_pass_event_level_safety_net_is_opt_in(tmp_path):
+    fake = FakeLLMClient([stage_payload(), merge_payload(), safety_net_payload()])
+
+    run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1"), evidence_row("ev-2")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="soe_v3",
+        selector_mode="coverage_optimized",
+        use_stage_attribution=True,
+        use_event_level_safety_net=False,
+    )
+
+    raw_rows = [json.loads(line) for line in (tmp_path / "raw_llm_responses.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert fake.calls == 2
+    assert "event_level_safety_net" not in raw_rows[0]["request_summary"]
+
+
+def test_two_pass_hybrid_refinement_reconciles_stage_and_event_level_outputs(tmp_path):
+    fake = FakeLLMClient([stage_payload(), merge_payload(), safety_net_payload(), refined_payload()])
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1"), evidence_row("ev-2")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="soe_v3",
+        selector_mode="coverage_optimized",
+        use_stage_attribution=True,
+        use_event_level_safety_net=True,
+        use_hybrid_refinement=True,
+    )
+
+    candidates = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
+    raw_rows = [json.loads(line) for line in (tmp_path / "raw_llm_responses.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert fake.calls == 4
+    assert summary["num_api_calls"] == 4
+    assert len(candidates) == 1
+    assert candidates[0]["stakeholder"] == "parents"
+    assert candidates[0]["opinion"] == "parents request a cafeteria safety explanation"
+    assert candidates[0]["attribution_pass"] == "soe_v3_hybrid_refinement"
+    assert raw_rows[0]["request_summary"]["hybrid_refinement"] is True
+    assert raw_rows[0]["request_summary"]["hybrid_refinement_tuple_count"] == 1
+    assert "hybrid_refinement" in json.loads(raw_rows[0]["raw_response"])
 
 
 def test_parse_stage_response_accepts_stage_candidates():
@@ -650,10 +908,92 @@ def stage_payload() -> str:
     )
 
 
+def empty_stage_payload() -> str:
+    return json.dumps({"event_id": "E012", "stage_candidates": []}, ensure_ascii=False)
+
+
+def duplicate_stage_payload() -> str:
+    return json.dumps(
+        {
+            "event_id": "E012",
+            "stage_candidates": [
+                {
+                    "stage_candidate_id": "E012_STAGE_001",
+                    "stakeholder": "parents",
+                    "opinion": "report food safety concerns",
+                    "sentiment": "negative",
+                    "event_chain_stage": "conflict",
+                    "rationale": "parents reported foreign objects in meals",
+                    "evidence_ids": ["ev-1"],
+                    "evidence_spans": [{"evidence_id": "ev-1", "char_start": 0, "char_end": 12, "text": "parents reported"}],
+                    "confidence": 0.8,
+                },
+                {
+                    "stage_candidate_id": "E012_STAGE_002",
+                    "stakeholder": "parents",
+                    "opinion": "report food safety concerns",
+                    "sentiment": "negative",
+                    "event_chain_stage": "response",
+                    "rationale": "parents requested school explanation",
+                    "evidence_ids": ["ev-2"],
+                    "evidence_spans": [{"evidence_id": "ev-2", "char_start": 0, "char_end": 12, "text": "parents requested"}],
+                    "confidence": 0.78,
+                },
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+
 def merge_payload() -> str:
     payload = json.loads(valid_payload())
     payload["tuples"][0]["stage_candidate_ids"] = ["E012_STAGE_001"]
     return json.dumps(payload, ensure_ascii=False)
+
+
+def duplicate_merge_payload() -> str:
+    first = canonical_tuple(
+        "parents",
+        "report food safety concerns",
+        "stakeholder_001",
+        evidence_ids=["ev-1"],
+    )
+    second = canonical_tuple(
+        "parents",
+        "report food safety concerns",
+        "stakeholder_002",
+        evidence_ids=["ev-2"],
+    )
+    first["stage_candidate_ids"] = ["E012_STAGE_001"]
+    second["stage_candidate_ids"] = ["E012_STAGE_002"]
+    return json.dumps({"event_id": "E012", "tuples": [first, second]}, ensure_ascii=False)
+
+
+def safety_net_payload() -> str:
+    parents = canonical_tuple(
+        "parents",
+        "parents report food safety problems",
+        "stakeholder_001",
+        evidence_ids=["ev-1"],
+    )
+    school = canonical_tuple(
+        "school",
+        "school says it will inspect the cafeteria and explain the situation",
+        "stakeholder_002",
+        evidence_ids=["ev-2"],
+    )
+    return json.dumps({"event_id": "E012", "tuples": [parents, school]}, ensure_ascii=False)
+
+
+def refined_payload() -> str:
+    parents = canonical_tuple(
+        "parents",
+        "parents request a cafeteria safety explanation",
+        "stakeholder_001",
+        evidence_ids=["ev-1"],
+    )
+    parents["stage_candidate_ids"] = ["E012_STAGE_001"]
+    return json.dumps({"event_id": "E012", "tuples": [parents]}, ensure_ascii=False)
 
 
 def canonical_tuple(

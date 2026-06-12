@@ -11,6 +11,11 @@ data:
   gold_event_chains_path: data/pubevent_soa_lite/human_gold_v2/human_gold_event_chains_v2.jsonl
 output:
   runs_dir: outputs/runs_human_gold_v2
+runtime:
+  resume: false
+  max_api_concurrency: 4
+  cache_dir: outputs/cache/pipeline
+  diagnostic: false
 ablation:
   method_version: soe_v3
   max_evidence_per_event: 24

@@ -32,14 +32,14 @@ def run_command(cmd, label, timeout=3600):
 r1 = run_command(
     f"{sys.executable} scripts/run_paper_experiment.py --config configs/paper.yaml",
     "Paper experiment (full_soe)",
-    timeout=3600,
+    timeout=7200,
 )
 
 # 2. Rerun ablation (without_soe_graph + direct_llm only)
 r2 = run_command(
-    f"{sys.executable} scripts/run_ablation.py --config configs/paper.yaml --force",
+    f"{sys.executable} scripts/run_ablation.py --config configs/ablation.yaml --force",
     "Ablation experiment (all settings)",
-    timeout=7200,
+    timeout=36000,
 )
 
 # 3. Evaluate results

@@ -93,3 +93,28 @@ search:
 
     assert status["model"]["api_key_masked"] == "dumm***abcd"
     assert "dummy-api-key-abcd" not in str(status)
+
+
+def test_load_config_reads_runtime_options(tmp_path):
+    config_path = tmp_path / "paper.yaml"
+    config_path.write_text(
+        """
+run_id: test
+mode: paper
+data: {}
+output: {}
+runtime:
+  resume: true
+  max_api_concurrency: 2
+  cache_dir: outputs/cache/custom
+model: {}
+search: {}
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.runtime["resume"] is True
+    assert config.runtime["max_api_concurrency"] == 2
+    assert config.runtime["cache_dir"] == "outputs/cache/custom"

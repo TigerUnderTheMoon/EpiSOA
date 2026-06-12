@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import csv
+import hashlib
 import json
 import re
 import sys
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +22,7 @@ from episoa.retrieval.evidence_selector import SELECTOR_MODES, select_evidence_f
 
 
 PROMPT_VERSION = "schema_attribution_v3_stakeholder_canonical_json"
-METHOD_VERSION = "soe_v2"
+LEGACY_METHOD_VERSION = "legacy"  # pre-soe_v3 single-pass attribution
 SOE_V3_METHOD_VERSION = "soe_v3"
 ATTRIBUTION_MODE = "stakeholder_canonical"
 MAX_TUPLES_PER_EVENT = 8
@@ -48,15 +52,29 @@ GENERIC_STAKEHOLDER_LABELS = {
     "社会",
     "社会公众",
     "社会舆论",
-    "居民",
-    "市民",
-    "群众",
-    "大众",
-    "民众",
-    "老百姓",
-    "社区居民",
     "公众/网友",
     "公众质疑者",
+}
+GENERIC_ACTOR_CANONICAL_LABELS = {
+    "业主",
+    "居民",
+    "住户",
+    "村民",
+    "公众",
+    "网友",
+    "学生",
+    "家长",
+    "患者",
+    "专家",
+    "律师",
+    "开发商",
+    "物业公司",
+    "企业/开发商",
+    "专家/律师",
+    "居民/公众",
+    "居民/公众_泛指",
+    "公众/网友",
+    "公安机关",
 }
 PSEUDO_STAKEHOLDER_TERMS = ("项目", "事件", "事故", "风波", "舆情", "报道", "新闻", "文章", "方案")
 ISSUE_DESCRIPTOR_TERMS = ("安全", "治理", "处置", "争议", "问题", "抽成")
@@ -115,6 +133,16 @@ SPECIFIC_ACTOR_TERMS = (
     "村委",
     "党委",
     "协会",
+    "总部",
+    "品牌方",
+    "门店",
+    "员工",
+    "教师",
+    "院方",
+    "平台",
+    "检测机构",
+    "工作人员",
+    "负责人",
 )
 
 SCHEMA_ATTRIBUTION_RESPONSE_FORMAT = json_schema_response_format(
@@ -246,7 +274,7 @@ Rules:
 8. Prefer stakeholder names from stakeholder_candidates when they fit the evidence, but you may add an evidence-supported stakeholder missing from the list.
 9. stakeholder must be an actor or affected group. Do not use project names, event names, media reports, articles, generic "government department", "relevant department", or "implementing unit" as stakeholders.
 10. Use gold-style canonical stakeholder names: concrete institution/person/group when available, otherwise concise affected group labels. Prefer the stakeholder_candidates inventory as the canonical name list.
-11. Do NOT merge different organizations, agencies, or distinct actor groups into generic labels like "居民/公众". Prefer specific names: "美心翡翠明庭小区业主" over "居民/公众", "三元里村党委及村集体" over "三元里村".
+11. Prefer specific names over generic labels when the evidence supports them: "美心翡翠明庭小区业主" over "居民/公众". However, do NOT omit a stakeholder entirely just because the evidence only provides a generic label like "业主" or "居民" — output the generic label rather than dropping the tuple.
 12. sentiment must be positive, negative, neutral, or mixed. Use mixed when the same stakeholder has both support/benefit and concern/opposition in the evidence. Do NOT use neutral when evidence shows both positive and negative sentiments — use mixed instead.
 13. Official policy release, investigation, response, supervision, or corrective action is neutral unless the evidence explicitly states support/satisfaction/praise or criticism/blame.
 14. opinion should be specific and detailed. Include the stakeholder's concrete action, stance, or reasoning — not just "expressed concern" or "responded". Target 50-150 characters when possible.
@@ -331,7 +359,7 @@ JSON schema:
 NO_CHAIN_USER_PROMPT_TEMPLATE = """Task: Extract stakeholder-canonical SOA tuples from the event and evidence below.
 Use only the provided evidence. Do not use external knowledge. Do not invent stakeholders, opinions, rationales, or evidence IDs.
 Identify distinct stakeholder clusters, output one canonical tuple per evidence-supported stakeholder by default, and split the same stakeholder only for different opinions/actions with opinion_split_reason.
-Do NOT merge different organizations, agencies, or distinct actor groups into generic labels like "居民/公众". Prefer specific names from the evidence.
+Prefer specific names over generic labels when the evidence supports them. However, do NOT omit a stakeholder entirely just because the evidence only provides a generic label — output the generic label rather than dropping the tuple.
 Return strict JSON only.
 
 event_id: {event_id}
@@ -413,7 +441,7 @@ Rules:
 3. stakeholder must be an actor or affected group, not a project/event/media-report title or generic "government department/relevant department/implementing unit" label.
 4. Keep opinion and rationale concise but complete enough to preserve the stakeholder's core stance/action.
 5. If no stage-level stakeholder opinion/action is supported, return an empty stage_candidates list.
-6. Do NOT use generic labels like "居民/公众" as stakeholder when a more specific actor name is available in the evidence. Prefer "美心翡翠明庭小区业主" over "居民/公众".
+6. Prefer specific stakeholder names over generic labels when the evidence supports them. Do NOT omit a stakeholder entirely just because the evidence only provides a generic label like "业主" or "居民" — output the generic label rather than dropping the tuple.
 7. opinion should include the stakeholder's specific action, stance, or causal reasoning — not just "expressed concern" or "responded". Target 50-150 characters when possible.
 
 event:
@@ -458,9 +486,10 @@ Rules:
 5. Do not invent stakeholders, opinions, evidence IDs, or stage_candidate_ids.
 6. Final stakeholder must be an actor or affected group, not a project/event/media-report title or generic "government department/relevant department/implementing unit" label.
 7. Use stakeholder_candidates as the canonical event-level inventory whenever a candidate fits the evidence.
-8. Do NOT merge stakeholders from different organizations, agencies, or distinct actor groups into a generic label like "居民/公众" unless the evidence explicitly presents them as a unified bloc. Prefer specific entity names from the evidence over generic labels from stakeholder_candidates — for example, prefer "美心翡翠明庭小区业主" over "居民/公众", prefer "三元里村党委及村集体" over "三元里村".
+8. Prefer specific entity names over generic labels when the evidence supports them. Do NOT merge stakeholders from different organizations into a generic label unless the evidence explicitly presents them as a unified bloc. However, do NOT drop a tuple just because its stakeholder label is generic — keep it.
 9. When merging stage candidates with conflicting sentiments (e.g., one positive and one negative), use "mixed" instead of "neutral". Do NOT downgrade conflicting sentiments to neutral.
 10. Each opinion should be detailed and specific. Include what the stakeholder DID or SAID, their concrete stance or demand, and any numbers/dates/policy names. BAD: "expressed concern". GOOD: "要求开发商公开检测报告并退房退款，认为精装房质量与宣传严重不符". Target 50-200 characters.
+11. Cross-stage merge guard: merge same-stakeholder candidates across stages when they describe the same concrete stance, action, demand, or issue. Do not copy stage-specific candidates into one final tuple per stage. Prefer one event-level or mixed-stage canonical tuple whose stage_candidate_ids preserves all supporting stage candidates; split only for genuinely different opinions/actions and explain with opinion_split_reason.
 
 event:
 event_id: {event_id}
@@ -500,6 +529,61 @@ JSON schema:
 }}"""
 
 
+HYBRID_REFINEMENT_USER_PROMPT_TEMPLATE = """Task: Reconcile SOE stage candidates and event-level candidates into final stakeholder-canonical SOA tuples.
+Use only the candidate_tuples, stage_candidates, and evidence below. Return strict JSON only.
+
+Rules:
+1. Treat candidate_tuples as noisy candidates, not as gold. Keep only tuples directly supported by the evidence.
+2. Prefer one event-level canonical tuple per distinct stakeholder and stance/action.
+3. Merge duplicated candidates for the same stakeholder when their opinions describe the same concrete issue, demand, response, or action.
+4. Split the same stakeholder only for clearly different evidence-supported opinions/actions and explain with opinion_split_reason.
+5. Prefer concise gold-style stakeholder names from stakeholder_candidates when they fit the evidence.
+6. Prefer concise gold-style opinions: include the stakeholder, concrete stance/action/demand/response, and key object; avoid long evidence summaries and avoid generic phrases like "expressed concern" or "responded".
+7. Preserve all supporting evidence_ids and relevant stage_candidate_ids from merged candidates.
+8. Do not invent stakeholders, opinions, evidence IDs, or stage_candidate_ids.
+9. Final stakeholder must be an actor or affected group, not a project/event/media-report title or generic "government department/relevant department/implementing unit" label.
+
+event:
+event_id: {event_id}
+event_name: {event_name}
+event_description: {event_description}
+
+candidate_tuples:
+{candidate_tuples}
+
+stage_candidates:
+{stage_candidates}
+
+evidence:
+{stage_evidence_blocks}
+
+stakeholder_candidates:
+{stakeholder_candidates}
+
+JSON schema:
+{{
+  "event_id": "{event_id}",
+  "tuples": [
+    {{
+      "stakeholder_cluster_id": "stakeholder_001",
+      "stakeholder": "canonical stakeholder name",
+      "stakeholder_aliases": ["aliases merged into this stakeholder"],
+      "opinion": "final evidence-supported opinion or action",
+      "sentiment": "positive|negative|neutral|mixed",
+      "rationale": "short evidence-grounded rationale",
+      "evidence_ids": ["evidence_id shown above"],
+      "event_chain_stage": "trigger|diffusion|conflict|response|resolution|follow_up|mixed|unknown",
+      "support_status": "candidate_supported|candidate_partially_supported|candidate_unclear",
+      "confidence": 0.0,
+      "canonical_tuple": true,
+      "opinion_split_reason": "",
+      "stakeholder_candidate_match_status": "matched|unmatched|no_candidates",
+      "stage_candidate_ids": ["{event_id}_STAGE_001"]
+    }}
+  ]
+}}"""
+
+
 @dataclass
 class ParseResult:
     tuples: list[dict[str, Any]]
@@ -516,7 +600,7 @@ class SchemaAttributor:
         model_name: str,
         prompt_version: str = PROMPT_VERSION,
         max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
-        method_version: str = METHOD_VERSION,
+        method_version: str = SOE_V3_METHOD_VERSION,
     ):
         self.llm_client = llm_client
         self.model_name = model_name
@@ -620,6 +704,8 @@ class SchemaAttributor:
         skip_chain_ranking: bool = False,
         enforce_candidate_constraints: bool = False,
         use_stage_attribution: bool = False,
+        use_event_level_safety_net: bool = False,
+        use_hybrid_refinement: bool = False,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         if use_stage_attribution:
             return self.attribute_event_two_pass(
@@ -632,6 +718,8 @@ class SchemaAttributor:
                 hide_chain_in_prompt=hide_chain_in_prompt,
                 skip_chain_ranking=skip_chain_ranking,
                 enforce_candidate_constraints=enforce_candidate_constraints,
+                use_event_level_safety_net=use_event_level_safety_net,
+                use_hybrid_refinement=use_hybrid_refinement,
             )
         system_prompt, user_prompt = self.build_prompt(
             event=event,
@@ -795,6 +883,30 @@ class SchemaAttributor:
             stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
         )
 
+    def build_hybrid_refinement_prompt(
+        self,
+        *,
+        event: dict[str, Any],
+        evidence_items: list[dict[str, Any]],
+        candidate_tuples: list[dict[str, Any]],
+        stage_candidates: list[dict[str, Any]],
+        stakeholder_candidates: list[str],
+        hide_chain_in_prompt: bool = False,
+    ) -> tuple[str, str]:
+        return SYSTEM_PROMPT, HYBRID_REFINEMENT_USER_PROMPT_TEMPLATE.format(
+            event_id=event.get("event_id", ""),
+            event_name=event.get("event_name", ""),
+            event_description=event.get("event_description", ""),
+            candidate_tuples=json.dumps(candidate_tuples, ensure_ascii=False, indent=2),
+            stage_candidates=json.dumps(stage_candidates, ensure_ascii=False, indent=2),
+            stage_evidence_blocks=format_stage_evidence_blocks(
+                evidence_items,
+                max_excerpt_chars=300,
+                hide_chain_fields=hide_chain_in_prompt,
+            ),
+            stakeholder_candidates=json.dumps(stakeholder_candidates, ensure_ascii=False),
+        )
+
     def attribute_event_two_pass(
         self,
         *,
@@ -807,6 +919,8 @@ class SchemaAttributor:
         hide_chain_in_prompt: bool = False,
         skip_chain_ranking: bool = False,
         enforce_candidate_constraints: bool = False,
+        use_event_level_safety_net: bool = False,
+        use_hybrid_refinement: bool = False,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         event_id = str(event.get("event_id", ""))
         selected_eids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
@@ -921,20 +1035,19 @@ class SchemaAttributor:
             if key != "canonicalization_map"
         }
         if not stage_parsed.tuples:
-            request_summary["parsed_tuple_count"] = 0
-            return [], raw_record(
-                event_id=event_id,
-                model_name=self.model_name,
-                request_summary=request_summary,
-                raw_response=json.dumps({"stage_extract": stage_raw, "canonical_merge": ""}, ensure_ascii=False),
-                parse_success=True,
-                parse_error=None,
-                parse_diagnostics={
-                    "stage_candidates": [],
-                    "stage_rejected_rows": stage_parsed.rejected_rows or [],
-                    "rejected_rows": [],
-                    "stage_canonicalization_map": stage_canonical_diagnostics.get("canonicalization_map", []),
-                },
+            return self._fallback_to_legacy_single_pass(
+                event=event,
+                chain=chain,
+                evidence_items=evidence_items,
+                stakeholder_candidates=stakeholder_candidates,
+                selection_metadata=selection_metadata,
+                dry_run=dry_run,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+                skip_chain_ranking=skip_chain_ranking,
+                enforce_candidate_constraints=enforce_candidate_constraints,
+                prior_api_calls=int(request_summary["api_calls_made"]),
+                fallback_reason="empty_stage_candidates",
+                stage_candidates=[],
             )
 
         merge_system, merge_user = self.build_canonical_merge_prompt(
@@ -1013,33 +1126,157 @@ class SchemaAttributor:
             if stage_spans:
                 row["evidence_spans"] = stage_spans
         request_summary["parsed_tuple_count"] = len(merge_parsed.tuples)
+        request_summary["stage_merge_tuple_count"] = len(merge_parsed.tuples)
         request_summary["rejected_tuple_count"] = len(merge_parsed.rejected_rows or [])
         request_summary["canonicalization"] = {
             key: value
             for key, value in merge_canonical_diagnostics.items()
             if key != "canonicalization_map"
         }
+
+        final_tuples = merge_parsed.tuples
+        safety_raw = None
+        safety_record: dict[str, Any] = {}
+        safety_canonical_diagnostics: dict[str, Any] = {}
+        if use_event_level_safety_net:
+            safety_tuples, safety_record = self.attribute_event(
+                event=event,
+                chain=chain,
+                evidence_items=evidence_items,
+                stakeholder_candidates=stakeholder_candidates,
+                selection_metadata=selection_metadata,
+                dry_run=dry_run,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+                skip_chain_ranking=skip_chain_ranking,
+                enforce_candidate_constraints=enforce_candidate_constraints,
+                use_stage_attribution=False,
+            )
+            request_summary["api_calls_made"] = int(request_summary["api_calls_made"]) + int(
+                safety_record.get("request_summary", {}).get("api_calls_made", 0) or 0
+            )
+            safety_tuples, safety_canonical_diagnostics = canonicalize_tuple_rows(
+                safety_tuples,
+                event=event,
+                stakeholder_candidates=stakeholder_candidates,
+                evidence_items=evidence_items,
+                stage_candidates=stage_parsed.tuples,
+            )
+            for row in safety_tuples:
+                row["attribution_pass"] = "soe_v3_event_level_safety_net"
+                if not row.get("stage_candidate_ids"):
+                    row["stage_candidate_ids"] = infer_stage_candidate_ids(row, stage_parsed.tuples)
+                stage_spans = evidence_spans_from_stage_candidates(
+                    row.get("stage_candidate_ids", []),
+                    stage_parsed.tuples,
+                    row.get("evidence_ids", []),
+                )
+                if stage_spans:
+                    row["evidence_spans"] = stage_spans
+            final_tuples = merge_event_level_safety_net_rows(
+                stage_rows=merge_parsed.tuples,
+                safety_rows=safety_tuples,
+                event_id=event_id,
+            )
+            request_summary["event_level_safety_net"] = True
+            request_summary["event_level_safety_net_tuple_count"] = len(safety_tuples)
+            request_summary["event_level_safety_net_merged_count"] = len(final_tuples)
+            request_summary["parsed_tuple_count"] = len(final_tuples)
+            request_summary["event_level_safety_net_parse_success"] = safety_record.get("parse_success")
+            request_summary["event_level_safety_net_parse_error"] = safety_record.get("parse_error")
+            safety_raw = safety_record.get("raw_response", "")
         request_summary["supplemented_stakeholders"] = sorted(
             {
                 str(row.get("stakeholder", ""))
-                for row in merge_parsed.tuples
+                for row in final_tuples
                 if row.get("stakeholder_candidate_match_status") == "unmatched"
             }
         )
-        return merge_parsed.tuples, raw_record(
+        raw_payload = {"stage_extract": stage_raw, "canonical_merge": merge_raw}
+        if use_event_level_safety_net:
+            raw_payload["event_level_safety_net"] = safety_raw or ""
+        diagnostics = {
+            "stage_candidates": stage_parsed.tuples,
+            "stage_rejected_rows": stage_parsed.rejected_rows or [],
+            "rejected_rows": merge_parsed.rejected_rows or [],
+            "stage_canonicalization_map": stage_canonical_diagnostics.get("canonicalization_map", []),
+            "canonicalization_map": merge_canonical_diagnostics.get("canonicalization_map", []),
+        }
+        if use_event_level_safety_net:
+            safety_diagnostics = safety_record.get("parse_diagnostics", {}) if isinstance(safety_record.get("parse_diagnostics"), dict) else {}
+            diagnostics["event_level_safety_net_rejected_rows"] = safety_diagnostics.get("rejected_rows", [])
+            diagnostics["event_level_safety_net_canonicalization_map"] = safety_canonical_diagnostics.get("canonicalization_map", [])
+        if use_hybrid_refinement and final_tuples:
+            refinement_system, refinement_user = self.build_hybrid_refinement_prompt(
+                event=event,
+                evidence_items=evidence_items,
+                candidate_tuples=final_tuples,
+                stage_candidates=stage_parsed.tuples,
+                stakeholder_candidates=stakeholder_candidates,
+                hide_chain_in_prompt=hide_chain_in_prompt,
+            )
+            request_summary["prompt_chars"] += len(refinement_system) + len(refinement_user)
+            request_summary["hybrid_refinement_prompt_chars"] = len(refinement_system) + len(refinement_user)
+            refinement_response = self.llm_client.chat(
+                system_prompt=refinement_system,
+                user_prompt=refinement_user,
+                response_format=SCHEMA_ATTRIBUTION_RESPONSE_FORMAT,
+            )
+            request_summary["api_calls_made"] = int(request_summary["api_calls_made"]) + 1
+            refinement_parsed = self._parse_llm_response(
+                refinement_response,
+                event_id,
+                allowed_evidence_ids,
+                stakeholder_candidates=stakeholder_candidates,
+                evidence_context_by_id=evidence_context_by_id,
+            )
+            refinement_raw = normalize_raw_response(refinement_response)
+            if refinement_parsed.parse_success and refinement_parsed.tuples:
+                refined_tuples, refinement_canonical_diagnostics = canonicalize_tuple_rows(
+                    refinement_parsed.tuples,
+                    event=event,
+                    stakeholder_candidates=stakeholder_candidates,
+                    evidence_items=evidence_items,
+                    stage_candidates=stage_parsed.tuples,
+                )
+                for row in refined_tuples:
+                    row["attribution_pass"] = "soe_v3_hybrid_refinement"
+                    if not row.get("stage_candidate_ids"):
+                        row["stage_candidate_ids"] = infer_stage_candidate_ids(row, stage_parsed.tuples)
+                    stage_spans = evidence_spans_from_stage_candidates(
+                        row.get("stage_candidate_ids", []),
+                        stage_parsed.tuples,
+                        row.get("evidence_ids", []),
+                    )
+                    if stage_spans:
+                        row["evidence_spans"] = stage_spans
+                final_tuples = refined_tuples
+                request_summary["parsed_tuple_count"] = len(final_tuples)
+                request_summary["hybrid_refinement_applied"] = True
+                diagnostics["hybrid_refinement_canonicalization_map"] = refinement_canonical_diagnostics.get("canonicalization_map", [])
+            else:
+                request_summary["hybrid_refinement_applied"] = False
+            request_summary["hybrid_refinement"] = True
+            request_summary["hybrid_refinement_tuple_count"] = len(refinement_parsed.tuples)
+            request_summary["hybrid_refinement_parse_success"] = refinement_parsed.parse_success
+            request_summary["hybrid_refinement_parse_error"] = refinement_parsed.parse_error
+            diagnostics["hybrid_refinement_rejected_rows"] = refinement_parsed.rejected_rows or []
+            raw_payload["hybrid_refinement"] = refinement_raw
+
+        request_summary["supplemented_stakeholders"] = sorted(
+            {
+                str(row.get("stakeholder", ""))
+                for row in final_tuples
+                if row.get("stakeholder_candidate_match_status") == "unmatched"
+            }
+        )
+        return final_tuples, raw_record(
             event_id=event_id,
             model_name=self.model_name,
             request_summary=request_summary,
-            raw_response=json.dumps({"stage_extract": stage_raw, "canonical_merge": merge_raw}, ensure_ascii=False),
+            raw_response=json.dumps(raw_payload, ensure_ascii=False),
             parse_success=merge_parsed.parse_success,
             parse_error=merge_parsed.parse_error,
-            parse_diagnostics={
-                "stage_candidates": stage_parsed.tuples,
-                "stage_rejected_rows": stage_parsed.rejected_rows or [],
-                "rejected_rows": merge_parsed.rejected_rows or [],
-                "stage_canonicalization_map": stage_canonical_diagnostics.get("canonicalization_map", []),
-                "canonicalization_map": merge_canonical_diagnostics.get("canonicalization_map", []),
-            },
+            parse_diagnostics=diagnostics,
         )
 
     def _fallback_to_legacy_single_pass(
@@ -1120,11 +1357,16 @@ def run_schema_attribution(
     skip_chain_ranking: bool = False,
     use_ner_extraction: bool = False,
     selector_mode: str = "chain_aware",
-    method_version: str = METHOD_VERSION,
+    method_version: str = SOE_V3_METHOD_VERSION,
     max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
     seed: int = 42,
     enforce_candidate_constraints: bool | None = None,
     use_stage_attribution: bool | None = None,
+    use_event_level_safety_net: bool = False,
+    use_hybrid_refinement: bool = False,
+    cache_dir: str | Path | None = None,
+    resume: bool = False,
+    max_api_concurrency: int = 1,
 ) -> dict[str, Any]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1153,15 +1395,30 @@ def run_schema_attribution(
     parse_failed_events: list[str] = []
     api_failures = 0
     api_calls = 0
+    cache_stats = {"hits": 0, "misses": 0, "resume_hits": 0, "invalid": 0}
+    progress_path = output_dir / "progress.jsonl"
+    progress_path.write_text("", encoding="utf-8")
+    progress_lock = threading.Lock()
+    cache_base = Path(cache_dir) / "schema_attribution" if cache_dir is not None else None
+    if cache_base is not None:
+        cache_base.mkdir(parents=True, exist_ok=True)
+    resume_records = _load_resume_records(output_dir) if resume else {}
 
-    for event in selected_events:
+    def append_progress(row: dict[str, Any]) -> None:
+        with progress_lock:
+            with progress_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    def process_event(index: int, event: dict[str, Any]) -> dict[str, Any]:
+        start = time.perf_counter()
         event_id = str(event.get("event_id", ""))
         chain = chains_by_event.get(event_id)
+        no_chain_context = False
         if chain is None:
-            no_chain_context_events.append(event_id)
+            no_chain_context = True
             chain = {}  # use empty chain so select_prompt_evidence falls back to quality_score
         elif float(chain.get("chain_confidence", 0) or 0) <= 0:
-            no_chain_context_events.append(event_id)
+            no_chain_context = True
         event_evidence_rows = evidence_by_event.get(event_id, [])
         graph_candidates = stakeholders_by_event.get(event_id)
         candidate_scope = "event_graph"
@@ -1215,8 +1472,102 @@ def run_schema_attribution(
         }
         selection_metadata.update(selection.diagnostics)
         if not evidence_items:
-            no_chain_context_events.append(event_id)
-            continue
+            append_progress(
+                _progress_row(
+                    event_id=event_id,
+                    status="skipped_no_evidence",
+                    elapsed_seconds=time.perf_counter() - start,
+                    api_calls=0,
+                )
+            )
+            return {
+                "index": index,
+                "event_id": event_id,
+                "tuples": [],
+                "stage_candidates": [],
+                "record": None,
+                "api_calls": 0,
+                "api_failure": False,
+                "no_chain_context": True,
+                "empty_tuple": False,
+                "parse_failed": False,
+                "cache_status": "skipped_no_evidence",
+            }
+        cache_key = attribution_cache_key(
+            event=event,
+            chain=chain,
+            evidence_items=evidence_items,
+            stakeholder_candidates=stakeholder_candidates,
+            model_name=model_name,
+            base_url=str(getattr(llm_client, "base_url", "")),
+            method_version=method_version,
+            selector_mode=effective_selector_mode,
+            max_tuples_per_event=max_tuples_per_event,
+            flags={
+                "dry_run": dry_run,
+                "hide_chain_in_prompt": hide_chain_in_prompt,
+                "skip_chain_ranking": skip_chain_ranking,
+                "enforce_candidate_constraints": enforce_candidate_constraints,
+                "use_stage_attribution": use_stage_attribution,
+                "use_event_level_safety_net": use_event_level_safety_net,
+                "use_hybrid_refinement": use_hybrid_refinement,
+                "use_ner_extraction": use_ner_extraction,
+                "max_evidence_per_event": max_evidence_per_event,
+                "seed": seed,
+            },
+        )
+        if resume and event_id in resume_records:
+            resumed = resume_records[event_id]
+            if resumed.get("cache_key") == cache_key:
+                record = _mark_cached_record(resumed["record"], status="resume_hit", cache_key=cache_key)
+                append_progress(
+                    _progress_row(
+                        event_id=event_id,
+                        status="resume_hit",
+                        elapsed_seconds=time.perf_counter() - start,
+                        api_calls=0,
+                        cache_key=cache_key,
+                    )
+                )
+                return {
+                    "index": index,
+                    "event_id": event_id,
+                    "tuples": resumed["tuples"],
+                    "stage_candidates": resumed["stage_candidates"],
+                    "record": record,
+                    "api_calls": 0,
+                    "api_failure": False,
+                    "no_chain_context": no_chain_context,
+                    "empty_tuple": not resumed["tuples"],
+                    "parse_failed": record.get("parse_success") is False,
+                    "cache_status": "resume_hit",
+                }
+        if cache_base is not None:
+            cached = _read_attribution_cache(cache_base / f"{cache_key}.json")
+            if cached is not None:
+                record = _mark_cached_record(cached["record"], status="cache_hit", cache_key=cache_key)
+                append_progress(
+                    _progress_row(
+                        event_id=event_id,
+                        status="cache_hit",
+                        elapsed_seconds=time.perf_counter() - start,
+                        api_calls=0,
+                        cache_key=cache_key,
+                    )
+                )
+                return {
+                    "index": index,
+                    "event_id": event_id,
+                    "tuples": cached["tuples"],
+                    "stage_candidates": cached["stage_candidates"],
+                    "record": record,
+                    "api_calls": 0,
+                    "api_failure": False,
+                    "no_chain_context": no_chain_context,
+                    "empty_tuple": not cached["tuples"],
+                    "parse_failed": record.get("parse_success") is False,
+                    "cache_status": "cache_hit",
+                }
         try:
             event_tuples, record = attributor.attribute_event(
                 event=event,
@@ -1229,50 +1580,141 @@ def run_schema_attribution(
                 skip_chain_ranking=skip_chain_ranking,
                 enforce_candidate_constraints=enforce_candidate_constraints,
                 use_stage_attribution=use_stage_attribution,
+                use_event_level_safety_net=use_event_level_safety_net,
+                use_hybrid_refinement=use_hybrid_refinement,
             )
-            raw_records.append(record)
+            summary = record.setdefault("request_summary", {})
+            summary["cache_key"] = cache_key
+            summary["cache_status"] = "miss"
             diagnostics = record.get("parse_diagnostics") if isinstance(record.get("parse_diagnostics"), dict) else {}
+            event_stage_candidates: list[dict[str, Any]] = []
             for stage_row in diagnostics.get("stage_candidates", []) or []:
                 if isinstance(stage_row, dict):
                     copied = dict(stage_row)
                     copied["selection_diagnostics"] = selection.diagnostics
-                    stage_candidates.append(copied)
-            api_calls += int(record.get("request_summary", {}).get("api_calls_made", 0) or 0)
-            if record.get("parse_success") is False:
-                parse_failed_events.append(event_id)
-            if not event_tuples:
-                empty_tuple_events.append(event_id)
+                    event_stage_candidates.append(copied)
             for row in event_tuples:
                 row["selection_diagnostics"] = selection.diagnostics
-            tuples.extend(event_tuples)
-        except Exception as exc:
-            api_failures += 1
-            raw_records.append(
-                raw_record(
-                    event_id=event_id,
-                    model_name=model_name,
-                    request_summary={
-                        "num_evidence": len(evidence_items),
-                        "api_calls_made": 0,
-                        "method_version": method_version,
-                        "attribution_mode": ATTRIBUTION_MODE,
-                        "chain_confidence": chain.get("chain_confidence", 0),
-                        "prompt_chars": 0,
-                        "selected_evidence_ids": [
-                            str(item.get("evidence_id", ""))
-                            for item in evidence_items
-                            if item.get("evidence_id")
-                        ],
-                        "hide_chain_in_prompt": hide_chain_in_prompt,
-                        "skip_chain_ranking": skip_chain_ranking,
-                        "selector_mode": effective_selector_mode,
-                        "selection_diagnostics": selection.diagnostics,
+            if cache_base is not None and not dry_run and record.get("parse_success") is True:
+                _write_attribution_cache(
+                    cache_base / f"{cache_key}.json",
+                    {
+                        "schema_version": 1,
+                        "cache_key": cache_key,
+                        "event_id": event_id,
+                        "tuples": event_tuples,
+                        "stage_candidates": event_stage_candidates,
+                        "record": record,
                     },
-                    raw_response="",
-                    parse_success=False,
-                    parse_error=str(exc),
+                )
+            calls = int(record.get("request_summary", {}).get("api_calls_made", 0) or 0)
+            append_progress(
+                _progress_row(
+                    event_id=event_id,
+                    status="cache_miss",
+                    elapsed_seconds=time.perf_counter() - start,
+                    api_calls=calls,
+                    cache_key=cache_key,
                 )
             )
+            return {
+                "index": index,
+                "event_id": event_id,
+                "tuples": event_tuples,
+                "stage_candidates": event_stage_candidates,
+                "record": record,
+                "api_calls": calls,
+                "api_failure": False,
+                "no_chain_context": no_chain_context,
+                "empty_tuple": not event_tuples,
+                "parse_failed": record.get("parse_success") is False,
+                "cache_status": "miss",
+            }
+        except Exception as exc:
+            record = raw_record(
+                event_id=event_id,
+                model_name=model_name,
+                request_summary={
+                    "num_evidence": len(evidence_items),
+                    "api_calls_made": 0,
+                    "method_version": method_version,
+                    "attribution_mode": ATTRIBUTION_MODE,
+                    "chain_confidence": chain.get("chain_confidence", 0),
+                    "prompt_chars": 0,
+                    "selected_evidence_ids": [
+                        str(item.get("evidence_id", ""))
+                        for item in evidence_items
+                        if item.get("evidence_id")
+                    ],
+                    "hide_chain_in_prompt": hide_chain_in_prompt,
+                    "skip_chain_ranking": skip_chain_ranking,
+                    "selector_mode": effective_selector_mode,
+                    "selection_diagnostics": selection.diagnostics,
+                    "cache_key": cache_key,
+                    "cache_status": "error",
+                },
+                raw_response="",
+                parse_success=False,
+                parse_error=str(exc),
+            )
+            append_progress(
+                _progress_row(
+                    event_id=event_id,
+                    status="api_failure",
+                    elapsed_seconds=time.perf_counter() - start,
+                    api_calls=0,
+                    cache_key=cache_key,
+                    error=str(exc),
+                )
+            )
+            return {
+                "index": index,
+                "event_id": event_id,
+                "tuples": [],
+                "stage_candidates": [],
+                "record": record,
+                "api_calls": 0,
+                "api_failure": True,
+                "no_chain_context": no_chain_context,
+                "empty_tuple": False,
+                "parse_failed": True,
+                "cache_status": "error",
+            }
+
+    max_workers = max(1, int(max_api_concurrency or 1))
+    if max_workers == 1 or len(selected_events) <= 1:
+        results = [process_event(index, event) for index, event in enumerate(selected_events)]
+    else:
+        results = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(process_event, index, event) for index, event in enumerate(selected_events)]
+            for future in as_completed(futures):
+                results.append(future.result())
+
+    for result in sorted(results, key=lambda item: int(item["index"])):
+        event_id = str(result["event_id"])
+        if result["record"] is not None:
+            raw_records.append(result["record"])
+        tuples.extend(result["tuples"])
+        stage_candidates.extend(result["stage_candidates"])
+        api_calls += int(result["api_calls"])
+        if result["api_failure"]:
+            api_failures += 1
+        if result["no_chain_context"]:
+            no_chain_context_events.append(event_id)
+        if result["empty_tuple"]:
+            empty_tuple_events.append(event_id)
+        if result["parse_failed"]:
+            parse_failed_events.append(event_id)
+        status = str(result.get("cache_status", ""))
+        if status == "cache_hit":
+            cache_stats["hits"] += 1
+        elif status == "resume_hit":
+            cache_stats["resume_hits"] += 1
+        elif status == "miss":
+            cache_stats["misses"] += 1
+        elif status == "error":
+            cache_stats["invalid"] += 1
 
     candidates_path = output_dir / "candidate_soa_tuples.jsonl"
     stage_candidates_path = output_dir / "stage_soa_candidates.jsonl"
@@ -1304,18 +1746,224 @@ def run_schema_attribution(
     summary["stage_soa_candidates_path"] = str(stage_candidates_path)
     summary["num_stage_soa_candidates"] = len(stage_candidates)
     summary["use_stage_attribution"] = bool(use_stage_attribution)
+    summary["use_event_level_safety_net"] = bool(use_event_level_safety_net)
+    summary["use_hybrid_refinement"] = bool(use_hybrid_refinement)
+    summary["max_api_concurrency"] = max_workers
+    summary["cache"] = cache_stats
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (output_dir / "cache_manifest.json").write_text(
+        json.dumps(
+            {
+                "cache_dir": str(cache_base) if cache_base is not None else "",
+                "resume": bool(resume),
+                "cache": cache_stats,
+                "max_api_concurrency": max_workers,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return summary
 
 
+def attribution_cache_key(
+    *,
+    event: dict[str, Any],
+    chain: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+    stakeholder_candidates: list[str],
+    model_name: str,
+    base_url: str,
+    method_version: str,
+    selector_mode: str,
+    max_tuples_per_event: int,
+    flags: dict[str, Any],
+) -> str:
+    """Return a stable event-level cache key for attribution inputs."""
+    payload = {
+        "schema_version": 1,
+        "prompt_version": PROMPT_VERSION,
+        "event": _canonical_event_for_cache(event),
+        "chain": _canonical_jsonable(chain),
+        "evidence": [
+            {
+                "evidence_id": str(item.get("evidence_id", "")),
+                "event_id": str(item.get("event_id", "")),
+                "text": str(item.get("text", "")),
+                "source": str(item.get("source", "")),
+                "temporal_stage": str(item.get("temporal_stage", "")),
+                "stakeholder_hint": str(item.get("stakeholder_hint", "")),
+                "stance_hint": str(item.get("stance_hint", "")),
+            }
+            for item in evidence_items
+        ],
+        "stakeholder_candidates": list(stakeholder_candidates),
+        "model_name": str(model_name),
+        "base_url": str(base_url),
+        "method_version": str(method_version),
+        "selector_mode": str(selector_mode),
+        "max_tuples_per_event": int(max_tuples_per_event),
+        "flags": _canonical_jsonable(flags),
+    }
+    return _sha256_json(payload)
+
+
+def _canonical_event_for_cache(event: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: _canonical_jsonable(event.get(key))
+        for key in (
+            "event_id",
+            "event_name",
+            "event_description",
+            "query_seeds",
+            "stakeholder_hints",
+            "stance_hints",
+            "temporal_stages",
+            "anchor_entities",
+        )
+        if key in event
+    }
+
+
+def _canonical_jsonable(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _canonical_jsonable(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        return [_canonical_jsonable(item) for item in value]
+    if isinstance(value, tuple):
+        return [_canonical_jsonable(item) for item in value]
+    if isinstance(value, set):
+        return sorted(_canonical_jsonable(item) for item in value)
+    return value
+
+
+def _sha256_json(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _write_attribution_cache(path: Path, payload: dict[str, Any]) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(path.suffix + f".{time.time_ns()}.tmp")
+        tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp_path.replace(path)
+    except OSError:
+        # Cache is an acceleration layer; a cache write failure must not turn a
+        # successful model response into an attribution failure.
+        return
+
+
+def _read_attribution_cache(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if not isinstance(payload.get("record"), dict):
+        return None
+    tuples = payload.get("tuples")
+    if not isinstance(tuples, list):
+        return None
+    stage_candidates = payload.get("stage_candidates", [])
+    if not isinstance(stage_candidates, list):
+        return None
+    return {"record": payload["record"], "tuples": tuples, "stage_candidates": stage_candidates}
+
+
+def _load_resume_records(output_dir: Path) -> dict[str, dict[str, Any]]:
+    raw_path = output_dir / "raw_llm_responses.jsonl"
+    tuples_path = output_dir / "candidate_soa_tuples.jsonl"
+    stage_path = output_dir / "stage_soa_candidates.jsonl"
+    if not raw_path.exists() or not tuples_path.exists():
+        return {}
+    try:
+        raw_rows = read_jsonl(raw_path)
+        tuple_rows = read_jsonl(tuples_path)
+        stage_rows = read_jsonl(stage_path) if stage_path.exists() else []
+    except (OSError, ValueError):
+        return {}
+    tuples_by_event = group_by_event(tuple_rows)
+    stages_by_event = group_by_event(stage_rows)
+    output: dict[str, dict[str, Any]] = {}
+    for record in raw_rows:
+        if not isinstance(record, dict):
+            continue
+        if record.get("parse_success") is not True:
+            continue
+        event_id = str(record.get("event_id", ""))
+        summary = record.get("request_summary", {}) if isinstance(record.get("request_summary"), dict) else {}
+        cache_key = summary.get("cache_key")
+        if event_id and isinstance(cache_key, str) and cache_key:
+            output[event_id] = {
+                "cache_key": cache_key,
+                "record": record,
+                "tuples": tuples_by_event.get(event_id, []),
+                "stage_candidates": stages_by_event.get(event_id, []),
+            }
+    return output
+
+
+def _mark_cached_record(record: dict[str, Any], *, status: str, cache_key: str) -> dict[str, Any]:
+    copied = json.loads(json.dumps(record, ensure_ascii=False))
+    summary = copied.setdefault("request_summary", {})
+    summary["api_calls_made"] = 0
+    summary["cache_key"] = cache_key
+    summary["cache_status"] = status
+    return copied
+
+
+def _progress_row(
+    *,
+    event_id: str,
+    status: str,
+    elapsed_seconds: float,
+    api_calls: int,
+    cache_key: str | None = None,
+    error: str | None = None,
+) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "event_id": event_id,
+        "status": status,
+        "elapsed_seconds": round(float(elapsed_seconds), 4),
+        "api_calls": int(api_calls),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if cache_key:
+        row["cache_key"] = cache_key
+    if error:
+        row["error"] = error
+    return row
+
+
 def assert_no_total_api_failure(summary: dict[str, Any], output_dir: str | Path) -> None:
-    """Fail fast when attribution produced only API failures."""
+    """Fail fast when attribution produced no usable API-backed output."""
     api_calls = int(summary.get("num_api_calls", 0) or 0)
     api_failures = int(summary.get("num_api_failures", 0) or 0)
+    tuples = int(summary.get("num_tuples_generated", 0) or 0)
+    parse_failed = summary.get("parse_failed_events", [])
+    parse_failed_count = len(parse_failed) if isinstance(parse_failed, list) else 0
+    requested = int(summary.get("num_events_requested", 0) or 0)
+    skipped = int(summary.get("num_events_skipped", 0) or 0)
+    events_with_prompt = max(0, requested - skipped)
+
+    output_dir = Path(output_dir)
+    if api_calls > 0 and tuples == 0 and parse_failed_count >= events_with_prompt and events_with_prompt > 0:
+        raise RuntimeError(
+            "Schema attribution made API calls but produced zero parsed attribution tuples "
+            f"for {parse_failed_count} prompted events. Treating the run as failed instead of "
+            "writing all-zero metrics. Inspect "
+            f"{output_dir / 'schema_attribution_summary.json'} and "
+            f"{output_dir / 'raw_llm_responses.jsonl'}."
+        )
     if api_calls > 0 or api_failures == 0:
         return
 
-    output_dir = Path(output_dir)
     raise RuntimeError(
         "Schema attribution made zero successful API calls and recorded "
         f"{api_failures} API failures. Treating the run as failed instead of "
@@ -1581,68 +2229,7 @@ def select_oracle_prompt_evidence(
     ).evidence
 
 
-def _select_evidence_by_non_chain_baseline(
-    *,
-    event: dict[str, Any],
-    chain: dict[str, Any],
-    evidence_rows: list[dict[str, Any]],
-    max_evidence: int,
-) -> list[dict[str, Any]]:
-    """Select evidence using a non-chain baseline score.
 
-    Ranking uses only quality score, source balance, and stakeholder signal.
-    Chain fields are copied later for prompt context when a chain-enabled
-    setting asks to hide only the ranking component.
-    """
-    chain_scores = chain_metadata_by_evidence(chain)
-
-    scored: list[tuple[float, dict[str, Any]]] = []
-    for row in evidence_rows:
-        quality = float(row.get("quality_score", 0) or 0)
-        stakeholder_signal = evidence_stakeholder_signal(row, event)
-        composite = 0.7 * quality + 0.3 * stakeholder_signal
-        scored.append((composite, row))
-
-    selected: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    source_counts: dict[str, int] = {}
-    remaining = sorted(scored, key=lambda x: x[0], reverse=True)
-
-    while len(selected) < max_evidence and remaining:
-        best_item: dict[str, Any] | None = None
-        best_score = -1.0
-        best_idx = -1
-        for i, (base_score, row) in enumerate(remaining):
-            source = str(row.get("source_type") or row.get("source") or "unknown")
-            source_count = source_counts.get(source, 0)
-            diversity_bonus = 0.2 if source_count == 0 else 0.0
-            adjusted = base_score + diversity_bonus
-            if adjusted > best_score:
-                best_score = adjusted
-                best_item = row
-                best_idx = i
-
-        if best_item is None:
-            break
-
-        remaining.pop(best_idx)
-        eid = str(best_item.get("evidence_id", ""))
-        if not eid or eid in seen:
-            continue
-
-        cs = chain_scores.get(eid, {})
-        stage_name = str(cs.get("stage") or "unknown")
-        selected.append(normalize_prompt_evidence(
-            {"evidence_id": eid, "stage": stage_name,
-             "final_stage_score": cs.get("final_stage_score", ""),
-             "event_relevance_score": cs.get("event_relevance_score", "")},
-            best_item, stage_name,
-        ))
-        seen.add(eid)
-        source = str(best_item.get("source_type") or best_item.get("source") or "unknown")
-        source_counts[source] = source_counts.get(source, 0) + 1
-
-    return selected
 
 
 def chain_metadata_by_evidence(chain: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -1885,10 +2472,63 @@ def canonical_stakeholder(
             return match, "remap", "pseudo_stakeholder_mapped_to_inventory"
         return original, "drop", "pseudo_stakeholder"
     if match and not is_pseudo_stakeholder(match, event):
+        if should_keep_specific_stakeholder(original, match):
+            return original, "keep", "specific_stakeholder_preserved"
         if match != original:
             return match, "remap", "inventory_alias_match"
         return original, "keep", "inventory_exact"
     return original, "keep", "evidence_supported_outside_inventory"
+
+
+def should_keep_specific_stakeholder(original: str, matched_candidate: str) -> bool:
+    """Avoid collapsing evidence-supported specific actors into generic inventory labels."""
+    original = normalize_stakeholder_label(original)
+    matched_candidate = normalize_stakeholder_label(matched_candidate)
+    if not original or not matched_candidate or original == matched_candidate:
+        return False
+    if len(original) <= len(matched_candidate) + 1:
+        return False
+    compact_candidate = normalize_token(matched_candidate)
+    generic_compacts = {normalize_token(item) for item in GENERIC_ACTOR_CANONICAL_LABELS}
+    if matched_candidate in original and _looks_like_multi_actor_label(original):
+        return False
+    if compact_candidate in generic_compacts and (
+        matched_candidate in original or _actor_family_overlap(original, matched_candidate)
+    ):
+        return True
+    if matched_candidate in original and any(term in original for term in SPECIFIC_ACTOR_TERMS):
+        return True
+    if matched_candidate in original and any(term in original for term in ACTOR_HINT_TERMS):
+        return True
+    return False
+
+
+def _looks_like_multi_actor_label(label: str) -> bool:
+    if any(sep in label for sep in ("、", "及", "与", "和")):
+        actor_hits = sum(1 for term in ACTOR_HINT_TERMS if term in label)
+        return actor_hits >= 2
+    return False
+
+
+def _actor_family_overlap(original: str, matched_candidate: str) -> bool:
+    family_terms = (
+        "业主",
+        "居民",
+        "住户",
+        "村民",
+        "公众",
+        "网友",
+        "学生",
+        "家长",
+        "患者",
+        "专家",
+        "律师",
+        "开发商",
+        "物业",
+        "企业",
+        "公安",
+    )
+    return any(term in original and term in matched_candidate for term in family_terms)
 
 
 def merge_duplicate_canonical_rows(rows: list[dict[str, Any]], event_id: str) -> tuple[list[dict[str, Any]], int]:
@@ -1899,7 +2539,7 @@ def merge_duplicate_canonical_rows(rows: list[dict[str, Any]], event_id: str) ->
         for existing in merged:
             if existing.get("stakeholder") != row.get("stakeholder"):
                 continue
-            if tuple_opinion_similarity(str(existing.get("opinion", "")), str(row.get("opinion", ""))) >= 0.90:
+            if tuple_opinion_similarity(str(existing.get("opinion", "")), str(row.get("opinion", ""))) >= 0.75:
                 target = existing
                 break
         if target is None:
@@ -1929,6 +2569,67 @@ def merge_duplicate_canonical_rows(rows: list[dict[str, Any]], event_id: str) ->
     return merged, merge_count
 
 
+def merge_event_level_safety_net_rows(
+    *,
+    stage_rows: list[dict[str, Any]],
+    safety_rows: list[dict[str, Any]],
+    event_id: str,
+) -> list[dict[str, Any]]:
+    """Prefer event-level canonical tuples and keep stage-only additions."""
+    merged = [dict(row) for row in safety_rows]
+    for stage_row in stage_rows:
+        target = None
+        for existing in merged:
+            if rows_describe_same_tuple(existing, stage_row):
+                target = existing
+                break
+        if target is None:
+            merged.append(dict(stage_row))
+            continue
+        target["evidence_ids"] = dedupe([*target.get("evidence_ids", []), *stage_row.get("evidence_ids", [])])
+        target["stage_candidate_ids"] = dedupe([*target.get("stage_candidate_ids", []), *stage_row.get("stage_candidate_ids", [])])
+        target["stakeholder_aliases"] = dedupe([*target.get("stakeholder_aliases", []), *stage_row.get("stakeholder_aliases", [])])[:12]
+        if len(str(stage_row.get("rationale", ""))) > len(str(target.get("rationale", ""))):
+            target["rationale"] = stage_row.get("rationale", "")
+        target["confidence"] = max(float(target.get("confidence", 0) or 0), float(stage_row.get("confidence", 0) or 0))
+        target["sentiment"] = merge_sentiment(str(target.get("sentiment", "")), str(stage_row.get("sentiment", "")))
+
+    return assign_tuple_ids_and_clusters(merged, event_id)
+
+
+def rows_describe_same_tuple(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    if str(left.get("event_id", "")) != str(right.get("event_id", "")):
+        return False
+    left_stage_ids = {str(item) for item in left.get("stage_candidate_ids", []) or [] if str(item)}
+    right_stage_ids = {str(item) for item in right.get("stage_candidate_ids", []) or [] if str(item)}
+    if left_stage_ids and right_stage_ids and left_stage_ids & right_stage_ids:
+        return True
+    same_stakeholder = str(left.get("stakeholder", "")) == str(right.get("stakeholder", ""))
+    if same_stakeholder and tuple_opinion_similarity(str(left.get("opinion", "")), str(right.get("opinion", ""))) >= 0.5:
+        return True
+    left_evidence = {str(item) for item in left.get("evidence_ids", []) or [] if str(item)}
+    right_evidence = {str(item) for item in right.get("evidence_ids", []) or [] if str(item)}
+    stakeholder_overlap = char_overlap(str(left.get("stakeholder", "")), str(right.get("stakeholder", "")))
+    opinion_overlap = tuple_opinion_similarity(str(left.get("opinion", "")), str(right.get("opinion", "")))
+    return bool(left_evidence & right_evidence) and stakeholder_overlap >= 0.35 and opinion_overlap >= 0.35
+
+
+def assign_tuple_ids_and_clusters(rows: list[dict[str, Any]], event_id: str) -> list[dict[str, Any]]:
+    stakeholder_clusters: dict[str, str] = {}
+    output: list[dict[str, Any]] = []
+    for index, row in enumerate(rows, start=1):
+        copied = dict(row)
+        copied["tuple_id"] = f"{event_id}_SOA_{index:03d}"
+        stakeholder = str(copied.get("stakeholder", ""))
+        seen_before = stakeholder in stakeholder_clusters
+        cluster_id = stakeholder_clusters.setdefault(stakeholder, f"stakeholder_{len(stakeholder_clusters) + 1:03d}")
+        if seen_before and copied.get("stakeholder_cluster_id") != cluster_id:
+            copied["opinion_split_reason"] = copied.get("opinion_split_reason") or "same stakeholder has distinct evidence-supported opinion/action"
+        copied["stakeholder_cluster_id"] = cluster_id
+        output.append(copied)
+    return output
+
+
 def tuple_opinion_similarity(left: str, right: str) -> float:
     if not left or not right:
         return 0.0
@@ -1952,47 +2653,20 @@ def merge_sentiment(left: str, right: str) -> str:
     return left
 
 
-def _specificity_score(name: str) -> int:
-    """Score stakeholder name specificity. Higher = more specific."""
-    if not name:
-        return 0
-    score = len(name)
-    specific_indicators = (
-        "小区", "社区", "村", "镇", "街道", "区", "市", "省", "局", "委",
-        "公司", "集团", "医院", "学校", "法院", "检察院", "派出所",
-        "业主", "居民", "家长", "学生", "患者", "律师", "记者",
-        "女士", "先生", "男子", "女子", "人",
-        "店", "厂", "中心", "部", "厅", "处",
-    )
-    for indicator in specific_indicators:
-        if indicator in name:
-            score += 10
-    if name in GENERIC_STAKEHOLDER_LABELS:
-        score = 0
-    return score
+
 
 
 def promote_generic_stakeholders(
     rows: list[dict[str, Any]],
     event: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    """Post-process: drop tuples whose stakeholder is a generic label with no specific aliases.
+    """Post-process: keep all tuples, only log generic stakeholders for diagnostics.
 
-    When the LLM merge step collapses specific entities into generic labels like
-    "居民/公众" with no meaningful specific aliases, the generic tuple adds noise
-    without providing useful information. Drop these noise tuples rather than promote them.
+    Previously this function dropped tuples with generic labels, which caused
+    severe recall loss (e.g., legitimate "业主" or "居民" tuples were removed).
+    Now we keep all tuples and let the evaluation handle matching.
     """
-    result = []
-    for row in rows:
-        stakeholder = str(row.get("stakeholder", "")).strip()
-        if stakeholder in GENERIC_STAKEHOLDER_LABELS:
-            aliases = row.get("stakeholder_aliases", []) or []
-            aliases = [str(a).strip() for a in aliases if str(a).strip()]
-            non_generic = [a for a in aliases if a not in GENERIC_STAKEHOLDER_LABELS]
-            if not non_generic:
-                continue
-        result.append(row)
-    return result
+    return rows
 
 
 def make_stakeholder_id(event_id: str, stakeholder: str) -> str:
@@ -2204,7 +2878,7 @@ def build_summary(
     parse_failed_events: list[str],
     model_name: str,
     output_path: str,
-    method_version: str = METHOD_VERSION,
+    method_version: str = SOE_V3_METHOD_VERSION,
     selector_mode: str = "chain_aware",
     max_tuples_per_event: int = MAX_TUPLES_PER_EVENT,
 ) -> dict[str, Any]:

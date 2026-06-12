@@ -5,6 +5,12 @@ Checks whether evidence text actually supports each tuple's stakeholder+opinion 
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import hashlib
+import json
+from pathlib import Path
+import time
+
 from episoa.data.schema import EvidenceRecord, PredictionTuple
 
 
@@ -15,6 +21,8 @@ def verify_tuples(
     *,
     llm_client=None,
     mode: str = "decomposed",
+    cache_dir: str | Path | None = None,
+    max_api_concurrency: int = 1,
 ) -> list[PredictionTuple]:
     """Verify prediction tuples against evidence.
 
@@ -22,14 +30,16 @@ def verify_tuples(
     With llm_client: also checks that evidence TEXT semantically supports the claim.
     """
     evidence_map = {item.evidence_id: item for item in evidence}
-    verified: list[PredictionTuple] = []
+    cache_base = Path(cache_dir) / "verifier" if cache_dir is not None else None
+    if cache_base is not None:
+        cache_base.mkdir(parents=True, exist_ok=True)
 
-    for prediction in predictions:
+    def verify_one(index: int, prediction: PredictionTuple) -> tuple[int, PredictionTuple]:
         # Pre-check: all evidence_ids must exist
         missing = [eid for eid in prediction.evidence_ids if eid not in evidence_map]
         if missing:
             diagnosis = decomposed_diagnosis(prediction, evidence_map, score=0.0, missing_evidence_ids=missing)
-            verified.append(
+            return index, (
                 prediction.model_copy(
                     update={
                         "support_score": 0.0,
@@ -39,20 +49,50 @@ def verify_tuples(
                     }
                 )
             )
-            continue
 
         # LLM-based verification of claim against evidence text
         if mode == "id_only":
             score = 1.0
             llm_details = {}
         elif llm_client is not None:
-            score, llm_details = _llm_verify(prediction, evidence_map, llm_client)
+            key = verifier_cache_key(
+                prediction,
+                evidence_map,
+                model_name=str(getattr(llm_client, "model_name", "")),
+                base_url=str(getattr(llm_client, "base_url", "")),
+                mode=mode,
+            )
+            cached = _read_verifier_cache(cache_base / f"{key}.json") if cache_base is not None else None
+            if cached is None:
+                score, llm_details = _llm_verify(prediction, evidence_map, llm_client)
+                if cache_base is not None:
+                    _write_verifier_cache(
+                        cache_base / f"{key}.json",
+                        {
+                            "schema_version": 1,
+                            "cache_key": key,
+                            "score": score,
+                            "llm_details": llm_details,
+                        },
+                    )
+                llm_details = dict(llm_details)
+                llm_details["cache_hit"] = False
+                llm_details["cache_key"] = key
+            else:
+                score = float(cached["score"])
+                llm_details = dict(cached.get("llm_details", {}))
+                llm_details["cache_hit"] = True
+                llm_details["cache_key"] = key
         else:
             score = 1.0  # fallback: all evidence_ids exist
             llm_details = {}
 
         diagnosis = decomposed_diagnosis(prediction, evidence_map, score=score, llm_details=llm_details)
-        verified.append(
+        if "cache_hit" in llm_details:
+            diagnosis["cache_hit"] = llm_details["cache_hit"]
+        if "cache_key" in llm_details:
+            diagnosis["cache_key"] = llm_details["cache_key"]
+        return index, (
             prediction.model_copy(
                 update={
                     "support_score": score,
@@ -63,7 +103,76 @@ def verify_tuples(
             )
         )
 
-    return verified
+    max_workers = max(1, int(max_api_concurrency or 1))
+    if max_workers == 1 or len(predictions) <= 1:
+        rows = [verify_one(index, prediction) for index, prediction in enumerate(predictions)]
+    else:
+        rows = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(verify_one, index, prediction) for index, prediction in enumerate(predictions)]
+            for future in as_completed(futures):
+                rows.append(future.result())
+    return [row for _index, row in sorted(rows, key=lambda item: item[0])]
+
+
+def verifier_cache_key(
+    prediction: PredictionTuple,
+    evidence_map: dict[str, EvidenceRecord],
+    *,
+    model_name: str,
+    base_url: str,
+    mode: str,
+) -> str:
+    payload = {
+        "schema_version": 1,
+        "mode": mode,
+        "model_name": model_name,
+        "base_url": base_url,
+        "verifier_system": VERIFIER_SYSTEM,
+        "tuple": {
+            "event_id": prediction.event_id,
+            "stakeholder": prediction.stakeholder,
+            "opinion": prediction.opinion,
+            "sentiment": prediction.sentiment,
+            "rationale": prediction.rationale,
+            "evidence_ids": list(prediction.evidence_ids),
+        },
+        "evidence": [
+            {
+                "evidence_id": eid,
+                "event_id": evidence_map[eid].event_id,
+                "text": evidence_map[eid].text,
+            }
+            for eid in prediction.evidence_ids
+            if eid in evidence_map
+        ],
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _read_verifier_cache(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or "score" not in payload:
+        return None
+    return payload
+
+
+def _write_verifier_cache(path: Path, payload: dict) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(path.suffix + f".{time.time_ns()}.tmp")
+        tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp_path.replace(path)
+    except OSError:
+        # Cache is best-effort. Verification output should remain usable even
+        # when the cache directory is locked or sandboxed.
+        return
 
 
 def _label_from_score(score: float, threshold: float) -> str:
