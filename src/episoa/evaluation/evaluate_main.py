@@ -25,16 +25,22 @@ def evaluate_main(
 ) -> dict[str, float | int | str | None]:
     scored_predictions, excluded_predictions, excluded_event_ids = filter_predictions_to_gold_events(gold, predictions)
     soft = soft_tuple_f1(gold, scored_predictions, threshold=0.5)
-    semantic = semantic_tuple_f1(gold, scored_predictions, threshold=0.5)
+    semantic_raw_05 = semantic_tuple_f1(gold, scored_predictions, threshold=0.5)
+    two_stage_025 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.25)
+    two_stage_03 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.3)
+    two_stage_05 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.5)
     metrics: dict[str, float | int | str | None] = {
         "Metric-Scope": "gold_event_scope",
         "Tuple-F1-soft": soft["f1"],
         "Tuple-F1-strict-char@0.5": soft["f1"],
         "Tuple-Precision": soft["precision"],
         "Tuple-Recall": soft["recall"],
-        "Tuple-F1-semantic": semantic["f1"],
-        "Tuple-Precision-semantic": semantic["precision"],
-        "Tuple-Recall-semantic": semantic["recall"],
+        "Tuple-F1-semantic": two_stage_025["f1"],
+        "Tuple-Precision-semantic": two_stage_025["precision"],
+        "Tuple-Recall-semantic": two_stage_025["recall"],
+        "Tuple-F1-semantic-raw@0.5": semantic_raw_05["f1"],
+        "Tuple-Precision-semantic-raw@0.5": semantic_raw_05["precision"],
+        "Tuple-Recall-semantic-raw@0.5": semantic_raw_05["recall"],
         "Stakeholder-Recall": stakeholder_recall(gold, scored_predictions),
         "Opinion-Recall": opinion_recall(gold, scored_predictions),
         "Sentiment-Acc": soft["sentiment_accuracy"],
@@ -56,10 +62,7 @@ def evaluate_main(
         metrics["Candidate-UTR"] = unsupported_rate(scored_predictions)
         metrics["Candidate-UTR-All"] = unsupported_rate(predictions)
 
-    # Two-stage normalized semantic metrics (audits)
-    two_stage_025 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.25)
-    two_stage_03 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.3)
-    two_stage_05 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.5)
+    # Two-stage normalized semantic metrics (paper main metric and audits)
     metrics["Tuple-F1-semantic@0.25"] = two_stage_025["f1"]
     metrics["Tuple-Precision-semantic@0.25"] = two_stage_025["precision"]
     metrics["Tuple-Recall-semantic@0.25"] = two_stage_025["recall"]

@@ -266,6 +266,40 @@ def test_evaluate_main_excludes_predictions_without_gold_event_from_f1() -> None
     assert metrics["Excluded-Event-Ids"] == "evt-2"
 
 
+def test_evaluate_main_paper_semantic_metric_is_normalized_025_with_raw_audit() -> None:
+    gold = [
+        GoldTuple(
+            event_id="evt-1",
+            stakeholder="Local residents",
+            opinion="aaaaaa",
+            sentiment="negative",
+            rationale="Rationale",
+            evidence_ids=["ev-1"],
+            support_label="supported",
+        )
+    ]
+    predictions = [
+        PredictionTuple(
+            event_id="evt-1",
+            stakeholder="Local residents",
+            opinion="bbbbbb",
+            sentiment="negative",
+            rationale="Rationale",
+            evidence_ids=["ev-1"],
+            support_label="supported",
+        )
+    ]
+
+    metrics = evaluate_main(gold, predictions)
+
+    assert metrics["Tuple-F1-semantic"] == metrics["Tuple-F1-semantic@0.25"]
+    assert metrics["Tuple-Precision-semantic"] == metrics["Tuple-Precision-semantic@0.25"]
+    assert metrics["Tuple-Recall-semantic"] == metrics["Tuple-Recall-semantic@0.25"]
+    assert metrics["Tuple-F1-semantic@0.25"] == 1.0
+    assert metrics["Tuple-F1-semantic@0.5"] == 0.0
+    assert metrics["Tuple-F1-semantic-raw@0.5"] == 0.0
+
+
 def test_event_level_csv_excludes_predictions_without_gold_event(tmp_path) -> None:
     gold = [
         GoldTuple(

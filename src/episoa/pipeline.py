@@ -176,7 +176,8 @@ def _write_input_manifest(
     events_count: int,
     evidence_count: int,
     gold_count: int,
-    flags: dict[str, bool],
+    flags: dict[str, object],
+    mode: str = "ablation",
     diagnostic_only: bool = False,
     runtime_options: dict[str, object] | None = None,
 ) -> None:
@@ -185,7 +186,7 @@ def _write_input_manifest(
         "timestamp": timestamp,
         "git_commit": git_commit,
         "setting": setting,
-        "mode": "ablation",
+        "mode": mode,
         "model": _resolved_model_status(config),
         "data": {
             "events_path": config.data.get("events_path", ""),
@@ -1082,20 +1083,52 @@ def run_paper_pipeline(
 
     llm_client = _create_llm_client(config)
     effective_cache_dir = Path(runtime["cache_dir"])
+    paper_flags = {
+        "use_graph": False,
+        "use_event_chain": True,
+        "use_verifier": True,
+        "hide_chain_in_prompt": False,
+        "skip_chain_ranking": False,
+        "use_soe_graph": False,
+        "selector_mode": "coverage_optimized",
+        "verifier_mode": "id_only" if runtime["skip_llm_verifier"] else "decomposed",
+        "method_version": SOE_V3_METHOD_VERSION,
+        "use_stage_attribution": False,
+        "use_event_level_safety_net": False,
+        "use_hybrid_refinement": False,
+        "use_verifier_quality_gate": True,
+    }
+    timestamp = datetime.now(timezone.utc).isoformat()
+    git_commit = _get_git_commit()
+    shutil.copyfile(config_path, run_dir / "config_snapshot.yaml")
+    _write_input_manifest(
+        run_dir,
+        run_id=config.run_id,
+        timestamp=timestamp,
+        git_commit=git_commit,
+        setting="paper_main",
+        config=config,
+        events_count=len(events),
+        evidence_count=len(evidence),
+        gold_count=len(gold),
+        flags=paper_flags,
+        mode="paper",
+        diagnostic_only=bool(runtime["diagnostic"]),
+        runtime_options={
+            "resume": bool(runtime["resume"]),
+            "max_api_concurrency": int(runtime["max_api_concurrency"]),
+            "cache_dir": str(effective_cache_dir),
+            "diagnostic_only": bool(runtime["diagnostic"]),
+            "max_events": runtime["max_events"],
+            "event_ids": runtime["event_ids"],
+            "skip_llm_verifier": bool(runtime["skip_llm_verifier"]),
+        },
+    )
+    _write_prompt_manifest(run_dir, config, paper_flags)
 
     verified, retrieval_metrics, verifier_metrics = _run_core_pipeline(
         events, evidence, gold, gold_chains, config, run_dir, llm_client,
-        use_graph=True,
-        use_event_chain=True,
-        use_verifier=True,
-        use_soe_graph=True,
-        selector_mode="coverage_optimized",
-        verifier_mode="id_only" if runtime["skip_llm_verifier"] else "decomposed",
-        method_version=SOE_V3_METHOD_VERSION,
-        use_stage_attribution=True,
-        use_event_level_safety_net=True,
-        use_hybrid_refinement=True,
-        use_verifier_quality_gate=True,
+        **paper_flags,
         cache_dir=effective_cache_dir,
         resume=bool(runtime["resume"]),
         max_api_concurrency=int(runtime["max_api_concurrency"]),
@@ -1198,17 +1231,17 @@ def _apply_verifier_quality_gate(
 
 
 ABLATION_SETTINGS = {
-    "full_soe":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "full_soe_high_recall":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
+    "full_soe":                       {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "full_soe_high_recall":           {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
     "full_oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
     "oracle_evidence":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "direct_llm":                      {"use_graph": False, "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True,  "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "direct_llm"},
-    "without_soe_graph":               {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_soe_graph":               {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_chain_aware_selection":   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "quality_topk_selector":          {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "bm25_selector":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "bm25_keyword", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "random_selector":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "random", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "without_decomposed_verifier":     {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_decomposed_verifier":     {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_graph":                   {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_event_chain":             {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_verifier":                {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
@@ -1344,28 +1377,35 @@ def run_ablation_pipeline(
 
         setting_dir.mkdir(parents=True, exist_ok=True)
 
-        # Always write manifests before running or reusing a setting.
-        shutil.copyfile(config_path, setting_dir / "config_snapshot.yaml")
-        _write_input_manifest(
-            setting_dir,
-            run_id=f"ablation_{setting}",
-            timestamp=timestamp,
-            git_commit=git_commit,
-            setting=setting,
-            config=config,
-            events_count=len(events),
-            evidence_count=len(evidence),
-            gold_count=len(gold),
-            flags=flags,
-            diagnostic_only=bool(runtime["diagnostic"]),
-            runtime_options=runtime_options,
-        )
-        _write_prompt_manifest(setting_dir, config, flags)
+        current_manifests_written = False
+
+        def write_current_manifests() -> None:
+            nonlocal current_manifests_written
+            if current_manifests_written:
+                return
+            shutil.copyfile(config_path, setting_dir / "config_snapshot.yaml")
+            _write_input_manifest(
+                setting_dir,
+                run_id=f"ablation_{setting}",
+                timestamp=timestamp,
+                git_commit=git_commit,
+                setting=setting,
+                config=config,
+                events_count=len(events),
+                evidence_count=len(evidence),
+                gold_count=len(gold),
+                flags=flags,
+                diagnostic_only=bool(runtime["diagnostic"]),
+                runtime_options=runtime_options,
+            )
+            _write_prompt_manifest(setting_dir, config, flags)
+            current_manifests_written = True
 
         setting_reuse_source = completed_setting_fingerprints.get(setting_fingerprint)
         setting_reuse_dir = completed_setting_dirs.get(setting_reuse_source) if setting_reuse_source else None
         if setting_reuse_source and setting_reuse_dir is not None:
             _copy_setting_artifacts(setting_reuse_dir, setting_dir)
+            write_current_manifests()
             reuse[setting] = _write_reuse_manifest(
                 setting_dir,
                 setting=setting,
@@ -1432,6 +1472,7 @@ def run_ablation_pipeline(
             reuse_reason = "same_attribution_fingerprint"
         reuse_source_dir = completed_setting_dirs.get(reuse_source_setting) if reuse_source_setting else None
         if reuse_source_setting and reuse_source_dir is not None:
+            write_current_manifests()
             reuse[setting] = _write_reuse_manifest(
                 setting_dir,
                 setting=setting,
@@ -1442,6 +1483,7 @@ def run_ablation_pipeline(
             reuse[setting]["source_setting"] = reuse_source_setting
             reuse[setting]["reason"] = reuse_reason
 
+        write_current_manifests()
         print(f"  [RUN] {setting} → {setting_dir}")
         verified, _retrieval_metrics, _verifier_metrics = _run_core_pipeline(
             events, evidence, gold, gold_chains, config, setting_dir, llm_client,

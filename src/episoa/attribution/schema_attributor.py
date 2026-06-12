@@ -21,7 +21,7 @@ from episoa.llm.client import json_schema_response_format
 from episoa.retrieval.evidence_selector import SELECTOR_MODES, select_evidence_for_prompt
 
 
-PROMPT_VERSION = "schema_attribution_v5_specific_stakeholder_canonical_json"
+PROMPT_VERSION = "schema_attribution_v3_stakeholder_canonical_json"
 LEGACY_METHOD_VERSION = "legacy"  # pre-soe_v3 single-pass attribution
 SOE_V3_METHOD_VERSION = "soe_v3"
 ATTRIBUTION_MODE = "stakeholder_canonical"

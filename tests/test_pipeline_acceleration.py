@@ -452,6 +452,82 @@ def test_ablation_resume_skips_complete_matching_setting(monkeypatch, tmp_path):
     assert (resumed_dir / "phase_timings.csv").read_text(encoding="utf-8").splitlines()[1].startswith("setting_resume")
 
 
+def test_ablation_resume_rejects_stale_manifest_before_rewriting(monkeypatch, tmp_path):
+    config_path = _write_minimal_config(tmp_path, ["full_soe"])
+    setting_dir = tmp_path / "runs" / "ablation_full_soe"
+    setting_dir.mkdir(parents=True)
+    calls: list[str] = []
+
+    stale_manifest = {
+        "run_id": "ablation_full_soe",
+        "setting": "full_soe",
+        "diagnostic_only": False,
+        "flags": {
+            "use_graph": True,
+            "use_event_chain": False,
+            "use_verifier": True,
+            "selector_mode": "quality_topk",
+            "verifier_mode": "decomposed",
+            "method_version": "direct_llm",
+        },
+    }
+    (setting_dir / "input_manifest.json").write_text(json.dumps(stale_manifest) + "\n", encoding="utf-8")
+    (setting_dir / "metrics.json").write_text(json.dumps({"Tuple-F1-soft": 0.1}) + "\n", encoding="utf-8")
+    (setting_dir / "scoring_scope.json").write_text(json.dumps({"excluded_prediction_count": 0}) + "\n", encoding="utf-8")
+    (setting_dir / "metric_threshold_sensitivity.csv").write_text(
+        "matcher,threshold,precision,recall,f1,true_positives\n",
+        encoding="utf-8",
+    )
+    (setting_dir / "tuple_failure_audit.csv").write_text("event_id,row_type\n", encoding="utf-8")
+    (setting_dir / "schema_attribution_summary.json").write_text(
+        json.dumps({"num_api_calls": 0, "num_tuples_generated": 1, "num_events_requested": 1, "num_events_skipped": 0}) + "\n",
+        encoding="utf-8",
+    )
+    stale_tuple = PredictionTuple(
+        event_id="E001",
+        stakeholder="Residents",
+        opinion="stale",
+        sentiment="negative",
+        rationale="old",
+        evidence_ids=["ev-001"],
+        support_label="supported",
+    )
+    write_jsonl(setting_dir / "candidate_soa_tuples.jsonl", [stale_tuple])
+    write_jsonl(setting_dir / "verified_soa_tuples.jsonl", [stale_tuple])
+
+    monkeypatch.setattr("episoa.pipeline.print_api_config_status", lambda _config: None)
+    monkeypatch.setattr("episoa.pipeline._validate_pipeline_data", lambda _config: {"paper_data_ready": True})
+    monkeypatch.setattr("episoa.pipeline._create_llm_client", lambda _config: object())
+    monkeypatch.setattr("episoa.pipeline._get_git_commit", lambda: "test-sha")
+    monkeypatch.setattr("episoa.pipeline.read_typed_jsonl", _fake_read_typed_jsonl)
+    monkeypatch.setattr("episoa.pipeline.evaluate_ablation", lambda _gold, verified, verifier_enabled=True: {"Num-Tuples": len(verified), "Tuple-F1-soft": 1.0})
+    monkeypatch.setattr("episoa.pipeline._write_scoring_artifacts", _fake_scoring_artifacts)
+    monkeypatch.setattr("episoa.pipeline.write_ablation_delta_audits", lambda **_kwargs: {})
+    monkeypatch.setattr("episoa.pipeline.write_ablation_audit_report", lambda **_kwargs: tmp_path / "audit.md")
+
+    def fake_core(*_args, run_id=None, output_dir=None, **_kwargs):
+        calls.append(str(run_id))
+        out = Path(output_dir)
+        fresh_tuple = stale_tuple.model_copy(update={"opinion": "fresh", "rationale": "new"})
+        write_jsonl(out / "candidate_soa_tuples.jsonl", [fresh_tuple])
+        write_jsonl(out / "verified_soa_tuples.jsonl", [fresh_tuple])
+        write_jsonl(out / "predictions.jsonl", [fresh_tuple])
+        (out / "schema_attribution_summary.json").write_text(
+            json.dumps({"num_api_calls": 0, "num_tuples_generated": 1, "num_events_requested": 1, "num_events_skipped": 0}) + "\n",
+            encoding="utf-8",
+        )
+        return [fresh_tuple], {}, {}
+
+    monkeypatch.setattr("episoa.pipeline._run_core_pipeline", fake_core)
+
+    summary = run_ablation_pipeline(config_path, force=False, resume=True, cache_dir=tmp_path / "cache")
+
+    assert calls == ["ablation_full_soe"]
+    assert summary["metrics"]["full_soe"]["Tuple-F1-soft"] == 1.0
+    rewritten_manifest = json.loads((setting_dir / "input_manifest.json").read_text(encoding="utf-8"))
+    assert rewritten_manifest["flags"]["use_graph"] is False
+
+
 def test_diagnostic_mode_writes_isolated_diagnostic_metadata(monkeypatch, tmp_path):
     config_path = _write_minimal_config(tmp_path, ["full_soe"])
 
@@ -503,13 +579,21 @@ def test_paper_pipeline_preserves_formal_full_soe_path(monkeypatch, tmp_path):
     summary = run_paper_pipeline(config_path, resume=True, cache_dir=tmp_path / "cache")
 
     assert summary["status"] == "completed"
-    assert captured["use_graph"] is True
+    assert captured["use_graph"] is False
     assert captured["use_event_chain"] is True
-    assert captured["use_soe_graph"] is True
-    assert captured["use_stage_attribution"] is True
-    assert captured["use_event_level_safety_net"] is True
-    assert captured["use_hybrid_refinement"] is True
+    assert captured["use_soe_graph"] is False
+    assert captured["use_stage_attribution"] is False
+    assert captured["use_event_level_safety_net"] is False
+    assert captured["use_hybrid_refinement"] is False
     assert captured["use_verifier_quality_gate"] is True
+    input_manifest = json.loads((Path(summary["run_dir"]) / "input_manifest.json").read_text())
+    prompt_manifest = json.loads((Path(summary["run_dir"]) / "prompt_manifest.json").read_text())
+    assert input_manifest["run_id"] == "paper"
+    assert input_manifest["setting"] == "paper_main"
+    assert input_manifest["mode"] == "paper"
+    assert input_manifest["flags"]["use_graph"] is False
+    assert input_manifest["flags"]["use_soe_graph"] is False
+    assert prompt_manifest["prompt_version"] == "schema_attribution_v3_stakeholder_canonical_json"
 
 
 def _cache_key_payload():

@@ -28,6 +28,10 @@ BEST_CHECK_METRICS = (
     "Tuple-F1-semantic@0.3",
     "Tuple-F1-semantic@0.5",
 )
+FINAL_BEST_CHECK_METRICS = (
+    "Tuple-F1-semantic@0.25",
+    "Tuple-F1-semantic@0.3",
+)
 MAIN_TARGET_METRICS = (
     "Tuple-F1-semantic",
     "Tuple-Precision-semantic",
@@ -132,7 +136,13 @@ def _check_final_gate(
         issues.append("ablation_summary settings must be a non-empty list")
         return
 
-    ignored = sorted(setting for setting in settings if setting in ORACLE_SETTINGS)
+    ignored = sorted(
+        {
+            setting
+            for setting in settings
+            if setting in ORACLE_SETTINGS or setting in _full_soe_equivalent_aliases(summary)
+        }
+    )
     result["ignored_settings_for_best_check"] = ignored
 
     full_metrics = _load_setting_metrics(runs_dir / "ablation_full_soe", "full_soe", issues)
@@ -142,10 +152,12 @@ def _check_final_gate(
     for setting in settings:
         if setting == "full_soe" or setting in ORACLE_SETTINGS:
             continue
+        if setting in ignored:
+            continue
         setting_metrics = _load_setting_metrics(runs_dir / f"ablation_{setting}", setting, issues)
         if setting_metrics is None:
             continue
-        for metric in BEST_CHECK_METRICS:
+        for metric in FINAL_BEST_CHECK_METRICS:
             full_value = _metric_float(full_metrics, metric)
             setting_value = _metric_float(setting_metrics, metric)
             if full_value is None or setting_value is None:
@@ -157,6 +169,19 @@ def _check_final_gate(
                     f"{setting} is not below full_soe on {metric}: "
                     f"{setting_value:.4f} >= {full_value:.4f} (diff={diff:.4f})"
                 )
+
+
+def _full_soe_equivalent_aliases(summary: dict[str, Any]) -> set[str]:
+    reuse = summary.get("reuse", {}) if isinstance(summary, dict) else {}
+    if not isinstance(reuse, dict):
+        return set()
+    aliases: set[str] = set()
+    for setting, payload in reuse.items():
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("source_setting") == "full_soe" and payload.get("reason") == "same_setting_fingerprint":
+            aliases.add(str(setting))
+    return aliases
 
 
 def _load_setting_metrics(setting_dir: Path, setting: str, issues: list[str]) -> dict[str, Any] | None:

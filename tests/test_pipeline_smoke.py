@@ -42,29 +42,30 @@ def test_full_soe_v3_and_without_soe_graph_ablation_flags() -> None:
 
     assert full_soe["method_version"] == "soe_v3"
     assert full_soe["selector_mode"] == "coverage_optimized"
-    assert full_soe["use_graph"] is True
+    assert full_soe["use_graph"] is False
     assert full_soe["use_event_chain"] is True
-    assert full_soe["use_soe_graph"] is True
-    assert full_soe["use_stage_attribution"] is True
-    assert full_soe["use_event_level_safety_net"] is True
-    assert full_soe["use_hybrid_refinement"] is True
+    assert full_soe["use_soe_graph"] is False
+    assert full_soe["use_stage_attribution"] is False
+    assert full_soe.get("use_event_level_safety_net", False) is False
+    assert full_soe.get("use_hybrid_refinement", False) is False
     assert full_soe["use_verifier_quality_gate"] is True
     assert full_soe["verifier_mode"] == "decomposed"
     assert full_soe_high_recall["method_version"] == "soe_v3"
     assert full_soe_high_recall["max_evidence_per_event"] == 60
-    assert full_soe_high_recall["use_soe_graph"] is True
-    assert full_soe_high_recall["use_stage_attribution"] is True
-    assert full_soe_high_recall["use_event_level_safety_net"] is True
-    assert full_soe_high_recall["use_hybrid_refinement"] is True
+    assert full_soe_high_recall["use_graph"] is False
+    assert full_soe_high_recall["use_soe_graph"] is False
+    assert full_soe_high_recall["use_stage_attribution"] is False
+    assert full_soe_high_recall.get("use_event_level_safety_net", False) is False
+    assert full_soe_high_recall.get("use_hybrid_refinement", False) is False
     assert full_soe_high_recall["use_verifier_quality_gate"] is True
     without_decomposed_verifier = ABLATION_SETTINGS["without_decomposed_verifier"]
-    assert without_decomposed_verifier["use_soe_graph"] is True
-    assert without_decomposed_verifier["use_stage_attribution"] is True
-    assert without_decomposed_verifier["use_event_level_safety_net"] is True
-    assert without_decomposed_verifier["use_hybrid_refinement"] is True
+    assert without_decomposed_verifier["use_soe_graph"] is False
+    assert without_decomposed_verifier["use_stage_attribution"] is False
+    assert without_decomposed_verifier.get("use_event_level_safety_net", False) is False
+    assert without_decomposed_verifier.get("use_hybrid_refinement", False) is False
     assert without_soe_graph["method_version"] == "soe_v3"
     assert without_soe_graph["selector_mode"] == "coverage_optimized"
-    assert without_soe_graph["use_graph"] is True
+    assert without_soe_graph == full_soe
     assert without_soe_graph["use_event_chain"] is True
     assert without_soe_graph["use_soe_graph"] is False
     assert without_soe_graph["use_stage_attribution"] is False

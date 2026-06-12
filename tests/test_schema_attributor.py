@@ -5,6 +5,7 @@ import pytest
 from episoa.attribution.schema_attributor import (
     MAX_OPINION_CHARS,
     MAX_RATIONALE_CHARS,
+    PROMPT_VERSION,
     SchemaAttributor,
     _write_attribution_cache,
     assert_no_total_api_failure,
@@ -42,6 +43,10 @@ class FailingLLMClient:
     def chat(self, **kwargs):
         self.calls += 1
         raise RuntimeError(self.message)
+
+
+def test_formal_attribution_prompt_version_matches_cache_contract():
+    assert PROMPT_VERSION == "schema_attribution_v3_stakeholder_canonical_json"
 
 
 def test_prompt_contains_event_and_evidence_id():
