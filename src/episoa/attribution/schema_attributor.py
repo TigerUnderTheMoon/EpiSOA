@@ -21,7 +21,7 @@ from episoa.llm.client import json_schema_response_format
 from episoa.retrieval.evidence_selector import SELECTOR_MODES, select_evidence_for_prompt
 
 
-PROMPT_VERSION = "schema_attribution_v3_stakeholder_canonical_json"
+PROMPT_VERSION = "schema_attribution_v5_specific_stakeholder_canonical_json"
 LEGACY_METHOD_VERSION = "legacy"  # pre-soe_v3 single-pass attribution
 SOE_V3_METHOD_VERSION = "soe_v3"
 ATTRIBUTION_MODE = "stakeholder_canonical"
@@ -54,6 +54,27 @@ GENERIC_STAKEHOLDER_LABELS = {
     "社会舆论",
     "公众/网友",
     "公众质疑者",
+}
+GENERIC_ACTOR_CANONICAL_LABELS = {
+    "业主",
+    "居民",
+    "住户",
+    "村民",
+    "公众",
+    "网友",
+    "学生",
+    "家长",
+    "患者",
+    "专家",
+    "律师",
+    "开发商",
+    "物业公司",
+    "企业/开发商",
+    "专家/律师",
+    "居民/公众",
+    "居民/公众_泛指",
+    "公众/网友",
+    "公安机关",
 }
 PSEUDO_STAKEHOLDER_TERMS = ("项目", "事件", "事故", "风波", "舆情", "报道", "新闻", "文章", "方案")
 ISSUE_DESCRIPTOR_TERMS = ("安全", "治理", "处置", "争议", "问题", "抽成")
@@ -112,6 +133,16 @@ SPECIFIC_ACTOR_TERMS = (
     "村委",
     "党委",
     "协会",
+    "总部",
+    "品牌方",
+    "门店",
+    "员工",
+    "教师",
+    "院方",
+    "平台",
+    "检测机构",
+    "工作人员",
+    "负责人",
 )
 
 SCHEMA_ATTRIBUTION_RESPONSE_FORMAT = json_schema_response_format(
@@ -1564,7 +1595,7 @@ def run_schema_attribution(
                     event_stage_candidates.append(copied)
             for row in event_tuples:
                 row["selection_diagnostics"] = selection.diagnostics
-            if cache_base is not None and not dry_run:
+            if cache_base is not None and not dry_run and record.get("parse_success") is True:
                 _write_attribution_cache(
                     cache_base / f"{cache_key}.json",
                     {
@@ -1814,10 +1845,15 @@ def _sha256_json(payload: dict[str, Any]) -> str:
 
 
 def _write_attribution_cache(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
-    tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp_path.replace(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(path.suffix + f".{time.time_ns()}.tmp")
+        tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp_path.replace(path)
+    except OSError:
+        # Cache is an acceleration layer; a cache write failure must not turn a
+        # successful model response into an attribution failure.
+        return
 
 
 def _read_attribution_cache(path: Path) -> dict[str, Any] | None:
@@ -1857,6 +1893,8 @@ def _load_resume_records(output_dir: Path) -> dict[str, dict[str, Any]]:
     output: dict[str, dict[str, Any]] = {}
     for record in raw_rows:
         if not isinstance(record, dict):
+            continue
+        if record.get("parse_success") is not True:
             continue
         event_id = str(record.get("event_id", ""))
         summary = record.get("request_summary", {}) if isinstance(record.get("request_summary"), dict) else {}
@@ -1904,13 +1942,28 @@ def _progress_row(
 
 
 def assert_no_total_api_failure(summary: dict[str, Any], output_dir: str | Path) -> None:
-    """Fail fast when attribution produced only API failures."""
+    """Fail fast when attribution produced no usable API-backed output."""
     api_calls = int(summary.get("num_api_calls", 0) or 0)
     api_failures = int(summary.get("num_api_failures", 0) or 0)
+    tuples = int(summary.get("num_tuples_generated", 0) or 0)
+    parse_failed = summary.get("parse_failed_events", [])
+    parse_failed_count = len(parse_failed) if isinstance(parse_failed, list) else 0
+    requested = int(summary.get("num_events_requested", 0) or 0)
+    skipped = int(summary.get("num_events_skipped", 0) or 0)
+    events_with_prompt = max(0, requested - skipped)
+
+    output_dir = Path(output_dir)
+    if api_calls > 0 and tuples == 0 and parse_failed_count >= events_with_prompt and events_with_prompt > 0:
+        raise RuntimeError(
+            "Schema attribution made API calls but produced zero parsed attribution tuples "
+            f"for {parse_failed_count} prompted events. Treating the run as failed instead of "
+            "writing all-zero metrics. Inspect "
+            f"{output_dir / 'schema_attribution_summary.json'} and "
+            f"{output_dir / 'raw_llm_responses.jsonl'}."
+        )
     if api_calls > 0 or api_failures == 0:
         return
 
-    output_dir = Path(output_dir)
     raise RuntimeError(
         "Schema attribution made zero successful API calls and recorded "
         f"{api_failures} API failures. Treating the run as failed instead of "
@@ -2419,10 +2472,63 @@ def canonical_stakeholder(
             return match, "remap", "pseudo_stakeholder_mapped_to_inventory"
         return original, "drop", "pseudo_stakeholder"
     if match and not is_pseudo_stakeholder(match, event):
+        if should_keep_specific_stakeholder(original, match):
+            return original, "keep", "specific_stakeholder_preserved"
         if match != original:
             return match, "remap", "inventory_alias_match"
         return original, "keep", "inventory_exact"
     return original, "keep", "evidence_supported_outside_inventory"
+
+
+def should_keep_specific_stakeholder(original: str, matched_candidate: str) -> bool:
+    """Avoid collapsing evidence-supported specific actors into generic inventory labels."""
+    original = normalize_stakeholder_label(original)
+    matched_candidate = normalize_stakeholder_label(matched_candidate)
+    if not original or not matched_candidate or original == matched_candidate:
+        return False
+    if len(original) <= len(matched_candidate) + 1:
+        return False
+    compact_candidate = normalize_token(matched_candidate)
+    generic_compacts = {normalize_token(item) for item in GENERIC_ACTOR_CANONICAL_LABELS}
+    if matched_candidate in original and _looks_like_multi_actor_label(original):
+        return False
+    if compact_candidate in generic_compacts and (
+        matched_candidate in original or _actor_family_overlap(original, matched_candidate)
+    ):
+        return True
+    if matched_candidate in original and any(term in original for term in SPECIFIC_ACTOR_TERMS):
+        return True
+    if matched_candidate in original and any(term in original for term in ACTOR_HINT_TERMS):
+        return True
+    return False
+
+
+def _looks_like_multi_actor_label(label: str) -> bool:
+    if any(sep in label for sep in ("、", "及", "与", "和")):
+        actor_hits = sum(1 for term in ACTOR_HINT_TERMS if term in label)
+        return actor_hits >= 2
+    return False
+
+
+def _actor_family_overlap(original: str, matched_candidate: str) -> bool:
+    family_terms = (
+        "业主",
+        "居民",
+        "住户",
+        "村民",
+        "公众",
+        "网友",
+        "学生",
+        "家长",
+        "患者",
+        "专家",
+        "律师",
+        "开发商",
+        "物业",
+        "企业",
+        "公安",
+    )
+    return any(term in original and term in matched_candidate for term in family_terms)
 
 
 def merge_duplicate_canonical_rows(rows: list[dict[str, Any]], event_id: str) -> tuple[list[dict[str, Any]], int]:

@@ -1,4 +1,6 @@
 import httpx
+import tomllib
+from pathlib import Path
 
 from episoa.llm import client as llm_client_module
 from episoa.llm.client import OpenAICompatibleClient
@@ -52,3 +54,10 @@ def test_openai_compatible_client_reuses_httpx_client(monkeypatch):
     assert second.content == "ok"
     assert len(CountingHttpxClient.instances) == 1
     assert len(CountingHttpxClient.instances[0].posts) == 2
+
+
+def test_project_declares_socks_proxy_support_for_httpx():
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    dependencies = pyproject["project"]["dependencies"]
+
+    assert any("httpx" in dependency and "socks" in dependency for dependency in dependencies)

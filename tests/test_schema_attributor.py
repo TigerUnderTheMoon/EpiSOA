@@ -6,6 +6,7 @@ from episoa.attribution.schema_attributor import (
     MAX_OPINION_CHARS,
     MAX_RATIONALE_CHARS,
     SchemaAttributor,
+    _write_attribution_cache,
     assert_no_total_api_failure,
     build_event_stakeholder_inventory,
     canonicalize_tuple_rows,
@@ -17,6 +18,7 @@ from episoa.attribution.schema_attributor import (
     select_prompt_evidence,
     stakeholder_candidates_by_event,
 )
+from episoa.verifier.faithfulness_verifier import _write_verifier_cache
 
 
 class FakeLLMClient:
@@ -307,12 +309,36 @@ def test_total_api_failure_guard_raises(tmp_path):
         model_name="fake",
         output_dir=tmp_path,
         dry_run=False,
+        method_version="legacy",
     )
 
     assert fake.calls == 1
     assert summary["num_api_calls"] == 0
     assert summary["num_api_failures"] == 1
     with pytest.raises(RuntimeError, match="zero successful API calls"):
+        assert_no_total_api_failure(summary, tmp_path)
+
+
+def test_total_parse_failure_guard_raises(tmp_path):
+    fake = FakeLLMClient("")
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[chain_row()],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="legacy",
+    )
+
+    assert fake.calls == 2
+    assert summary["num_api_calls"] == 2
+    assert summary["num_tuples_generated"] == 0
+    assert summary["parse_failed_events"] == ["E012"]
+    with pytest.raises(RuntimeError, match="zero parsed attribution tuples"):
         assert_no_total_api_failure(summary, tmp_path)
 
 
@@ -410,6 +436,68 @@ def test_output_candidate_tuple_fields_are_complete(tmp_path):
     assert (tmp_path / "canonicalization_map.csv").exists()
     assert (tmp_path / "raw_llm_responses.jsonl").exists()
     assert rows[0]["canonical_tuple"] is True
+
+
+def test_canonicalization_preserves_specific_actor_over_generic_inventory():
+    rows = [
+        {
+            "event_id": "E999",
+            "tuple_id": "E999_SOA_001",
+            "stakeholder": "金钻豪园项目业主",
+            "stakeholder_aliases": [],
+            "opinion": "质疑旧改停滞并要求明确后续安排。",
+            "sentiment": "negative",
+            "rationale": "业主持续追问项目进展。",
+            "evidence_ids": ["ev-1"],
+        }
+    ]
+
+    canonical_rows, diagnostics = canonicalize_tuple_rows(
+        rows,
+        event=event_row(),
+        stakeholder_candidates=["业主", "企业/开发商"],
+        evidence_items=[evidence_row("ev-1")],
+    )
+
+    assert canonical_rows[0]["stakeholder"] == "金钻豪园项目业主"
+    assert canonical_rows[0]["canonicalization_reason"] == "specific_stakeholder_preserved"
+    assert diagnostics["canonicalization_map"][0]["canonical_stakeholder"] == "金钻豪园项目业主"
+
+
+def test_canonicalization_preserves_specific_actor_over_short_inventory_name():
+    rows = [
+        {
+            "event_id": "E999",
+            "tuple_id": "E999_SOA_001",
+            "stakeholder": "美吉姆（中国）总部",
+            "stakeholder_aliases": [],
+            "opinion": "承诺支持加盟中心继续经营并处理退费。",
+            "sentiment": "neutral",
+            "rationale": "品牌总部发布声明。",
+            "evidence_ids": ["ev-1"],
+        }
+    ]
+
+    canonical_rows, diagnostics = canonicalize_tuple_rows(
+        rows,
+        event=event_row(),
+        stakeholder_candidates=["美吉姆"],
+        evidence_items=[evidence_row("ev-1")],
+    )
+
+    assert canonical_rows[0]["stakeholder"] == "美吉姆（中国）总部"
+    assert canonical_rows[0]["canonicalization_reason"] == "specific_stakeholder_preserved"
+    assert diagnostics["canonicalization_map"][0]["canonical_stakeholder"] == "美吉姆（中国）总部"
+
+
+def test_cache_write_failures_are_best_effort(monkeypatch, tmp_path):
+    def deny_replace(self, target):
+        raise PermissionError("locked cache")
+
+    monkeypatch.setattr("pathlib.Path.replace", deny_replace)
+
+    _write_attribution_cache(tmp_path / "attribution.json", {"record": {}, "tuples": [], "stage_candidates": []})
+    _write_verifier_cache(tmp_path / "verifier.json", {"score": 1.0})
 
 
 def test_soe_v3_two_pass_writes_stage_candidates_and_final_tuples(tmp_path):

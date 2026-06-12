@@ -8,7 +8,7 @@ import pytest
 from episoa.attribution.schema_attributor import attribution_cache_key, run_schema_attribution
 from episoa.data.loader import read_jsonl, write_jsonl
 from episoa.data.schema import EvidenceRecord, PredictionTuple
-from episoa.pipeline import run_ablation_pipeline
+from episoa.pipeline import run_ablation_pipeline, run_paper_pipeline
 from episoa.verifier.faithfulness_verifier import verifier_cache_key, verify_tuples
 
 
@@ -73,6 +73,18 @@ class FakeVerifierClient:
         return type("Response", (), {"content": '{"score": 0.6, "reason": "partial"}'})()
 
 
+class FailingLLMClient(FakeLLMClient):
+    def chat(self, **_kwargs):
+        self.calls += 1
+        raise RuntimeError("transport failure")
+
+
+class EmptyLLMClient(FakeLLMClient):
+    def chat(self, **_kwargs):
+        self.calls += 1
+        return type("Response", (), {"content": "", "response_id": f"empty-{self.calls}", "raw": {}})()
+
+
 def test_attribution_cache_key_changes_when_inputs_change():
     base = _cache_key_payload()
 
@@ -124,6 +136,115 @@ def test_schema_attribution_uses_cache_and_resume_without_recalling_llm(tmp_path
     assert second["cache"]["hits"] == 1
     progress = read_jsonl(tmp_path / "second" / "progress.jsonl")
     assert progress[0]["status"] == "cache_hit"
+
+
+def test_schema_attribution_resume_retries_failed_records(tmp_path):
+    events = [_event("E001")]
+    evidence = [_evidence("E001", "ev-001")]
+    failing_client = FailingLLMClient()
+
+    failed = run_schema_attribution(
+        events=events,
+        evidence_rows=evidence,
+        chains=[],
+        graph_nodes=[],
+        llm_client=failing_client,
+        model_name="fake-model",
+        output_dir=tmp_path,
+        method_version="legacy",
+        resume=True,
+    )
+    assert failed["num_api_failures"] == 1
+
+    retry_client = FakeLLMClient()
+    retried = run_schema_attribution(
+        events=events,
+        evidence_rows=evidence,
+        chains=[],
+        graph_nodes=[],
+        llm_client=retry_client,
+        model_name="fake-model",
+        output_dir=tmp_path,
+        method_version="legacy",
+        resume=True,
+    )
+
+    assert retry_client.calls == 1
+    assert retried["num_api_failures"] == 0
+    assert retried["num_tuples_generated"] == 1
+    progress = read_jsonl(tmp_path / "progress.jsonl")
+    assert progress[0]["status"] == "cache_miss"
+
+
+def test_schema_attribution_does_not_cache_failed_parse_records(tmp_path):
+    events = [_event("E001")]
+    evidence = [_evidence("E001", "ev-001")]
+    cache_dir = tmp_path / "cache"
+    empty_client = EmptyLLMClient()
+
+    failed = run_schema_attribution(
+        events=events,
+        evidence_rows=evidence,
+        chains=[],
+        graph_nodes=[],
+        llm_client=empty_client,
+        model_name="fake-model",
+        output_dir=tmp_path / "failed",
+        method_version="legacy",
+        cache_dir=cache_dir,
+    )
+
+    assert empty_client.calls == 2
+    assert failed["num_api_failures"] == 0
+    assert failed["parse_failed_events"] == ["E001"]
+    assert not list((cache_dir / "schema_attribution").glob("*.json"))
+
+
+def test_schema_attribution_ignores_failed_parse_cache_records(tmp_path):
+    events = [_event("E001")]
+    evidence = [_evidence("E001", "ev-001")]
+    cache_dir = tmp_path / "cache"
+    cache_key = attribution_cache_key(**_cache_key_payload())
+    cache_path = cache_dir / "schema_attribution" / f"{cache_key}.json"
+    cache_path.parent.mkdir(parents=True)
+    cache_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "cache_key": cache_key,
+                "event_id": "E001",
+                "tuples": [],
+                "stage_candidates": [],
+                "record": {
+                    "event_id": "E001",
+                    "parse_success": False,
+                    "parse_error": "empty_llm_content",
+                    "request_summary": {"cache_key": cache_key},
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    client = FakeLLMClient()
+
+    summary = run_schema_attribution(
+        events=events,
+        evidence_rows=evidence,
+        chains=[],
+        graph_nodes=[],
+        llm_client=client,
+        model_name="fake-model",
+        output_dir=tmp_path / "run",
+        method_version="legacy",
+        cache_dir=cache_dir,
+    )
+
+    assert client.calls == 1
+    assert summary["cache"]["hits"] == 0
+    assert summary["cache"]["misses"] == 1
+    progress = read_jsonl(tmp_path / "run" / "progress.jsonl")
+    assert progress[0]["status"] == "cache_miss"
 
 
 def test_schema_attribution_parallel_output_order_is_deterministic(tmp_path):
@@ -204,9 +325,16 @@ def test_ablation_reuses_full_soe_attribution_for_id_only_verifier(monkeypatch, 
     monkeypatch.setattr("episoa.pipeline._get_git_commit", lambda: "test-sha")
     monkeypatch.setattr("episoa.pipeline.read_typed_jsonl", _fake_read_typed_jsonl)
     monkeypatch.setattr("episoa.pipeline.evaluate_ablation", lambda _gold, verified, verifier_enabled=True: {"Num-Tuples": len(verified), "Tuple-F1-soft": 1.0})
-    monkeypatch.setattr("episoa.pipeline._write_scoring_artifacts", lambda *_args, **_kwargs: {"excluded_prediction_count": 0, "excluded_event_ids": []})
     monkeypatch.setattr("episoa.pipeline.write_ablation_delta_audits", lambda **_kwargs: {})
     monkeypatch.setattr("episoa.pipeline.write_ablation_audit_report", lambda **_kwargs: tmp_path / "audit.md")
+
+    def fake_scoring(run_dir, *_args, **_kwargs):
+        run_dir = Path(run_dir)
+        (run_dir / "metric_threshold_sensitivity.csv").write_text("matcher,threshold,precision,recall,f1,true_positives\n", encoding="utf-8")
+        (run_dir / "tuple_failure_audit.csv").write_text("event_id,row_type\n", encoding="utf-8")
+        return {"excluded_prediction_count": 0, "excluded_event_ids": []}
+
+    monkeypatch.setattr("episoa.pipeline._write_scoring_artifacts", fake_scoring)
 
     def fake_core(*_args, run_id=None, reuse_attribution_dir=None, output_dir=None, **_kwargs):
         calls.append((str(run_id), str(reuse_attribution_dir) if reuse_attribution_dir else None))
@@ -230,6 +358,98 @@ def test_ablation_reuses_full_soe_attribution_for_id_only_verifier(monkeypatch, 
     assert summary["reuse"]["without_decomposed_verifier"]["source_setting"] == "full_soe"
     reuse_manifest = json.loads((tmp_path / "runs" / "ablation_without_decomposed_verifier" / "reuse_manifest.json").read_text())
     assert reuse_manifest["reuse_source_setting"] == "full_soe"
+
+
+def test_ablation_reuses_equivalent_attribution_fingerprints(monkeypatch, tmp_path):
+    config_path = _write_minimal_config(tmp_path, ["without_chain_aware_selection", "quality_topk_selector"])
+    calls: list[tuple[str, str | None]] = []
+
+    monkeypatch.setattr("episoa.pipeline.print_api_config_status", lambda _config: None)
+    monkeypatch.setattr("episoa.pipeline._validate_pipeline_data", lambda _config: {"paper_data_ready": True})
+    monkeypatch.setattr("episoa.pipeline._create_llm_client", lambda _config: object())
+    monkeypatch.setattr("episoa.pipeline._get_git_commit", lambda: "test-sha")
+    monkeypatch.setattr("episoa.pipeline.read_typed_jsonl", _fake_read_typed_jsonl)
+    monkeypatch.setattr("episoa.pipeline.evaluate_ablation", lambda _gold, verified, verifier_enabled=True: {"Num-Tuples": len(verified), "Tuple-F1-soft": 1.0})
+    monkeypatch.setattr("episoa.pipeline._write_scoring_artifacts", _fake_scoring_artifacts)
+    monkeypatch.setattr("episoa.pipeline.write_ablation_delta_audits", lambda **_kwargs: {})
+    monkeypatch.setattr("episoa.pipeline.write_ablation_audit_report", lambda **_kwargs: tmp_path / "audit.md")
+
+    def fake_core(*_args, run_id=None, reuse_attribution_dir=None, output_dir=None, **_kwargs):
+        calls.append((str(run_id), str(reuse_attribution_dir) if reuse_attribution_dir else None))
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        write_jsonl(
+            out / "candidate_soa_tuples.jsonl",
+            [PredictionTuple(event_id="E001", stakeholder="Residents", opinion="o", sentiment="negative", rationale="r", evidence_ids=["ev-001"], support_label="supported")],
+        )
+        write_jsonl(out / "verified_soa_tuples.jsonl", [])
+        write_jsonl(out / "predictions.jsonl", [])
+        (out / "schema_attribution_summary.json").write_text(
+            json.dumps({"num_api_calls": 0, "num_tuples_generated": 1, "num_events_requested": 1, "num_events_skipped": 0}) + "\n",
+            encoding="utf-8",
+        )
+        return [], {}, {}
+
+    monkeypatch.setattr("episoa.pipeline._run_core_pipeline", fake_core)
+
+    summary = run_ablation_pipeline(config_path, force=True, resume=True, cache_dir=tmp_path / "cache")
+
+    assert calls[0] == ("ablation_without_chain_aware_selection", None)
+    assert len(calls) == 1
+    assert summary["reuse"]["quality_topk_selector"]["source_setting"] == "without_chain_aware_selection"
+    assert summary["reuse"]["quality_topk_selector"]["reason"] == "same_setting_fingerprint"
+    reuse_dir = tmp_path / "runs" / "ablation_quality_topk_selector"
+    runtime_manifest = json.loads((reuse_dir / "runtime_manifest.json").read_text())
+    cache_manifest = json.loads((reuse_dir / "cache_manifest.json").read_text())
+    assert runtime_manifest["run_id"] == "ablation_quality_topk_selector"
+    assert runtime_manifest["setting_cache"]["phase"] == "setting_reuse"
+    assert cache_manifest["setting_cache"]["source_setting"] == "without_chain_aware_selection"
+    assert (reuse_dir / "phase_timings.csv").read_text(encoding="utf-8").splitlines()[1].startswith("setting_reuse")
+
+
+def test_ablation_resume_skips_complete_matching_setting(monkeypatch, tmp_path):
+    config_path = _write_minimal_config(tmp_path, ["full_soe"])
+    calls: list[str] = []
+
+    monkeypatch.setattr("episoa.pipeline.print_api_config_status", lambda _config: None)
+    monkeypatch.setattr("episoa.pipeline._validate_pipeline_data", lambda _config: {"paper_data_ready": True})
+    monkeypatch.setattr("episoa.pipeline._create_llm_client", lambda _config: object())
+    monkeypatch.setattr("episoa.pipeline._get_git_commit", lambda: "test-sha")
+    monkeypatch.setattr("episoa.pipeline.read_typed_jsonl", _fake_read_typed_jsonl)
+    monkeypatch.setattr("episoa.pipeline.evaluate_ablation", lambda _gold, verified, verifier_enabled=True: {"Num-Tuples": len(verified), "Tuple-F1-soft": 1.0})
+    monkeypatch.setattr("episoa.pipeline._write_scoring_artifacts", _fake_scoring_artifacts)
+    monkeypatch.setattr("episoa.pipeline.write_ablation_delta_audits", lambda **_kwargs: {})
+    monkeypatch.setattr("episoa.pipeline.write_ablation_audit_report", lambda **_kwargs: tmp_path / "audit.md")
+
+    def fake_core(*_args, run_id=None, output_dir=None, **_kwargs):
+        calls.append(str(run_id))
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        write_jsonl(
+            out / "candidate_soa_tuples.jsonl",
+            [PredictionTuple(event_id="E001", stakeholder="Residents", opinion="o", sentiment="negative", rationale="r", evidence_ids=["ev-001"], support_label="supported")],
+        )
+        write_jsonl(out / "verified_soa_tuples.jsonl", [])
+        write_jsonl(out / "predictions.jsonl", [])
+        (out / "schema_attribution_summary.json").write_text(
+            json.dumps({"num_api_calls": 0, "num_tuples_generated": 1, "num_events_requested": 1, "num_events_skipped": 0}) + "\n",
+            encoding="utf-8",
+        )
+        return [], {}, {}
+
+    monkeypatch.setattr("episoa.pipeline._run_core_pipeline", fake_core)
+
+    first = run_ablation_pipeline(config_path, force=True, resume=True, cache_dir=tmp_path / "cache")
+    second = run_ablation_pipeline(config_path, force=False, resume=True, cache_dir=tmp_path / "cache")
+
+    assert calls == ["ablation_full_soe"]
+    assert first["metrics"] == second["metrics"]
+    resumed_dir = tmp_path / "runs" / "ablation_full_soe"
+    runtime_manifest = json.loads((resumed_dir / "runtime_manifest.json").read_text())
+    cache_manifest = json.loads((resumed_dir / "cache_manifest.json").read_text())
+    assert runtime_manifest["setting_cache"]["phase"] == "setting_resume"
+    assert cache_manifest["cache"]["resume_hits"] == 1
+    assert (resumed_dir / "phase_timings.csv").read_text(encoding="utf-8").splitlines()[1].startswith("setting_resume")
 
 
 def test_diagnostic_mode_writes_isolated_diagnostic_metadata(monkeypatch, tmp_path):
@@ -261,6 +481,35 @@ def test_diagnostic_mode_writes_isolated_diagnostic_metadata(monkeypatch, tmp_pa
     assert manifest["diagnostic_only"] is True
     assert manifest["max_events"] == 1
     assert manifest["event_ids"] == ["E001"]
+
+
+def test_paper_pipeline_preserves_formal_full_soe_path(monkeypatch, tmp_path):
+    config_path = _write_minimal_config(tmp_path, [])
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr("episoa.pipeline.print_api_config_status", lambda _config: None)
+    monkeypatch.setattr("episoa.pipeline._validate_pipeline_data", lambda _config: {"paper_data_ready": True})
+    monkeypatch.setattr("episoa.pipeline._create_llm_client", lambda _config: object())
+    monkeypatch.setattr("episoa.pipeline._get_git_commit", lambda: "test-sha")
+    monkeypatch.setattr("episoa.pipeline.read_typed_jsonl", _fake_read_typed_jsonl)
+    monkeypatch.setattr("episoa.pipeline._write_scoring_artifacts", lambda *_args, **_kwargs: {"excluded_prediction_count": 0, "excluded_event_ids": []})
+
+    def fake_core(*_args, **kwargs):
+        captured.update(kwargs)
+        return [], {}, {}
+
+    monkeypatch.setattr("episoa.pipeline._run_core_pipeline", fake_core)
+
+    summary = run_paper_pipeline(config_path, resume=True, cache_dir=tmp_path / "cache")
+
+    assert summary["status"] == "completed"
+    assert captured["use_graph"] is True
+    assert captured["use_event_chain"] is True
+    assert captured["use_soe_graph"] is True
+    assert captured["use_stage_attribution"] is True
+    assert captured["use_event_level_safety_net"] is True
+    assert captured["use_hybrid_refinement"] is True
+    assert captured["use_verifier_quality_gate"] is True
 
 
 def _cache_key_payload():
@@ -326,6 +575,16 @@ def _write_minimal_config(tmp_path: Path, settings: list[str]) -> Path:
         encoding="utf-8",
     )
     return config_path
+
+
+def _fake_scoring_artifacts(run_dir, *_args, **_kwargs):
+    run_dir = Path(run_dir)
+    (run_dir / "metric_threshold_sensitivity.csv").write_text(
+        "matcher,threshold,precision,recall,f1,true_positives\n",
+        encoding="utf-8",
+    )
+    (run_dir / "tuple_failure_audit.csv").write_text("event_id,row_type\n", encoding="utf-8")
+    return {"excluded_prediction_count": 0, "excluded_event_ids": []}
 
 
 def _fake_read_typed_jsonl(_path, model):

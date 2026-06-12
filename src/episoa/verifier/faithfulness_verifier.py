@@ -164,10 +164,15 @@ def _read_verifier_cache(path: Path) -> dict | None:
 
 
 def _write_verifier_cache(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(path.suffix + f".{time.time_ns()}.tmp")
-    tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp_path.replace(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(path.suffix + f".{time.time_ns()}.tmp")
+        tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp_path.replace(path)
+    except OSError:
+        # Cache is best-effort. Verification output should remain usable even
+        # when the cache directory is locked or sandboxed.
+        return
 
 
 def _label_from_score(score: float, threshold: float) -> str:

@@ -93,6 +93,42 @@ def test_final_gate_fails_when_non_oracle_variant_matches_main(tmp_path: Path) -
     assert any("direct_llm" in issue and "Tuple-F1-semantic@0.3" in issue for issue in result["issues"])
 
 
+def test_final_gate_rejects_all_parse_failed_setting(tmp_path: Path) -> None:
+    runs_dir = tmp_path / "runs"
+    main_dir = runs_dir / "main"
+    main_dir.mkdir(parents=True)
+    write_json(
+        main_dir / "metrics.json",
+        {
+            "Metric-Scope": "gold_event_scope",
+            "Tuple-F1-semantic": 0.71,
+            "Tuple-Precision-semantic": 0.72,
+            "Tuple-Recall-semantic": 0.73,
+        },
+    )
+    write_setting(runs_dir, "full_soe", f1_03=0.76, f1_05=0.71, f1_025=0.78)
+    write_setting(runs_dir, "direct_llm", f1_03=0.0, f1_05=0.0, f1_025=0.0)
+    write_json(
+        runs_dir / "ablation_direct_llm" / "schema_attribution_summary.json",
+        {
+            "num_events_requested": 2,
+            "num_events_skipped": 0,
+            "num_tuples_generated": 0,
+            "num_api_calls": 4,
+            "parse_failed_events": ["E001", "E002"],
+        },
+    )
+    write_json(
+        runs_dir / "ablation_summary.json",
+        {"status": "completed", "settings": ["full_soe", "direct_llm"]},
+    )
+
+    result = run_gate(runs_dir=runs_dir, mode="final", main_dir=main_dir)
+
+    assert result["status"] == "failed"
+    assert any("direct_llm" in issue and "zero parsed attribution tuples" in issue for issue in result["issues"])
+
+
 def write_setting(
     runs_dir: Path,
     setting: str,

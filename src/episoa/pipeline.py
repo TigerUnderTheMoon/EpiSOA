@@ -783,6 +783,48 @@ def _write_runtime_manifest(run_dir: Path, payload: dict[str, object]) -> None:
     )
 
 
+def _write_setting_resume_artifacts(
+    setting_dir: Path,
+    *,
+    run_id: str,
+    runtime_options: dict[str, object],
+    phase: str,
+    reuse_info: dict[str, object] | None = None,
+) -> None:
+    """Record diagnostics when a setting is satisfied without running core phases."""
+    cache_dir = Path(str(runtime_options.get("cache_dir") or _default_cache_dir(None)))
+    _write_phase_timings(
+        setting_dir / "phase_timings.csv",
+        [{"phase": phase, "elapsed_seconds": 0.0, "cache": "hit"}],
+    )
+    cache_manifest = {
+        "cache_dir": str(cache_dir),
+        "resume": bool(runtime_options.get("resume", False)),
+        "cache": {
+            "hits": 1,
+            "misses": 0,
+            "resume_hits": 1 if phase == "setting_resume" else 0,
+            "invalid": 0,
+        },
+        "max_api_concurrency": int(runtime_options.get("max_api_concurrency") or 1),
+        "setting_cache": {"phase": phase, **(reuse_info or {})},
+    }
+    (setting_dir / "cache_manifest.json").write_text(
+        json.dumps(cache_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    _write_runtime_manifest(
+        setting_dir,
+        {
+            "run_id": run_id,
+            "diagnostic_only": bool(runtime_options.get("diagnostic_only", False)),
+            "resume": bool(runtime_options.get("resume", False)),
+            "cache_dir": str(cache_dir),
+            "max_api_concurrency": int(runtime_options.get("max_api_concurrency") or 1),
+            "setting_cache": {"phase": phase, **(reuse_info or {})},
+        },
+    )
+
+
 def _default_cache_dir(cache_dir: str | Path | None) -> Path:
     return Path(cache_dir) if cache_dir is not None else Path("outputs/cache/pipeline")
 
@@ -837,6 +879,37 @@ def _filter_events(events, *, event_ids: list[str] | None = None, max_events: in
     return selected
 
 
+ATTRIBUTION_FINGERPRINT_KEYS = (
+    "use_graph",
+    "use_event_chain",
+    "hide_chain_in_prompt",
+    "skip_chain_ranking",
+    "oracle_evidence",
+    "use_soe_graph",
+    "selector_mode",
+    "method_version",
+    "max_tuples_per_event",
+    "max_evidence_per_event",
+    "enforce_candidate_constraints",
+    "use_stage_attribution",
+    "use_ner_extraction",
+    "use_event_level_safety_net",
+    "use_hybrid_refinement",
+)
+
+
+def _attribution_fingerprint(flags: dict[str, object]) -> str:
+    payload = {key: flags.get(key) for key in ATTRIBUTION_FINGERPRINT_KEYS if key in flags}
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _setting_fingerprint(flags: dict[str, object]) -> str:
+    payload = {key: flags.get(key) for key in sorted(PIPELINE_FLAG_KEYS) if key in flags}
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
 def _attribution_reuse_source(setting: str, completed_setting_dirs: dict[str, Path]) -> str | None:
     if setting == "without_decomposed_verifier" and "full_soe" in completed_setting_dirs:
         return "full_soe"
@@ -862,6 +935,73 @@ def _write_reuse_manifest(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return payload
+
+
+def _copy_setting_artifacts(source_dir: Path, target_dir: Path) -> None:
+    excluded = {"config_snapshot.yaml", "input_manifest.json", "prompt_manifest.json", "reuse_manifest.json"}
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for source in source_dir.iterdir():
+        if source.name in excluded:
+            continue
+        target = target_dir / source.name
+        if source.is_dir():
+            if target.exists():
+                shutil.rmtree(target)
+            shutil.copytree(source, target)
+        else:
+            shutil.copyfile(source, target)
+
+
+def _load_setting_resume(
+    setting_dir: Path,
+    *,
+    setting: str,
+    flags: dict[str, object],
+    diagnostic_only: bool,
+) -> tuple[list[PredictionTuple], dict[str, object]] | None:
+    required = [
+        "metrics.json",
+        "verified_soa_tuples.jsonl",
+        "candidate_soa_tuples.jsonl",
+        "scoring_scope.json",
+        "metric_threshold_sensitivity.csv",
+        "tuple_failure_audit.csv",
+        "input_manifest.json",
+        "schema_attribution_summary.json",
+    ]
+    if any(not (setting_dir / name).exists() for name in required):
+        return None
+    try:
+        manifest = json.loads((setting_dir / "input_manifest.json").read_text(encoding="utf-8"))
+        summary = json.loads((setting_dir / "schema_attribution_summary.json").read_text(encoding="utf-8"))
+        metrics = json.loads((setting_dir / "metrics.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if manifest.get("setting") != setting:
+        return None
+    if bool(manifest.get("diagnostic_only", False)) != bool(diagnostic_only):
+        return None
+    manifest_flags = manifest.get("flags", {}) if isinstance(manifest.get("flags"), dict) else {}
+    if _setting_fingerprint(manifest_flags) != _setting_fingerprint(flags):
+        return None
+    if _setting_attribution_failed(summary):
+        return None
+    try:
+        verified = _attribution_to_predictions(read_jsonl(setting_dir / "verified_soa_tuples.jsonl"))
+    except (OSError, ValueError):
+        return None
+    return verified, metrics
+
+
+def _setting_attribution_failed(summary: dict[str, object]) -> bool:
+    api_calls = int(summary.get("num_api_calls", 0) or 0)
+    tuples = int(summary.get("num_tuples_generated", 0) or 0)
+    requested = int(summary.get("num_events_requested", 0) or 0)
+    skipped = int(summary.get("num_events_skipped", 0) or 0)
+    parse_failed = summary.get("parse_failed_events", [])
+    parse_failed_count = len(parse_failed) if isinstance(parse_failed, list) else 0
+    prompted = max(0, requested - skipped)
+    return api_calls > 0 and tuples == 0 and prompted > 0 and parse_failed_count >= prompted
 
 
 def _oracle_evidence_ids_by_event(gold: list[GoldTuple]) -> dict[str, list[str]]:
@@ -1112,8 +1252,8 @@ def run_ablation_pipeline(
     """Run ablation experiments for every setting in config.ablation.settings.
 
     Each setting runs the full pipeline independently in its own output directory
-    under the configured runs directory as ablation_{setting}/. Paper-final mode never reuses cached
-    results; every configured setting always runs from scratch.
+    under the configured runs directory as ablation_{setting}/. With resume enabled,
+    complete healthy setting outputs and equivalent-setting artifacts may be reused.
 
     When force=True, existing setting directories are removed before running.
     """
@@ -1164,6 +1304,8 @@ def run_ablation_pipeline(
     all_metrics: dict[str, dict[str, float]] = {}
     selected_settings = _normalize_id_list(settings if settings is not None else config.ablation.get("settings", list(ABLATION_SETTINGS)))
     completed_setting_dirs: dict[str, Path] = {}
+    completed_attribution_fingerprints: dict[str, str] = {}
+    completed_setting_fingerprints: dict[str, str] = {}
     reuse: dict[str, dict[str, object]] = {}
     _write_runtime_manifest(
         runs_dir,
@@ -1192,6 +1334,8 @@ def run_ablation_pipeline(
             flags["use_verifier_quality_gate"] = False
 
         setting_dir = runs_dir / f"ablation_{setting}"
+        attribution_fingerprint = _attribution_fingerprint(flags)
+        setting_fingerprint = _setting_fingerprint(flags)
 
         if force:
             if setting_dir.exists():
@@ -1200,7 +1344,7 @@ def run_ablation_pipeline(
 
         setting_dir.mkdir(parents=True, exist_ok=True)
 
-        # Always write manifests before running (paper-final: never skip)
+        # Always write manifests before running or reusing a setting.
         shutil.copyfile(config_path, setting_dir / "config_snapshot.yaml")
         _write_input_manifest(
             setting_dir,
@@ -1217,7 +1361,75 @@ def run_ablation_pipeline(
             runtime_options=runtime_options,
         )
         _write_prompt_manifest(setting_dir, config, flags)
+
+        setting_reuse_source = completed_setting_fingerprints.get(setting_fingerprint)
+        setting_reuse_dir = completed_setting_dirs.get(setting_reuse_source) if setting_reuse_source else None
+        if setting_reuse_source and setting_reuse_dir is not None:
+            _copy_setting_artifacts(setting_reuse_dir, setting_dir)
+            reuse[setting] = _write_reuse_manifest(
+                setting_dir,
+                setting=setting,
+                source_setting=setting_reuse_source,
+                source_dir=setting_reuse_dir,
+                reason="same_setting_fingerprint",
+            )
+            reuse[setting]["source_setting"] = setting_reuse_source
+            reuse[setting]["reason"] = "same_setting_fingerprint"
+            loaded = _load_setting_resume(
+                setting_dir,
+                setting=setting,
+                flags=flags,
+                diagnostic_only=bool(runtime["diagnostic"]),
+            )
+            if loaded is not None:
+                verified, metrics = loaded
+                all_metrics[setting] = metrics
+                completed_setting_dirs[setting] = setting_dir
+                completed_attribution_fingerprints.setdefault(attribution_fingerprint, setting)
+                completed_setting_fingerprints.setdefault(setting_fingerprint, setting)
+                _write_setting_resume_artifacts(
+                    setting_dir,
+                    run_id=f"ablation_{setting}",
+                    runtime_options=runtime_options,
+                    phase="setting_reuse",
+                    reuse_info={
+                        "source_setting": setting_reuse_source,
+                        "source_dir": str(setting_reuse_dir),
+                        "reason": "same_setting_fingerprint",
+                    },
+                )
+                _write_ablation_csv(runs_dir / "ablation_results.csv", all_metrics)
+                print(f"  [REUSE] {setting} <- {setting_reuse_source}")
+                continue
+
+        if bool(runtime["resume"]) and not force:
+            loaded = _load_setting_resume(
+                setting_dir,
+                setting=setting,
+                flags=flags,
+                diagnostic_only=bool(runtime["diagnostic"]),
+            )
+            if loaded is not None:
+                verified, metrics = loaded
+                all_metrics[setting] = metrics
+                completed_setting_dirs[setting] = setting_dir
+                completed_attribution_fingerprints.setdefault(attribution_fingerprint, setting)
+                completed_setting_fingerprints.setdefault(setting_fingerprint, setting)
+                _write_setting_resume_artifacts(
+                    setting_dir,
+                    run_id=f"ablation_{setting}",
+                    runtime_options=runtime_options,
+                    phase="setting_resume",
+                )
+                _write_ablation_csv(runs_dir / "ablation_results.csv", all_metrics)
+                print(f"  [RESUME] {setting} <- {setting_dir}")
+                continue
+
         reuse_source_setting = _attribution_reuse_source(setting, completed_setting_dirs)
+        reuse_reason = "same_attribution_inputs_verifier_only_change"
+        if reuse_source_setting is None:
+            reuse_source_setting = completed_attribution_fingerprints.get(attribution_fingerprint)
+            reuse_reason = "same_attribution_fingerprint"
         reuse_source_dir = completed_setting_dirs.get(reuse_source_setting) if reuse_source_setting else None
         if reuse_source_setting and reuse_source_dir is not None:
             reuse[setting] = _write_reuse_manifest(
@@ -1225,9 +1437,10 @@ def run_ablation_pipeline(
                 setting=setting,
                 source_setting=reuse_source_setting,
                 source_dir=reuse_source_dir,
-                reason="same_attribution_inputs_verifier_only_change",
+                reason=reuse_reason,
             )
             reuse[setting]["source_setting"] = reuse_source_setting
+            reuse[setting]["reason"] = reuse_reason
 
         print(f"  [RUN] {setting} → {setting_dir}")
         verified, _retrieval_metrics, _verifier_metrics = _run_core_pipeline(
@@ -1246,6 +1459,8 @@ def run_ablation_pipeline(
         scoring_scope = _write_scoring_artifacts(setting_dir, gold, verified)
         all_metrics[setting] = metrics
         completed_setting_dirs[setting] = setting_dir
+        completed_attribution_fingerprints.setdefault(attribution_fingerprint, setting)
+        completed_setting_fingerprints.setdefault(setting_fingerprint, setting)
 
         (setting_dir / "metrics.json").write_text(
             json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

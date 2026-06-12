@@ -164,12 +164,41 @@ def _load_setting_metrics(setting_dir: Path, setting: str, issues: list[str]) ->
         path = setting_dir / artifact
         if not path.exists():
             issues.append(f"{setting} missing required artifact: {path}")
+    _check_setting_attribution_health(setting_dir, setting, issues)
     metrics = _read_json(setting_dir / "metrics.json", issues)
     if not isinstance(metrics, dict):
         return None
     if metrics.get("Metric-Scope") != "gold_event_scope":
         issues.append(f"{setting} Metric-Scope must be gold_event_scope, got {metrics.get('Metric-Scope')}")
     return metrics
+
+
+def _check_setting_attribution_health(setting_dir: Path, setting: str, issues: list[str]) -> None:
+    summary_path = setting_dir / "schema_attribution_summary.json"
+    if not summary_path.exists():
+        return
+    summary = _read_json(summary_path, issues)
+    if not isinstance(summary, dict):
+        return
+    api_calls = _int_value(summary.get("num_api_calls"))
+    tuples = _int_value(summary.get("num_tuples_generated"))
+    requested = _int_value(summary.get("num_events_requested"))
+    skipped = _int_value(summary.get("num_events_skipped"))
+    parse_failed = summary.get("parse_failed_events", [])
+    parse_failed_count = len(parse_failed) if isinstance(parse_failed, list) else 0
+    prompted = max(0, requested - skipped)
+    if api_calls > 0 and tuples == 0 and prompted > 0 and parse_failed_count >= prompted:
+        issues.append(
+            f"{setting} produced zero parsed attribution tuples after {api_calls} API calls "
+            f"({parse_failed_count}/{prompted} prompted events parse failed)"
+        )
+
+
+def _int_value(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def _metric_float(metrics: dict[str, Any], metric: str) -> float | None:

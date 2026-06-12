@@ -56,7 +56,7 @@ def evaluate_main(
         metrics["Candidate-UTR"] = unsupported_rate(scored_predictions)
         metrics["Candidate-UTR-All"] = unsupported_rate(predictions)
 
-    # Two-stage normalized semantic metrics (paper main metric)
+    # Two-stage normalized semantic metrics (audits)
     two_stage_025 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.25)
     two_stage_03 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.3)
     two_stage_05 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.5)
