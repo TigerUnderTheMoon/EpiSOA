@@ -1,0 +1,1839 @@
+{
+  "tuple_identification": {
+    "total_events": 50,
+    "events_with_predictions": 46,
+    "events_with_no_predictions": [
+      "E006",
+      "E007",
+      "E031",
+      "E047"
+    ],
+    "total_gold_tuples": 188,
+    "total_pred_tuples": 149,
+    "exact_matches": 0,
+    "soft_candidates": 0,
+    "missing_stakeholder_types": {},
+    "sentiment_errors": [],
+    "per_event": [
+      {
+        "event_id": "E001",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "广州市白云区政府",
+          "三元里村支持改造的村民",
+          "三元里村对补偿方案不满的村民"
+        ],
+        "gold_stakeholders": [
+          "三元里村村民",
+          "广州市白云区政府",
+          "对改造持积极态度的村民",
+          "对补偿方案不满的村民"
+        ]
+      },
+      {
+        "event_id": "E002",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "当地村民（居民）",
+          "唐镇/浦东新区政府",
+          "专业化规模化住房租赁企业"
+        ],
+        "gold_stakeholders": [
+          "小湾村、暮二村居民",
+          "浦东新区唐镇政府",
+          "浦东新区政府"
+        ]
+      },
+      {
+        "event_id": "E003",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "金钻豪园原业主（拆迁户）",
+          "金钻豪园开发商（深圳新华城房地产有限公司）",
+          "深圳市罗湖区翠竹街道办事处及相关部门"
+        ],
+        "gold_stakeholders": [
+          "原业主（拆迁户）",
+          "原业主（拆迁户）",
+          "罗湖区翠竹街道办事处"
+        ]
+      },
+      {
+        "event_id": "E004",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "横沙社区居民委员会（社区组织）",
+          "未签约留守户（村民）",
+          "广州市黄埔区人民政府"
+        ],
+        "gold_stakeholders": [
+          "横沙社区",
+          "黄埔区政府",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E005",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "虹凉馨苑小区居民（反对涨价的业主）",
+          "虹凉馨苑小区物业公司",
+          "上海市住房保障房屋管理局（政府主管部门）"
+        ],
+        "gold_stakeholders": [
+          "虹凉馨苑小区居民",
+          "小区物业公司",
+          "????"
+        ]
+      },
+      {
+        "event_id": "E006",
+        "gold_count": 3,
+        "pred_count": 0,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [],
+        "gold_stakeholders": [
+          "美心翡翠明庭小区业主",
+          "大龙街道办",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E007",
+        "gold_count": 3,
+        "pred_count": 0,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [],
+        "gold_stakeholders": [
+          "蓝色康园小区业主",
+          "广州市物业管理行业协会",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E008",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "高层业主（四、五、六楼住户）",
+          "一楼住户",
+          "法院"
+        ],
+        "gold_stakeholders": [
+          "白马庙街2号小区2单元四五六楼四户业主",
+          "白马庙街2号小区2单元一楼业主",
+          "温江区人民法院"
+        ]
+      },
+      {
+        "event_id": "E009",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "公租房住户",
+          "商品房业主",
+          "深圳市相关方面（含住建局）"
+        ],
+        "gold_stakeholders": [
+          "公租房住户",
+          "商品房业主",
+          "深圳市光明区住房和建设局"
+        ]
+      },
+      {
+        "event_id": "E010",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "被征收人（百家坊安置房业主）",
+          "柯城区政府（街道办事处或征收部门）",
+          "施工单位（安置房项目建设方）"
+        ],
+        "gold_stakeholders": [
+          "衢州市柯城区双港街道办事处",
+          "公众",
+          "媒体"
+        ]
+      },
+      {
+        "event_id": "E011",
+        "gold_count": 5,
+        "pred_count": 5,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "江西工业职业技术学院学生",
+          "江西工业职业技术学院校方",
+          "南昌市市场监督管理局",
+          "江西省联合调查组",
+          "广大网民/公众"
+        ],
+        "gold_stakeholders": [
+          "江西工业职业技术学院",
+          "江西省联合调查组",
+          "学生",
+          "公众及网络舆论",
+          "律师"
+        ]
+      },
+      {
+        "event_id": "E012",
+        "gold_count": 5,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "学生家长",
+          "社会公众/网友",
+          "学校校方/校长",
+          "官方联合调查组/政府"
+        ],
+        "gold_stakeholders": [
+          "家长",
+          "学校",
+          "官渡区市场监管局、教育体育局",
+          "食堂承包经营企业",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E013",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "学生家长",
+          "海口市市场监督管理局",
+          "北京大学附属小学海口学校"
+        ],
+        "gold_stakeholders": [
+          "学生家长",
+          "海口市市场监督管理局",
+          "海口市市场监督管理局秀英分局、秀英区教育局"
+        ]
+      },
+      {
+        "event_id": "E014",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "警方（南宁市公安局良庆分局）",
+          "社会公众/网友",
+          "受害女生"
+        ],
+        "gold_stakeholders": [
+          "南宁市公安局良庆分局",
+          "网络舆论/网民",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E015",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "邯郸市肥乡区政府及公安机关",
+          "广大网友",
+          "司法机关"
+        ],
+        "gold_stakeholders": [
+          "肥乡区委宣传部（官方微信公众号“微观肥乡”）",
+          "肥乡区公安机关",
+          "肥乡区相关部门"
+        ]
+      },
+      {
+        "event_id": "E016",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "遇难者家属/被害人代理律师",
+          "政府调查组/官方",
+          "社会公众/网友"
+        ],
+        "gold_stakeholders": [
+          "遇难学生家属",
+          "河南省政府调查组",
+          "英才学校",
+          "遇难学生代理律师"
+        ]
+      },
+      {
+        "event_id": "E017",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "绍兴市第一中学",
+          "事件举报者（学生或家长）",
+          "社会公众与主流媒体"
+        ],
+        "gold_stakeholders": [
+          "绍兴市第一中学",
+          "公众",
+          "媒体"
+        ]
+      },
+      {
+        "event_id": "E018",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "暨南大学学生",
+          "暨南大学校方（党委宣传部）",
+          "关注此事的网民和公众"
+        ],
+        "gold_stakeholders": [
+          "暨南大学学生",
+          "暨南大学党委宣传部",
+          "暨南大学校方",
+          "媒体"
+        ]
+      },
+      {
+        "event_id": "E019",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "受影响的北京美吉姆学员家长",
+          "美吉姆（中国）总部",
+          "北京美吉姆常营华联中心等加盟店"
+        ],
+        "gold_stakeholders": [
+          "家长",
+          "美吉姆（中国）总部",
+          "美吉姆常营华联中心",
+          "消费者",
+          "媒体报道"
+        ]
+      },
+      {
+        "event_id": "E020",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "学生家长",
+          "温江区政府联合调查组",
+          "网民"
+        ],
+        "gold_stakeholders": [
+          "学生家长",
+          "成都市联合调查组",
+          "四川省教育厅",
+          "市场监管总局",
+          "温江区政府"
+        ]
+      },
+      {
+        "event_id": "E021",
+        "gold_count": 3,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "举报医生朱成刚",
+          "无锡市医保局",
+          "国家医保局",
+          "社会公众/舆论"
+        ],
+        "gold_stakeholders": [
+          "无锡市医保局",
+          "国家医保局",
+          "举报医生（朱医生）"
+        ]
+      },
+      {
+        "event_id": "E022",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "武当山特区卫生健康局、市场监督管理局、公安局",
+          "受害患者及家属",
+          "药王谷中医馆"
+        ],
+        "gold_stakeholders": [
+          "武当山特区卫健局、市场监管局、公安局",
+          "武当山旅游经济特区公安局局长蓝侠",
+          "广大网友"
+        ]
+      },
+      {
+        "event_id": "E023",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "患者（投诉者）",
+          "东莞市中医院",
+          "医疗领域评论人士"
+        ],
+        "gold_stakeholders": [
+          "患者",
+          "东莞市中医院",
+          "第三方设备维保公司工程师",
+          "媒体",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E024",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "受害老人家属（李女士）",
+          "警方（曲沃县公安局）",
+          "社会公众与网民"
+        ],
+        "gold_stakeholders": [
+          "李女士",
+          "曲沃县公安局",
+          "乐昌镇政府"
+        ]
+      },
+      {
+        "event_id": "E025",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "上海市东方医院",
+          "举报人余女士",
+          "公众/患者群体"
+        ],
+        "gold_stakeholders": [
+          "上海市东方医院",
+          "举报人余女士",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E026",
+        "gold_count": 3,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "患者家属",
+          "邓州市卫生健康委员会",
+          "邓州市人民医院",
+          "社会公众"
+        ],
+        "gold_stakeholders": [
+          "邓州市卫生健康委员会",
+          "邓州市卫生健康委员会",
+          "公众和媒体"
+        ]
+      },
+      {
+        "event_id": "E027",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "上海浦东警方",
+          "受害患者",
+          "浦东新区检察院"
+        ],
+        "gold_stakeholders": [
+          "上海市公安局浦东分局",
+          "浦东新区人民检察院",
+          "被害患者",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E028",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "福州市疾控中心",
+          "预约市民",
+          "福州市卫健委"
+        ],
+        "gold_stakeholders": [
+          "福州市疾控中心",
+          "福州市民",
+          "福州市卫健委"
+        ]
+      },
+      {
+        "event_id": "E029",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "广西医科大学第一附属医院",
+          "社会公众及网民",
+          "医院一线职工"
+        ],
+        "gold_stakeholders": [
+          "广西医科大学第一附属医院",
+          "社会公众",
+          "广西医科大学第一附属医院"
+        ]
+      },
+      {
+        "event_id": "E030",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "深圳市人民检察院",
+          "老年人和残疾人群体",
+          "最高人民检察院、民政部、中国残疾人联合会"
+        ],
+        "gold_stakeholders": [
+          "深圳市人民检察院",
+          "残障人士和老年人群体",
+          "深圳市卫生健康委员会"
+        ]
+      },
+      {
+        "event_id": "E031",
+        "gold_count": 4,
+        "pred_count": 0,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [],
+        "gold_stakeholders": [
+          "明尚西苑小区居民",
+          "南京市政府",
+          "江苏省消防救援总队",
+          "明尚西苑物业公司"
+        ]
+      },
+      {
+        "event_id": "E032",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "遇难者家属/受害者家庭",
+          "广东省政府/梅州市政府",
+          "调查评估组（广东省政府调查评估组）"
+        ],
+        "gold_stakeholders": [
+          "广东省政府",
+          "应急管理部",
+          "广东省政府调查评估组",
+          "梅州市政府"
+        ]
+      },
+      {
+        "event_id": "E033",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "遇难者家属和公众",
+          "国务院调查组及应急管理部等政府部门",
+          "教育培训机构和教育系统"
+        ],
+        "gold_stakeholders": [
+          "国务院事故调查组",
+          "江西省政府",
+          "新余市消防救援支队",
+          "公众（业主）",
+          "国务院评估组"
+        ]
+      },
+      {
+        "event_id": "E034",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "成都市民（燃气费异常投诉者）",
+          "成都市市场监督管理局",
+          "网络论坛关注者"
+        ],
+        "gold_stakeholders": [
+          "成都市居民",
+          "成都市市场监督管理局",
+          "燃气企业",
+          "市民",
+          "成都市市场监督管理局"
+        ]
+      },
+      {
+        "event_id": "E035",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "仁和、良渚区域受影响居民",
+          "余杭区人民政府/杭州余杭水务控股集团有限公司",
+          "国家、省级专家调查组"
+        ],
+        "gold_stakeholders": [
+          "余杭区居民",
+          "余杭区人民政府",
+          "仁和水厂",
+          "杭州余杭水务控股集团有限公司"
+        ]
+      },
+      {
+        "event_id": "E036",
+        "gold_count": 4,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "当地居民（含南京浦口段居民）",
+          "滁州市生态环境局",
+          "中国环境报",
+          "安徽省/中央环保督察"
+        ],
+        "gold_stakeholders": [
+          "滁州市生态环境局",
+          "当地居民",
+          "滁州市人民政府",
+          "中央生态环境保护督察"
+        ]
+      },
+      {
+        "event_id": "E037",
+        "gold_count": 4,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "遇难者家属及公众",
+          "北京市政府及相关部门（消防、卫健、公安、应急）",
+          "北京长峰医院管理层",
+          "其他医疗机构及医务工作者"
+        ],
+        "gold_stakeholders": [
+          "北京市政府",
+          "应急管理部",
+          "北京长峰医院",
+          "医疗行业（医院消防安全培训）"
+        ]
+      },
+      {
+        "event_id": "E038",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "国务院事故调查组",
+          "网民",
+          "宁夏党委政府"
+        ],
+        "gold_stakeholders": [
+          "国务院事故调查组",
+          "富洋烧烤店",
+          "银川市政府",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E039",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "事故调查组（专家组组长刘福来）",
+          "河北省应急管理厅",
+          "当地居民（住宿旅客和送孩子居民）"
+        ],
+        "gold_stakeholders": [
+          "燕郊镇居民",
+          "三河市应急管理局",
+          "河北省应急管理厅",
+          "地铁施工方",
+          "公众与网民"
+        ]
+      },
+      {
+        "event_id": "E040",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "吕梁市当地政府",
+          "山西省政府事故调查组（官方）",
+          "社会公众"
+        ],
+        "gold_stakeholders": [
+          "应急管理部",
+          "山西省政府新闻办公室",
+          "国务院事故调查组",
+          "永聚煤业有限公司"
+        ]
+      },
+      {
+        "event_id": "E041",
+        "gold_count": 5,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "武汉市民/乘客",
+          "网约车/出租车司机",
+          "百度/萝卜快跑运营方",
+          "武汉市交通管理部门"
+        ],
+        "gold_stakeholders": [
+          "武汉出租车/网约车司机",
+          "萝卜快跑",
+          "武汉市民/消费者",
+          "武汉市交通运输部门",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E042",
+        "gold_count": 5,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "外卖骑手",
+          "广州市政府/监管部门",
+          "人大代表",
+          "市民/公众"
+        ],
+        "gold_stakeholders": [
+          "广州市市场监管局",
+          "广州交警",
+          "外卖骑手",
+          "杨旭代表",
+          "刘建国代表"
+        ]
+      },
+      {
+        "event_id": "E043",
+        "gold_count": 4,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "武汉市城管执法委员会、市交通运输局、市公安局交通管理局等政府部门",
+          "武汉市民（共享单车用户及周边居民）",
+          "哈啰、美团、青桔等共享单车经营企业"
+        ],
+        "gold_stakeholders": [
+          "武汉市城管执法委",
+          "市民",
+          "市民",
+          "武汉市交通运输局"
+        ]
+      },
+      {
+        "event_id": "E044",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "牡丹江市城市管理综合执法局",
+          "市民（共享单车使用者）",
+          "爱民区老科协铁北街道分会"
+        ],
+        "gold_stakeholders": [
+          "牡丹江市城市管理综合执法局",
+          "牡丹江市城市管理综合执法局",
+          "黑龙江省住建厅",
+          "市民",
+          "共享单车运营企业（哈啰、美团、青桔）"
+        ]
+      },
+      {
+        "event_id": "E045",
+        "gold_count": 5,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "东湖风景区城管执法局",
+          "共享单车运营企业（被处罚方）",
+          "景区游客与市民"
+        ],
+        "gold_stakeholders": [
+          "武汉东湖风景区城管执法局",
+          "共享单车运营企业",
+          "市民田女士",
+          "武汉东湖风景区城管执法局",
+          "共享单车运营企业"
+        ]
+      },
+      {
+        "event_id": "E046",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "工业和信息化部",
+          "普通用户",
+          "第三方检测机构"
+        ],
+        "gold_stakeholders": [
+          "工业和信息化部",
+          "公众",
+          "媒体"
+        ]
+      },
+      {
+        "event_id": "E047",
+        "gold_count": 3,
+        "pred_count": 0,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [],
+        "gold_stakeholders": [
+          "中央网信办、工业和信息化部、公安部、市场监管总局",
+          "中央网信办",
+          "公众"
+        ]
+      },
+      {
+        "event_id": "E048",
+        "gold_count": 3,
+        "pred_count": 3,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "江苏省通信管理局",
+          "江苏省委网信办、省公安厅、省市场监督管理局等联合监管部门",
+          "江苏省广大手机App用户"
+        ],
+        "gold_stakeholders": [
+          "江苏省通信管理局",
+          "被通报App运营企业",
+          "江苏省通信管理局2025年第1批20款App侵害用户权益通报事件"
+        ]
+      },
+      {
+        "event_id": "E049",
+        "gold_count": 5,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "网约车司机",
+          "乘客",
+          "交通运输部（监管部门）",
+          "媒体及行业专家"
+        ],
+        "gold_stakeholders": [
+          "网约车司机",
+          "交通运输部（监管机构）",
+          "网约车司机",
+          "全国人大代表",
+          "专家"
+        ]
+      },
+      {
+        "event_id": "E050",
+        "gold_count": 3,
+        "pred_count": 4,
+        "exact_matches": 0,
+        "sentiment_matches": 0,
+        "pred_stakeholders": [
+          "滴滴出行",
+          "网约车司机",
+          "乘客",
+          "新华社"
+        ],
+        "gold_stakeholders": [
+          "网约车司机",
+          "滴滴出行",
+          "乘客"
+        ]
+      }
+    ],
+    "gold_sentiment_dist": {
+      "mixed": 5,
+      "positive": 38,
+      "negative": 88,
+      "neutral": 57
+    },
+    "pred_sentiment_dist": {
+      "positive": 44,
+      "negative": 78,
+      "mixed": 27
+    },
+    "unique_gold_stakeholders": 153,
+    "unique_pred_stakeholders": 141,
+    "stakeholder_recall": 0.20915032679738563
+  },
+  "evidence_support": {
+    "total": 736,
+    "accuracy": "66.0%",
+    "correct": 486,
+    "errors": 250,
+    "positive_errors": 137,
+    "negative_errors": 113,
+    "error_breakdown": {
+      "supported→partially_supported": {
+        "count": 104,
+        "pct": "14.1%",
+        "sample_events": [
+          "E001",
+          "E001",
+          "E002"
+        ]
+      },
+      "not_enough_info→partially_supported": {
+        "count": 73,
+        "pct": "9.9%",
+        "sample_events": [
+          "E001",
+          "E002",
+          "E003"
+        ]
+      },
+      "not_enough_info→supported": {
+        "count": 40,
+        "pct": "5.4%",
+        "sample_events": [
+          "E008",
+          "E013",
+          "E013"
+        ]
+      },
+      "supported→not_enough_info": {
+        "count": 18,
+        "pct": "2.4%",
+        "sample_events": [
+          "E004",
+          "E005",
+          "E006"
+        ]
+      },
+      "partially_supported→not_enough_info": {
+        "count": 10,
+        "pct": "1.4%",
+        "sample_events": [
+          "E006",
+          "E010",
+          "E011"
+        ]
+      },
+      "partially_supported→supported": {
+        "count": 5,
+        "pct": "0.7%",
+        "sample_events": [
+          "E008",
+          "E011",
+          "E015"
+        ]
+      }
+    },
+    "per_class": {
+      "supported": {
+        "gold_count": 334,
+        "pred_count": 257,
+        "tp": 212,
+        "precision": "82.5%",
+        "recall": "63.5%"
+      },
+      "partially_supported": {
+        "gold_count": 26,
+        "pred_count": 188,
+        "tp": 11,
+        "precision": "5.9%",
+        "recall": "42.3%"
+      },
+      "not_enough_info": {
+        "gold_count": 376,
+        "pred_count": 291,
+        "tp": 263,
+        "precision": "90.4%",
+        "recall": "69.9%"
+      }
+    },
+    "confusion": {
+      "supported": {
+        "supported": 212,
+        "partially_supported": 104,
+        "not_enough_info": 18
+      },
+      "not_enough_info": {
+        "not_enough_info": 263,
+        "partially_supported": 73,
+        "supported": 40
+      },
+      "partially_supported": {
+        "partially_supported": 11,
+        "not_enough_info": 10,
+        "supported": 5
+      }
+    }
+  },
+  "chain_construction": {
+    "total_events": 50,
+    "events_with_match": 45,
+    "events_without_match": [
+      "E006",
+      "E010",
+      "E014",
+      "E045",
+      "E047"
+    ],
+    "events_with_empty_pred": [
+      "E006",
+      "E010",
+      "E014",
+      "E045",
+      "E047"
+    ],
+    "gold_chain_distribution": {
+      "3": 38,
+      "2": 12
+    },
+    "pred_chain_distribution": {
+      "3": 16,
+      "2": 29,
+      "0": 5
+    },
+    "per_event_overlap": [
+      {
+        "event_id": "E006",
+        "gold_evidence_count": 2,
+        "pred_evidence_count": 0,
+        "overlap_count": 0,
+        "overlap_pct": "0.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": []
+      },
+      {
+        "event_id": "E010",
+        "gold_evidence_count": 5,
+        "pred_evidence_count": 0,
+        "overlap_count": 0,
+        "overlap_pct": "0.0%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": []
+      },
+      {
+        "event_id": "E014",
+        "gold_evidence_count": 5,
+        "pred_evidence_count": 0,
+        "overlap_count": 0,
+        "overlap_pct": "0.0%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": []
+      },
+      {
+        "event_id": "E045",
+        "gold_evidence_count": 5,
+        "pred_evidence_count": 0,
+        "overlap_count": 0,
+        "overlap_pct": "0.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": []
+      },
+      {
+        "event_id": "E047",
+        "gold_evidence_count": 6,
+        "pred_evidence_count": 0,
+        "overlap_count": 0,
+        "overlap_pct": "0.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": []
+      },
+      {
+        "event_id": "E024",
+        "gold_evidence_count": 5,
+        "pred_evidence_count": 9,
+        "overlap_count": 1,
+        "overlap_pct": "20.0%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          5
+        ]
+      },
+      {
+        "event_id": "E040",
+        "gold_evidence_count": 9,
+        "pred_evidence_count": 10,
+        "overlap_count": 2,
+        "overlap_pct": "22.2%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E033",
+        "gold_evidence_count": 8,
+        "pred_evidence_count": 8,
+        "overlap_count": 2,
+        "overlap_pct": "25.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          4
+        ]
+      },
+      {
+        "event_id": "E046",
+        "gold_evidence_count": 4,
+        "pred_evidence_count": 10,
+        "overlap_count": 1,
+        "overlap_pct": "25.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          5
+        ]
+      },
+      {
+        "event_id": "E011",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 9,
+        "overlap_count": 2,
+        "overlap_pct": "28.6%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E025",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 11,
+        "overlap_count": 2,
+        "overlap_pct": "28.6%",
+        "gold_stages": [
+          3,
+          3,
+          3
+        ],
+        "pred_stages": [
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E017",
+        "gold_evidence_count": 6,
+        "pred_evidence_count": 6,
+        "overlap_count": 2,
+        "overlap_pct": "33.3%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E020",
+        "gold_evidence_count": 9,
+        "pred_evidence_count": 12,
+        "overlap_count": 3,
+        "overlap_pct": "33.3%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E037",
+        "gold_evidence_count": 11,
+        "pred_evidence_count": 14,
+        "overlap_count": 4,
+        "overlap_pct": "36.4%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E049",
+        "gold_evidence_count": 8,
+        "pred_evidence_count": 12,
+        "overlap_count": 3,
+        "overlap_pct": "37.5%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E021",
+        "gold_evidence_count": 10,
+        "pred_evidence_count": 8,
+        "overlap_count": 4,
+        "overlap_pct": "40.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E022",
+        "gold_evidence_count": 5,
+        "pred_evidence_count": 5,
+        "overlap_count": 2,
+        "overlap_pct": "40.0%",
+        "gold_stages": [
+          3,
+          3
+        ],
+        "pred_stages": [
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E028",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 9,
+        "overlap_count": 3,
+        "overlap_pct": "42.9%",
+        "gold_stages": [
+          3,
+          3,
+          3
+        ],
+        "pred_stages": [
+          5,
+          4
+        ]
+      },
+      {
+        "event_id": "E035",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 5,
+        "overlap_count": 3,
+        "overlap_pct": "42.9%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          3,
+          4
+        ]
+      },
+      {
+        "event_id": "E016",
+        "gold_evidence_count": 9,
+        "pred_evidence_count": 9,
+        "overlap_count": 4,
+        "overlap_pct": "44.4%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          4
+        ]
+      },
+      {
+        "event_id": "E036",
+        "gold_evidence_count": 9,
+        "pred_evidence_count": 9,
+        "overlap_count": 4,
+        "overlap_pct": "44.4%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E042",
+        "gold_evidence_count": 9,
+        "pred_evidence_count": 8,
+        "overlap_count": 4,
+        "overlap_pct": "44.4%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E007",
+        "gold_evidence_count": 4,
+        "pred_evidence_count": 4,
+        "overlap_count": 2,
+        "overlap_pct": "50.0%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          3
+        ]
+      },
+      {
+        "event_id": "E008",
+        "gold_evidence_count": 4,
+        "pred_evidence_count": 5,
+        "overlap_count": 2,
+        "overlap_pct": "50.0%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          5
+        ]
+      },
+      {
+        "event_id": "E012",
+        "gold_evidence_count": 12,
+        "pred_evidence_count": 8,
+        "overlap_count": 6,
+        "overlap_pct": "50.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          5
+        ]
+      },
+      {
+        "event_id": "E015",
+        "gold_evidence_count": 6,
+        "pred_evidence_count": 7,
+        "overlap_count": 3,
+        "overlap_pct": "50.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          5
+        ]
+      },
+      {
+        "event_id": "E023",
+        "gold_evidence_count": 6,
+        "pred_evidence_count": 7,
+        "overlap_count": 3,
+        "overlap_pct": "50.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E032",
+        "gold_evidence_count": 10,
+        "pred_evidence_count": 11,
+        "overlap_count": 5,
+        "overlap_pct": "50.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          3,
+          3,
+          4
+        ]
+      },
+      {
+        "event_id": "E043",
+        "gold_evidence_count": 10,
+        "pred_evidence_count": 14,
+        "overlap_count": 5,
+        "overlap_pct": "50.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E004",
+        "gold_evidence_count": 13,
+        "pred_evidence_count": 10,
+        "overlap_count": 7,
+        "overlap_pct": "53.8%",
+        "gold_stages": [
+          3,
+          3,
+          3
+        ],
+        "pred_stages": [
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E038",
+        "gold_evidence_count": 11,
+        "pred_evidence_count": 12,
+        "overlap_count": 6,
+        "overlap_pct": "54.5%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E039",
+        "gold_evidence_count": 11,
+        "pred_evidence_count": 8,
+        "overlap_count": 6,
+        "overlap_pct": "54.5%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E050",
+        "gold_evidence_count": 11,
+        "pred_evidence_count": 15,
+        "overlap_count": 6,
+        "overlap_pct": "54.5%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E048",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 9,
+        "overlap_count": 4,
+        "overlap_pct": "57.1%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          3,
+          4
+        ]
+      },
+      {
+        "event_id": "E002",
+        "gold_evidence_count": 10,
+        "pred_evidence_count": 8,
+        "overlap_count": 6,
+        "overlap_pct": "60.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          4
+        ]
+      },
+      {
+        "event_id": "E026",
+        "gold_evidence_count": 8,
+        "pred_evidence_count": 9,
+        "overlap_count": 5,
+        "overlap_pct": "62.5%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E041",
+        "gold_evidence_count": 11,
+        "pred_evidence_count": 16,
+        "overlap_count": 7,
+        "overlap_pct": "63.6%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E009",
+        "gold_evidence_count": 6,
+        "pred_evidence_count": 5,
+        "overlap_count": 4,
+        "overlap_pct": "66.7%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          3,
+          3
+        ]
+      },
+      {
+        "event_id": "E029",
+        "gold_evidence_count": 9,
+        "pred_evidence_count": 6,
+        "overlap_count": 6,
+        "overlap_pct": "66.7%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          3,
+          4
+        ]
+      },
+      {
+        "event_id": "E013",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 10,
+        "overlap_count": 5,
+        "overlap_pct": "71.4%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          4,
+          5
+        ]
+      },
+      {
+        "event_id": "E027",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 8,
+        "overlap_count": 5,
+        "overlap_pct": "71.4%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          3
+        ]
+      },
+      {
+        "event_id": "E031",
+        "gold_evidence_count": 11,
+        "pred_evidence_count": 15,
+        "overlap_count": 8,
+        "overlap_pct": "72.7%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E019",
+        "gold_evidence_count": 8,
+        "pred_evidence_count": 12,
+        "overlap_count": 6,
+        "overlap_pct": "75.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E034",
+        "gold_evidence_count": 12,
+        "pred_evidence_count": 14,
+        "overlap_count": 9,
+        "overlap_pct": "75.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5,
+          4
+        ]
+      },
+      {
+        "event_id": "E001",
+        "gold_evidence_count": 9,
+        "pred_evidence_count": 15,
+        "overlap_count": 7,
+        "overlap_pct": "77.8%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          5
+        ]
+      },
+      {
+        "event_id": "E044",
+        "gold_evidence_count": 6,
+        "pred_evidence_count": 9,
+        "overlap_count": 5,
+        "overlap_pct": "83.3%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          5
+        ]
+      },
+      {
+        "event_id": "E018",
+        "gold_evidence_count": 7,
+        "pred_evidence_count": 12,
+        "overlap_count": 6,
+        "overlap_pct": "85.7%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E003",
+        "gold_evidence_count": 8,
+        "pred_evidence_count": 9,
+        "overlap_count": 7,
+        "overlap_pct": "87.5%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          5,
+          4
+        ]
+      },
+      {
+        "event_id": "E005",
+        "gold_evidence_count": 2,
+        "pred_evidence_count": 5,
+        "overlap_count": 2,
+        "overlap_pct": "100.0%",
+        "gold_stages": [
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4
+        ]
+      },
+      {
+        "event_id": "E030",
+        "gold_evidence_count": 6,
+        "pred_evidence_count": 8,
+        "overlap_count": 6,
+        "overlap_pct": "100.0%",
+        "gold_stages": [
+          4,
+          4,
+          4
+        ],
+        "pred_stages": [
+          4,
+          4
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+Statistic,Value
+Number of events,50
+Number of evidence records,1767
+Number of gold tuples,188
+Number of gold event chains,138
+  Domain: digital_governance,5
+  Domain: education,10
+  Domain: healthcare,10
+  Domain: public_safety,10
+  Domain: urban_mobility,5
+  Domain: urban_renewal,10
+Avg evidence per event,35.3
+Avg tuples per event,3.8
+Avg chains per event,2.8
+  Source type: forum,74
+  Source type: mainstream_news,543
+  Source type: official,403
+  Source type: public_interaction,57
+  Source type: public_web,356
+  Source type: social_media,334

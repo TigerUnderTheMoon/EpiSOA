@@ -1,0 +1,5 @@
+benchmark_dir: data\benchmark\pubevent_soa_lite_v3_repaired_plus_low37_gold
+config_file: configs/paper.yaml
+model_name: deepseek-v4-flash
+tasks:
+- chain_construction

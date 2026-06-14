@@ -1,5 +1,10 @@
 """Tests for data/loader.py and data/validator.py — JSONL I/O and validation."""
 
+import json
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 from episoa.data.loader import read_jsonl, read_typed_jsonl, write_jsonl
@@ -275,11 +280,29 @@ def test_validate_paper_data_empty_dir(tmp_path):
 
 
 @pytest.mark.unit
-def test_validate_paper_data_defaults_to_human_gold_v2(tmp_path):
-    result = validate_paper_data(data_dir=tmp_path, outputs_dir=tmp_path / "out")
+def test_validate_paper_data_defaults_to_human_gold_v2():
+    from inspect import signature
 
-    errors = "\n".join(result["dataset"]["errors"])
-    assert "human_gold_v2" in errors
-    assert "human_gold_tuples_v2.jsonl" in errors
-    assert "human_gold_event_chains_v2.jsonl" in errors
-    assert "annotation_full_v3_repaired_plus_low37" not in errors
+    assert signature(validate_paper_data).parameters["data_dir"].default == Path("data/pubevent_soa_lite")
+    assert Path(signature(validate_paper_data).parameters["outputs_dir"].default) == Path("outputs")
+
+    result = validate_paper_data()
+    assert result["paper_data_ready"] is True
+
+
+@pytest.mark.unit
+def test_validate_paper_data_script_uses_checkout_package():
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "scripts/validate_paper_data.py"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+
+    report = json.loads(result.stdout)
+    assert report["paper_data_ready"] is True
+    assert report["dataset"]["num_events"] == 50
+    assert report["dataset"]["num_gold_tuples"] == 174
