@@ -112,6 +112,70 @@ def test_direct_llm_failure_summary_uses_schema_artifacts(tmp_path):
     assert summary["valid_baseline_evidence"] is False
 
 
+def test_direct_llm_valid_baseline_summary_uses_artifacts(tmp_path):
+    builder = importlib.import_module("scripts.build_episoa_manuscript")
+    run_dir = tmp_path / "runs"
+    direct = run_dir / "ablation_direct_llm"
+    direct.mkdir(parents=True)
+    (direct / "schema_attribution_summary.json").write_text(
+        json.dumps(
+            {
+                "num_events_requested": 5,
+                "num_events_processed": 5,
+                "num_events_skipped": 0,
+                "num_api_calls": 6,
+                "num_tuples_generated": 9,
+                "parse_failed_events": ["E002"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (direct / "metrics.json").write_text(
+        json.dumps(
+            {
+                "Metric-Scope": "gold_event_scope",
+                "Num-Tuples": 7,
+                "Tuple-F1-semantic": 0.42,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary = builder.load_direct_llm_failure(run_dir)
+
+    assert summary["num_events_requested"] == 5
+    assert summary["num_events_processed"] == 5
+    assert summary["num_events_skipped"] == 0
+    assert summary["parse_failed_count"] == 1
+    assert summary["num_tuples"] == 7
+    assert summary["tuple_f1_semantic"] == 0.42
+    assert summary["valid_baseline_evidence"] is True
+
+
+def test_ablation_summary_updates_direct_llm_from_ablation_results(tmp_path):
+    builder = importlib.import_module("scripts.build_episoa_manuscript")
+    run_dir = tmp_path / "runs"
+    run_dir.mkdir()
+    (run_dir / "ablation_results.csv").write_text(
+        "\n".join(
+            [
+                "Setting,Metric-Scope,Num-Tuples,Tuple-F1-semantic@0.25,Tuple-F1-semantic@0.3,Tuple-F1-semantic@0.5,Tuple-F1-soft",
+                "direct_llm,gold_event_scope,7,0.4100,0.3900,0.2100,0.1200",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    summary = builder.ablation_summary(run_dir)
+
+    assert summary["metrics"]["direct_llm"]["Num-Tuples"] == 7
+    assert summary["metrics"]["direct_llm"]["Tuple-F1-semantic@0.25"] == 0.41
+    assert summary["metrics"]["direct_llm"]["Tuple-F1-semantic@0.3"] == 0.39
+    assert summary["metrics"]["direct_llm"]["Tuple-F1-semantic@0.5"] == 0.21
+    assert summary["metrics"]["direct_llm"]["Tuple-F1-soft"] == 0.12
+
+
 def test_reference_metadata_has_translations_and_recent_work():
     builder = importlib.import_module("scripts.build_episoa_manuscript")
 
@@ -237,6 +301,60 @@ def test_submission_declarations_list_supporting_data_files():
     assert "支撑数据清单" in declarations
     for name in ["event_registry_metadata.csv", "evidence_metadata.csv", "formal_results_summary.json"]:
         assert name in declarations
+
+
+def test_case_study_section_uses_e001_audit_trail():
+    builder = importlib.import_module("scripts.build_episoa_manuscript")
+    metrics = {
+        "Tuple-F1-semantic": 0.7337,
+        "Tuple-Precision-semantic": 0.7561,
+        "Tuple-Recall-semantic": 0.7126,
+        "Tuple-F1-soft": 0.2012,
+        "Tuple-F1-semantic@0.5": 0.4320,
+        "ESR": 1.0,
+        "UTR": 1.0,
+        "Stakeholder-Recall": 0.7,
+        "Opinion-Recall": 0.7,
+    }
+    stats = {
+        "events": 50,
+        "evidence": 1461,
+        "gold_tuples": 174,
+        "gold_chains": 110,
+        "predictions_all": 174,
+        "source_distribution": {},
+    }
+    direct = {
+        "num_events_requested": 50,
+        "num_events_processed": 0,
+        "num_events_skipped": 50,
+        "num_tuples": 0,
+        "parse_failed_count": 50,
+        "valid_baseline_evidence": False,
+    }
+    significance = {
+        "method": "paired event-level bootstrap CI plus normal-approx paired t-test",
+        "comparisons": [],
+        "sample_note": "",
+    }
+
+    sections = builder.full_sections(metrics, stats, {}, direct, significance, [])
+    case_text = "\n".join(
+        "\n".join(paragraphs)
+        for _level, heading, paragraphs in sections
+        if heading == "4.3 案例分析与讨论"
+    )
+
+    for expected in [
+        "E001",
+        "ev-00001",
+        "ev-00013",
+        "stakeholder-canonical",
+        "canonical tuple",
+        "verification_diagnosis",
+        "support_score=1.0",
+    ]:
+        assert expected in case_text
 
 
 def test_anonymous_manuscript_removes_author_identifying_placeholders(tmp_path):

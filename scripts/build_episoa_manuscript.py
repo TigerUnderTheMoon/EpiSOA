@@ -181,8 +181,27 @@ def metrics() -> dict[str, object]:
     }
 
 
-def ablation_summary() -> dict[str, object]:
-    return {
+def _formal_runs_dir(runs_dir: str | Path = "") -> Path:
+    return Path(runs_dir) if runs_dir else ROOT / "outputs" / "runs_human_gold_v2"
+
+
+def _coerce_metric_value(value: object) -> object:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    try:
+        number = float(text)
+    except ValueError:
+        return text
+    if number.is_integer():
+        return int(number)
+    return number
+
+
+def ablation_summary(runs_dir: str | Path = "") -> dict[str, object]:
+    summary: dict[str, object] = {
         "metrics": {
             "full_soe": {"Tuple-F1-semantic@0.25": 0.7198, "Tuple-F1-semantic@0.3": 0.6962, "Tuple-F1-semantic@0.5": 0.413, "Tuple-F1-semantic": 0.7198, "Tuple-F1-soft": 0.2006, "Num-Tuples": 165},
             "full_soe_high_recall": {"Tuple-F1-semantic@0.25": 0.6735, "Tuple-F1-semantic@0.3": 0.6582, "Tuple-F1-semantic@0.5": 0.4388, "Tuple-F1-soft": 0.148, "Num-Tuples": 218},
@@ -200,6 +219,32 @@ def ablation_summary() -> dict[str, object]:
             "quality_topk_selector": {"reuse_source_setting": "without_chain_aware_selection"},
         },
     }
+    runs_path = _formal_runs_dir(runs_dir)
+    results_path = runs_path / "ablation_results.csv"
+    if results_path.exists():
+        with results_path.open(encoding="utf-8", newline="") as handle:
+            metrics_by_setting = summary["metrics"]
+            assert isinstance(metrics_by_setting, dict)
+            for row in DictReader(handle):
+                setting = str(row.get("Setting", "")).strip()
+                if not setting:
+                    continue
+                setting_metrics = metrics_by_setting.setdefault(setting, {})
+                assert isinstance(setting_metrics, dict)
+                for key, value in row.items():
+                    if key == "Setting" or value in (None, ""):
+                        continue
+                    setting_metrics[key] = _coerce_metric_value(value)
+    summary_path = runs_path / "ablation_summary.json"
+    if summary_path.exists():
+        try:
+            payload = load_json(summary_path)
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        reuse = payload.get("reuse") if isinstance(payload, dict) else None
+        if isinstance(reuse, dict):
+            summary["reuse"] = reuse
+    return summary
 
 
 def fmt(value: object, digits: int = 4) -> str:
@@ -212,22 +257,60 @@ def count_visible_chars(text: str) -> int:
     return sum(1 for char in text if not char.isspace())
 
 
-def build_chinese_abstract(m: dict[str, object]) -> str:
+def direct_llm_result_paragraph(direct: dict[str, object]) -> str:
+    if direct.get("valid_baseline_evidence"):
+        return (
+            f"direct_llm设置已产生可解析的正式baseline artifact："
+            f"num_events_requested={direct['num_events_requested']}、"
+            f"num_events_processed={direct['num_events_processed']}、"
+            f"num_events_skipped={direct['num_events_skipped']}、"
+            f"parse_failed_events={direct['parse_failed_count']}、"
+            f"Num-Tuples={direct['num_tuples']}、"
+            f"Tuple-F1-semantic={fmt(direct['tuple_f1_semantic'])}。"
+            "因此论文表格可把它作为有效baseline报告，同时仍需按相同gold_event_scope和质量门口径解释。"
+        )
+    return (
+        f"direct_llm设置的结果需要谨慎解释。schema_attribution_summary显示"
+        f"num_events_requested={direct['num_events_requested']}、"
+        f"num_events_processed={direct['num_events_processed']}、"
+        f"num_events_skipped={direct['num_events_skipped']}、"
+        f"parse_failed_events={direct['parse_failed_count']}，最终Num-Tuples={direct['num_tuples']}。"
+        "该结果不能作为有效baseline胜负证据；论文中只把它作为失败配置和风险提示。"
+    )
+
+
+def direct_llm_limitation_clause(direct: dict[str, object]) -> str:
+    if direct.get("valid_baseline_evidence"):
+        return "direct LLM baseline已经产生有效结构化输出，但仍需结合相同证据范围、质量门和语义匹配口径解释"
+    return "direct LLM配置未产生有效结构化tuple"
+
+
+def build_chinese_abstract(m: dict[str, object], direct: dict[str, object] | None = None) -> str:
+    direct_limit = (
+        "direct LLM可作为有效baseline对照"
+        if direct and direct.get("valid_baseline_evidence")
+        else "direct LLM结构化失败"
+    )
     return (
         "[目的]针对公共事件证据分散、主体诉求难追溯问题，提出证据链驱动归因框架。"
         "[方法]整合事件注册、C-FSM采集、人工gold、事件链检索、覆盖选择、主体规范化归因和分解式验证。"
         f"[结果]human_gold_v2上语义F1={fmt(m['Tuple-F1-semantic'])}，P={fmt(m['Tuple-Precision-semantic'])}，R={fmt(m['Tuple-Recall-semantic'])}，ESR={fmt(m['ESR'], 1)}。"
-        f"[局限]strict-char={fmt(m['Tuple-F1-soft'])}，semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}；direct LLM结构化失败。"
+        f"[局限]strict-char={fmt(m['Tuple-F1-soft'])}，semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}；{direct_limit}。"
         "[结论]EpiSOA适用于可审计公共事件知识发现。"
     )
 
 
-def build_english_abstract_text(m: dict[str, object]) -> str:
+def build_english_abstract_text(m: dict[str, object], direct: dict[str, object] | None = None) -> str:
+    direct_limit = (
+        "the direct LLM setting is now reported as a valid baseline artifact"
+        if direct and direct.get("valid_baseline_evidence")
+        else "the direct LLM setting's structured-output failure"
+    )
     return (
         "[Objective] This study defines and investigates evidence-grounded stakeholder opinion attribution for public events. "
         "[Methods] We design EpiSOA, an auditable pipeline covering event registry construction, public evidence collection, normalization, LLM-assisted silver preannotation, human adjudication, event-chain retrieval, coverage-optimized evidence selection, stakeholder-canonical schema attribution, and decomposed faithfulness verification. "
         f"[Results] On the formal human_gold_v2 artifacts, the main run achieves a semantic Tuple-F1 of {fmt(m['Tuple-F1-semantic'])}, precision of {fmt(m['Tuple-Precision-semantic'])}, and recall of {fmt(m['Tuple-Recall-semantic'])}. "
-        "[Conclusions] EpiSOA is best positioned as an evidence-chain-driven knowledge discovery framework for auditable public-event analysis rather than as a pure algorithmic SOTA claim; its current limitations are strict character-level matching, high-threshold semantic matching, and the direct LLM setting's structured-output failure."
+        f"[Conclusions] EpiSOA is best positioned as an evidence-chain-driven knowledge discovery framework for auditable public-event analysis rather than as a pure algorithmic SOTA claim; its current limitations are strict character-level matching, high-threshold semantic matching, and {direct_limit}."
     )
 
 
@@ -339,14 +422,56 @@ def reference_metadata_report(refs: list[tuple[str, str]]) -> dict[str, object]:
 
 
 def load_direct_llm_failure(runs_dir: str | Path = "") -> dict[str, object]:
+    direct_dir = _formal_runs_dir(runs_dir) / "ablation_direct_llm"
+    schema_path = direct_dir / "schema_attribution_summary.json"
+    metrics_path = direct_dir / "metrics.json"
+    schema: dict[str, object] = {}
+    direct_metrics: dict[str, object] = {}
+    schema_status = "missing"
+    metrics_status = "missing"
+    if schema_path.exists():
+        try:
+            schema = load_json(schema_path)
+            schema_status = "loaded"
+        except (OSError, json.JSONDecodeError):
+            schema_status = "invalid"
+    if metrics_path.exists():
+        try:
+            direct_metrics = load_json(metrics_path)
+            metrics_status = "loaded"
+        except (OSError, json.JSONDecodeError):
+            metrics_status = "invalid"
+
+    requested = int(schema.get("num_events_requested", 0) or 0)
+    processed = int(schema.get("num_events_processed", 0) or 0)
+    skipped = int(schema.get("num_events_skipped", 0) or 0)
+    prompted = max(0, requested - skipped)
+    api_calls = int(schema.get("num_api_calls", 0) or 0)
+    parse_failed = schema.get("parse_failed_events", [])
+    parse_failed_count = len(parse_failed) if isinstance(parse_failed, list) else 0
+    num_tuples = int(float(direct_metrics.get("Num-Tuples", 0) or 0))
+    metric_scope = str(direct_metrics.get("Metric-Scope", ""))
+    tuple_f1 = float(direct_metrics.get("Tuple-F1-semantic", 0.0) or 0.0)
+    valid = (
+        api_calls > 0
+        and num_tuples > 0
+        and parse_failed_count < prompted
+        and metrics_status == "loaded"
+        and metric_scope == "gold_event_scope"
+    )
     return {
-        "num_events_requested": 50,
-        "num_events_processed": 50,
-        "num_events_skipped": 0,
-        "parse_failed_count": 50,
-        "num_tuples": 0,
-        "tuple_f1_semantic": 0.0,
-        "valid_baseline_evidence": False,
+        "num_events_requested": requested,
+        "num_events_processed": processed,
+        "num_events_skipped": skipped,
+        "prompted_events": prompted,
+        "num_api_calls": api_calls,
+        "parse_failed_count": parse_failed_count,
+        "num_tuples": num_tuples,
+        "tuple_f1_semantic": tuple_f1,
+        "metric_scope": metric_scope,
+        "schema_artifact_status": schema_status,
+        "metrics_artifact_status": metrics_status,
+        "valid_baseline_evidence": valid,
     }
 
 
@@ -397,6 +522,46 @@ def compute_significance_report(
     bootstrap_iterations: int = 2000,
     seed: int = 20260613,
 ) -> dict[str, object]:
+    if comparisons is not None:
+        base_dir = _formal_runs_dir(runs_dir)
+        rng = random.Random(seed)
+        rows: list[dict[str, object]] = []
+        for baseline, variant in comparisons:
+            baseline_metrics = _read_event_metric(base_dir / f"ablation_{baseline}" / "event_level_metrics.csv", metric)
+            variant_metrics = _read_event_metric(base_dir / f"ablation_{variant}" / "event_level_metrics.csv", metric)
+            event_ids = sorted(set(baseline_metrics) & set(variant_metrics))
+            deltas = [baseline_metrics[event_id] - variant_metrics[event_id] for event_id in event_ids]
+            if deltas:
+                bootstrap_means = [
+                    _mean([deltas[rng.randrange(len(deltas))] for _ in deltas])
+                    for _ in range(max(1, bootstrap_iterations))
+                ]
+                ci95_low = _percentile(bootstrap_means, 0.025)
+                ci95_high = _percentile(bootstrap_means, 0.975)
+            else:
+                ci95_low = 0.0
+                ci95_high = 0.0
+            rows.append(
+                {
+                    "baseline": baseline,
+                    "variant": variant,
+                    "metric": metric,
+                    "n_events": len(event_ids),
+                    "mean_delta": round(_mean(deltas), 4),
+                    "ci95_low": round(ci95_low, 4),
+                    "ci95_high": round(ci95_high, 4),
+                    "p_value_two_sided": round(_paired_p_value(deltas), 4),
+                }
+            )
+        return {
+            "method": "paired event-level bootstrap CI plus normal-approx paired t-test",
+            "metric": metric,
+            "sample_unit": "event_id",
+            "bootstrap_iterations": bootstrap_iterations,
+            "comparisons": rows,
+            "excluded_event_ids": load_excluded_event_ids(runs_dir),
+        }
+
     return {
         "method": "paired event-level bootstrap CI plus normal-approx paired t-test",
         "metric": metric,
@@ -651,8 +816,8 @@ def add_english_title_block(doc: Document):
     add_p(doc, "(1. [Affiliation 1, City, Postal Code]; 2. [Affiliation 2, City, Postal Code])", first_line=False, align=WD_ALIGN_PARAGRAPH.CENTER, size=9.5)
 
 
-def add_abstract(doc: Document, m: dict[str, object]):
-    abstract = build_chinese_abstract(m)
+def add_abstract(doc: Document, m: dict[str, object], direct: dict[str, object] | None = None):
+    abstract = build_chinese_abstract(m, direct)
     add_p(doc, "摘要：" + abstract, first_line=False, bold_label="摘要：")
     add_p(doc, "关键词：公共事件；利益相关者；观点归因；证据链；知识发现；大语言模型", first_line=False, bold_label="关键词：")
     add_p(doc, "分类号：TP391；G250", first_line=False, bold_label="分类号：")
@@ -660,8 +825,8 @@ def add_abstract(doc: Document, m: dict[str, object]):
     add_p(doc, "DOI说明：未预设或编造正式DOI编号，正式编号以编辑部分配结果为准。", first_line=False, bold_label="DOI说明：")
 
 
-def add_english_abstract(doc: Document, m: dict[str, object]):
-    text = build_english_abstract_text(m)
+def add_english_abstract(doc: Document, m: dict[str, object], direct: dict[str, object] | None = None):
+    text = build_english_abstract_text(m, direct)
     add_p(doc, "Abstract: " + text, first_line=False, bold_label="Abstract:", size=10)
     add_p(doc, "Keywords: public events; stakeholders; opinion attribution; evidence chain; knowledge discovery; large language models", first_line=False, bold_label="Keywords:", size=10)
 
@@ -795,9 +960,15 @@ def build_pipeline_png(stats: dict[str, object]):
     img.save(PIPELINE_PNG)
 
 
-def outline_markdown(m: dict[str, object], stats: dict[str, object], ab: dict[str, object]) -> str:
+def outline_markdown(
+    m: dict[str, object],
+    stats: dict[str, object],
+    ab: dict[str, object],
+    direct: dict[str, object] | None = None,
+) -> str:
     refs = reference_metadata_report(REFERENCES)
-    abstract = build_chinese_abstract(m)
+    abstract = build_chinese_abstract(m, direct)
+    direct_clause = direct_llm_limitation_clause(direct or {"valid_baseline_evidence": False})
     return f"""# {TITLE_CN}
 
 英文题名：{TITLE_EN}
@@ -860,7 +1031,7 @@ def outline_markdown(m: dict[str, object], stats: dict[str, object], ab: dict[st
 1. 主实验：Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}，Precision={fmt(m['Tuple-Precision-semantic'])}，Recall={fmt(m['Tuple-Recall-semantic'])}，ESR={fmt(m['ESR'], 1)}。
 2. 消融：full_soe在主口径最好；without_decomposed_verifier下降；selector替换导致证据覆盖和观点支持变弱。
 3. 风险说明：strict-char={fmt(m['Tuple-F1-soft'])}，semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}，说明字符串级精确抽取和高阈值语义匹配仍是局限。
-4. direct_llm：50个事件均未产生有效结构化输出，应作为失败配置说明，而非有效基线比较。
+4. direct_llm：{direct_clause}。
 
 ### 4.3 案例分析与讨论
 1. 选择一个典型公共事件，展示从事件链、证据选择、stakeholder-canonical tuple到verifier诊断的闭环。
@@ -964,7 +1135,7 @@ def full_sections(
                 f"主实验结果见表5。EpiSOA在gold_event_scope上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}，Tuple-Precision-semantic={fmt(m['Tuple-Precision-semantic'])}，Tuple-Recall-semantic={fmt(m['Tuple-Recall-semantic'])}。这说明在较宽松的语义等价口径下，系统能够较稳定地识别证据支持的利益相关者观点结构。ESR={fmt(m['ESR'], 1)}、UTR={fmt(m['UTR'], 1)}表明正式预测tuple均保留证据引用，未出现无证据tuple，这与本文强调的证据链驱动和可审计定位一致。",
                 f"同时，严格指标揭示了重要局限。Tuple-F1-soft/strict-char@0.5为{fmt(m['Tuple-F1-soft'])}，Tuple-F1-semantic@0.5为{fmt(m['Tuple-F1-semantic@0.5'])}，Stakeholder-Recall为{fmt(m['Stakeholder-Recall'])}，Opinion-Recall为{fmt(m['Opinion-Recall'])}。这些数值说明系统在字符串级边界、主体命名粒度和观点表述粒度上仍与human gold存在差异。本文因此不将EpiSOA表述为精确抽取SOTA，而将其定位为证据链驱动的知识发现与审计型观点归因框架。",
                 "消融结果见表6。full_soe在semantic@0.25和semantic@0.3主口径上保持最佳或接近最佳，without_decomposed_verifier下降，说明分解式验证和质量门控有助于过滤部分弱支持或过度推断tuple。替换覆盖感知选择器后，bm25_selector、random_selector和without_chain_aware_selection在主口径上整体下降，表明事件链阶段、来源族和利益相关者覆盖对于公共事件观点归因具有实际作用。",
-                f"direct_llm设置的结果需要谨慎解释。该设置在{direct['num_events_requested']}个事件上均未产生有效结构化tuple，schema_attribution_summary显示num_events_processed={direct['num_events_processed']}、num_events_skipped={direct['num_events_skipped']}、parse_failed_events={direct['parse_failed_count']}，最终Num-Tuples={direct['num_tuples']}。该结果更准确地反映了当前直接生成配置的结构化输出失败，而不能作为\u201cEpiSOA优于强大LLM\u201d的独立证据。论文中只把它作为失败配置和风险提示，不将其纳入有效基线胜负叙述。",
+                direct_llm_result_paragraph(direct),
                 "从错误类型看，主要瓶颈并非单一模型能力不足，而是公共事件观点归因本身的粒度对齐问题。human gold可能把一个主体拆分为更精细组织或群体，模型则倾向输出概括主体；gold中的观点可能强调具体诉求、处置结果或争议焦点，模型则输出较宽泛的态度摘要。tuple_match_diagnostics显示的高频失败类型包括stakeholder_mismatch和opinion_mismatch，metric_threshold_sensitivity也显示strict-char与semantic@0.5显著低于semantic@0.25。未来需要进一步改进stakeholder normalization、opinion canonicalization和多证据span对齐，才能提升严格匹配与高阈值语义指标。",
             ],
         ),
@@ -972,11 +1143,11 @@ def full_sections(
             2,
             "4.3 案例分析与讨论",
             [
-                "以一个典型公共事件为例，EpiSOA首先根据事件注册表确定事件边界和query seeds，然后从新闻、官方、公开社交引用、政民互动平台等来源采集证据。event-chain retriever会把证据划分到触发、扩散、冲突、回应、解决和跟进阶段；coverage-optimized selector在保证阶段覆盖的同时，优先补足未覆盖的利益相关者候选和来源族。这样进入LLM prompt的不是随机证据堆叠，而是一组包含事件演化与利益相关者信号的结构化证据包。",
-                "在归因阶段，stage_extract可能分别在冲突阶段识别居民投诉，在回应阶段识别主管部门说明，在解决阶段识别企业整改或平台处理。canonical_merge随后把同一利益相关者在不同阶段的同义或近义表达合并为一条canonical tuple，并保留stage_candidate_ids，避免一个主体因跨阶段出现而被重复计数。若同一主体既表达投诉又表达后续认可，系统才允许拆分，并要求opinion_split_reason解释拆分依据。",
-                "verifier阶段为案例分析提供了可审计解释。若tuple中的stakeholder在证据中没有出现，或opinion只是模型从背景中推断而来，verification_diagnosis会显示stakeholder或opinion支持不足，并标记over_inference风险。若证据只说明官方程序性处置，模型却输出positive sentiment，sentiment字段会成为主要风险来源。这样的诊断对于人工复核、错误分析和后续pipeline优化比单一F1分数更有解释价值。",
-                "面向《数据分析与知识发现》的期刊定位，本文的贡献不在于提出复杂神经网络或刷新通用SOTA，而在于把公共事件数据分析、知识组织、事件链检索、LLM信息抽取和忠实性验证整合为可复现实验框架。它回应了信息管理场景中的可解释、可追溯和可审计需求，尤其适用于公共事件研判、治理响应复盘、利益相关者诉求梳理和知识库构建。",
-                "本文仍存在三类局限。第一，human_gold_v2规模有限，虽然覆盖50个事件，但对于更大范围的地域、领域和事件类型仍需扩展。第二，当前评价主口径采用语义匹配，能更好反映观点等价，但对字符串级精确抽取能力的约束不足，因此必须同时报告strict-char和semantic@0.5。第三，大语言模型仍可能出现格式失败、主体泛化、观点过度概括和证据越界，后续应结合更严格的schema约束、更细粒度span标注和人工反馈改进。",
+                "以E001“广州市白云区三元里村城中村改造补偿安置方案发布事件”为例，EpiSOA的案例分析不是只展示一条自然语言摘要，而是展示事件证据链、stakeholder-canonical tuple、verification_diagnosis和证据ID之间的闭环。该事件的预测事件链覆盖了补偿安置方案发布、媒体扩散与居民争议、政府发布征求意见稿和补充方案回应诉求、征收工作组进驻并推动签约等阶段。链路中的关键证据ID包括ev-00001、ev-00023、ev-00010、ev-00012、ev-00013和ev-00014，使读者能够从结论回溯到具体网页证据。",
+                "从事件链看，ev-00001支撑“白云区政府印发补偿安置方案、安置房回迁、拆一补一原则”等触发和官方方案信息；ev-00023记录补偿方案支持率偏低和补偿标准争议，是居民争议阶段的重要证据；ev-00010记录征收工作组进驻、居民咨询补偿安置和签署确认表，支撑推进阶段；ev-00012补充说明扶助方案的政策背景、适用范围和补偿奖励条款；ev-00013和ev-00014分别对应补充方案、扶助方案的征求公众意见公告、政策解释和意见采纳情况。由此，事件链不是按时间随意拼接，而是把“方案发布—争议出现—政策解释—征求意见—项目推进”的关键判断绑定到可复核的evidence_ids。",
+                "在stakeholder-canonical归因层，系统输出canonical tuple E001_SOA_001：利益相关方为“广州市白云区政府”，观点为“印发三元里村城中村改造征收补偿安置及相关扶助、补充方案，并通过公示征求意见、政策解释和公告采纳情况推进项目”，情绪为neutral。该tuple的stakeholder_cluster_id为stakeholder_001，canonical_tuple=true，stakeholder_aliases包含“白云区政府”“广州市白云区”“广州市白云区人民政府国有土地上房屋征收办公室”等别名。这样的canonical tuple把同一政府主体在方案发布、扶助说明、补充方案公示等证据中的近义表达合并为一条事件级归因，避免同一主体因跨证据出现而被重复计数。",
+                "证据ID进一步限定了该tuple能够支持的结论边界。E001_SOA_001引用的evidence_ids为ev-00001、ev-00012、ev-00013和ev-00014：ev-00001支持“方案发布”和“回迁安置”等核心事实，ev-00012支持扶助方案内容，ev-00013和ev-00014支持政府征求公众意见、公示反馈、政策解释和公告采纳情况。因此，本文只能据此得出“政府发布并推进补偿安置及相关方案”的中性治理行动结论，而不能把它扩展为居民已经普遍满意、项目没有争议或政策效果已经完成验证。",
+                "verifier阶段把上述结论拆解为字段级审计结果。对于E001_SOA_001，verification_diagnosis显示stakeholder_support=true、opinion_support=supported、sentiment_support=true、rationale_support=supported、evidence_same_event=true、temporal_stage_consistency=true、missing_evidence_ids=[]、over_inference=false、contradiction_detected=false，support_score=1.0。也就是说，验证器确认该tuple的主体、观点、情绪和理由均可由同一事件下的证据ID支撑，并未检测到缺失证据、跨事件引用或过度推断。这个案例说明EpiSOA的价值不只是提高F1，而是把公共事件知识发现中的每个结论压到可追溯证据ID、stakeholder-canonical归并记录和verifier diagnosis上。与此同时，该案例只用于说明可审计闭环，不作为额外实验胜负证据；本文结论仍受human_gold_v2规模、语义匹配口径、LLM结构化输出稳定性和证据越界风险限制，后续仍需扩展人工gold、加强span标注和改进主体/观点canonicalization。",
             ],
         ),
         (
@@ -984,25 +1155,39 @@ def full_sections(
             "5 结语",
             [
                 "本文提出面向公共事件的证据链驱动利益相关者观点归因任务与EpiSOA框架。该框架从正式事件注册出发，经C-FSM证据采集、证据规范化、LLM silver预标注、人工adjudication和human_gold_v2构建，进一步通过事件链检索、覆盖优化证据选择、stakeholder-canonical schema attribution和decomposed faithfulness verifier输出可审计SOA tuple。",
-                f"正式实验表明，EpiSOA在human_gold_v2上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}、Precision={fmt(m['Tuple-Precision-semantic'])}、Recall={fmt(m['Tuple-Recall-semantic'])}，full_soe在消融主口径中表现最好。与此同时，strict-char和semantic@0.5指标较低，direct LLM配置未产生有效结构化tuple，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
+                f"正式实验表明，EpiSOA在human_gold_v2上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}、Precision={fmt(m['Tuple-Precision-semantic'])}、Recall={fmt(m['Tuple-Recall-semantic'])}，full_soe在消融主口径中表现最好。与此同时，strict-char和semantic@0.5指标较低，{direct_llm_limitation_clause(direct)}，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
                 "未来工作将从三个方向展开：一是扩大human gold数据规模，补充更多事件类型和跨地区案例；二是加强利益相关者规范化、观点canonicalization和证据span标注，提高严格匹配与高阈值语义指标；三是将verifier诊断转化为主动学习和人机协同标注信号，使EpiSOA在公共事件知识库构建和信息管理决策支持中具有更稳定的应用价值。",
                 "AI使用声明：本文研究对象包含大语言模型辅助的信息抽取与验证流程；论文写作阶段可使用AI工具进行语言润色、格式检查和代码调试辅助。所有实验设计、数据筛选、结果解释和最终文字由作者负责核验，AI生成内容不作为未经核验的事实来源。",
                 "支撑数据与数据可用性声明：本文使用的数据来自公开可访问网页、公开新闻、官方信息、政民互动平台、论坛和公开社交内容引用。由于原始网页版权、平台条款和隐私边界限制，公开发布时优先提供事件注册、证据ID、规范化元数据、标注schema、统计表、评估脚本和可复现实验配置；原始全文证据按期刊和伦理要求提供可审计访问方式或脱敏摘录。",
                 "利益冲突声明：本文无已知利益冲突。",
             ],
         ),
+        (
+            1,
+            "9 投稿声明",
+            [
+                "支撑数据清单包括event_registry_metadata.csv、evidence_metadata.csv、formal_results_summary.json、submission_readiness_report.json、checksums_sha256.txt和manifest.json。上述文件用于复核事件注册、证据元数据、正式实验摘要、投稿准备状态和文件校验和；原始网页全文不随包直接再分发。",
+                "AI使用声明：本文研究对象包含大语言模型辅助的信息抽取与验证流程；论文写作阶段可使用AI工具进行语言润色、格式检查和代码调试辅助。所有实验设计、数据筛选、结果解释和最终文字由作者负责核验，AI生成内容不作为未经核验的事实来源。",
+                "利益冲突声明：本文无已知利益冲突。",
+            ],
+        ),
     ]
 
 
-def build_outline_doc(m: dict[str, object], stats: dict[str, object], ab: dict[str, object]):
-    md = outline_markdown(m, stats, ab)
+def build_outline_doc(
+    m: dict[str, object],
+    stats: dict[str, object],
+    ab: dict[str, object],
+    direct: dict[str, object] | None = None,
+):
+    md = outline_markdown(m, stats, ab, direct)
     OUTLINE_MD.write_text(md, encoding="utf-8")
 
     doc = new_doc()
     add_title_block(doc)
-    add_abstract(doc, m)
+    add_abstract(doc, m, direct)
     add_english_title_block(doc)
-    add_english_abstract(doc, m)
+    add_english_abstract(doc, m, direct)
 
     for raw_line in md.splitlines():
         line = raw_line.strip()
@@ -1030,9 +1215,9 @@ def build_full_doc(
     build_pipeline_png(stats)
     doc = new_doc()
     add_title_block(doc)
-    add_abstract(doc, m)
+    add_abstract(doc, m, direct)
     add_english_title_block(doc)
-    add_english_abstract(doc, m)
+    add_english_abstract(doc, m, direct)
 
     for level, heading, paragraphs in full_sections(m, stats, ab, direct, significance, failure_counts):
         add_heading(doc, heading, level=level)
@@ -1152,7 +1337,7 @@ def build_full_doc(
                 if setting in reuse:
                     note = "alias: " + setting_labels.get(reuse[setting]["reuse_source_setting"], reuse[setting]["reuse_source_setting"])
                 elif setting == "direct_llm":
-                    note = "结构化失败"
+                    note = "valid baseline" if direct.get("valid_baseline_evidence") else "structured-output failure"
                 elif setting == "oracle_evidence":
                     note = "非部署"
                 rows.append(
@@ -1188,7 +1373,11 @@ def build_full_doc(
 ["风险点", "正式证据", "论文处理方式"],
                 [
 ["严格指标低", f"strict-char={fmt(m['Tuple-F1-soft'])}, semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}", "作为局限，不宣称精确字符串抽取"],
-["direct_llm失败", f"{direct['num_events_requested']}个事件processed={direct['num_events_processed']}, parse_failed={direct['parse_failed_count']}, Num-Tuples={direct['num_tuples']}", "作为失败配置说明，不作为有效baseline胜负"],
+[
+    "direct_llm baseline" if direct.get("valid_baseline_evidence") else "direct_llm失败",
+    f"{direct['num_events_requested']}个事件processed={direct['num_events_processed']}, parse_failed={direct['parse_failed_count']}, Num-Tuples={direct['num_tuples']}",
+    "作为有效baseline报告" if direct.get("valid_baseline_evidence") else "作为失败配置说明，不作为有效baseline胜负",
+],
 ["等价消融设置", "without_soe_graph与full_soe same-fingerprint alias", "manifest记录复用，不重复解释为独立证据"],
 ["诊断输出边界", "diagnostic_only不得进入论文表格", "正文只使用outputs/runs_human_gold_v2正式产物"],
                 ],
@@ -1217,7 +1406,7 @@ def write_qa(
     failure_counts: list[list[str]],
 ):
     refs = reference_metadata_report(REFERENCES)
-    abstract = build_chinese_abstract(m)
+    abstract = build_chinese_abstract(m, direct)
     pipeline_dimensions = None
     if PIPELINE_PNG.exists():
         from PIL import Image
@@ -1250,9 +1439,9 @@ def write_qa(
         "reference_footnote_numbering_pass": refs["all_have_footnote_numbers"],
         "required_reference_count_pass": refs["reference_count"] >= 30 and refs["chinese_reference_count"] >= 20 and refs["english_reference_count"] >= 10,
         "english_abstract_uses_journal_four_labels": all(
-            label in build_english_abstract_text(m) for label in ["[Objective]", "[Methods]", "[Results]", "[Conclusions]"]
+            label in build_english_abstract_text(m, direct) for label in ["[Objective]", "[Methods]", "[Results]", "[Conclusions]"]
         )
-        and "[Limitations]" not in build_english_abstract_text(m),
+        and "[Limitations]" not in build_english_abstract_text(m, direct),
         "formal_result_source": "outputs/runs_human_gold_v2",
         "stale_outputs_paper_tables_used": False,
         "diagnostic_only_used": False,
@@ -1425,7 +1614,7 @@ def build_supporting_data_package(output_dir: Path = SUPPORTING_DATA_DIR) -> dic
         "formal_result_source": "outputs/runs_human_gold_v2",
         "dataset_statistics": data_stats(),
         "main_metrics": metrics(),
-        "ablation_summary": ablation_summary(),
+        "ablation_summary": ablation_summary(runs_dir),
         "direct_llm_failure": load_direct_llm_failure(runs_dir),
         "significance": significance,
         "stale_outputs_paper_tables_used": False,
@@ -1641,7 +1830,7 @@ def main():
     )
     failure_counts = load_failure_reason_counts()
     SIGNIFICANCE_JSON.write_text(json.dumps(significance, ensure_ascii=False, indent=2), encoding="utf-8")
-    build_outline_doc(m, stats, ab)
+    build_outline_doc(m, stats, ab, direct)
     build_full_doc(m, stats, ab, direct, significance, failure_counts)
     build_anonymous_manuscript(FULL_DOCX, ANONYMOUS_DOCX)
     write_qa(m, direct, significance, failure_counts)
