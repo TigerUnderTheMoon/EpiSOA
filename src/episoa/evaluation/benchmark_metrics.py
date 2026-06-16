@@ -182,14 +182,15 @@ def eval_tuple_identification_llm_judge(
                     pt = pred_tuples[pred_idx]
                     if gt.get("sentiment") == pt.get("sentiment"):
                         sentiment_correct += 1
+                    sentiment_total += 1
 
-        sentiment_total += len(gold_tuples)
         time.sleep(0.1)
 
     precision = total_tp / total_pred if total_pred > 0 else 0
     recall = total_tp / total_gold if total_gold > 0 else 0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
     sentiment_acc = sentiment_correct / sentiment_total if sentiment_total > 0 else 0
+    sentiment_acc_gold_normalized = sentiment_correct / total_gold if total_gold > 0 else 0
 
     return {
         "task": "tuple_identification",
@@ -201,6 +202,7 @@ def eval_tuple_identification_llm_judge(
         "recall_llm_judge": round(recall, 4),
         "stakeholder_opinion_f1_llm_judge": round(f1, 4),
         "sentiment_accuracy_llm_judge": round(sentiment_acc, 4),
+        "sentiment_accuracy_gold_normalized_llm_judge": round(sentiment_acc_gold_normalized, 4),
         "events_processed": events_processed,
         "judge_model": model_name,
     }

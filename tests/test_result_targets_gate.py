@@ -81,7 +81,7 @@ def test_final_gate_fails_when_non_oracle_variant_matches_main(tmp_path: Path) -
         },
     )
     write_setting(runs_dir, "full_soe", f1_03=0.76, f1_05=0.71, f1_025=0.78)
-    write_setting(runs_dir, "direct_llm", f1_03=0.76, f1_05=0.65, f1_025=0.72)
+    write_setting(runs_dir, "direct_llm", f1_03=0.70, f1_05=0.71, f1_025=0.72)
     write_json(
         runs_dir / "ablation_summary.json",
         {"status": "completed", "settings": ["full_soe", "direct_llm"]},
@@ -90,10 +90,10 @@ def test_final_gate_fails_when_non_oracle_variant_matches_main(tmp_path: Path) -
     result = run_gate(runs_dir=runs_dir, mode="final", main_dir=main_dir)
 
     assert result["status"] == "failed"
-    assert any("direct_llm" in issue and "Tuple-F1-semantic@0.3" in issue for issue in result["issues"])
+    assert any("direct_llm" in issue and "Tuple-F1-semantic@0.5" in issue for issue in result["issues"])
 
 
-def test_final_gate_ignores_full_soe_equivalent_alias(tmp_path: Path) -> None:
+def test_final_gate_checks_without_soe_graph_as_real_control(tmp_path: Path) -> None:
     runs_dir = tmp_path / "runs"
     main_dir = runs_dir / "main"
     main_dir.mkdir(parents=True)
@@ -125,8 +125,12 @@ def test_final_gate_ignores_full_soe_equivalent_alias(tmp_path: Path) -> None:
 
     result = run_gate(runs_dir=runs_dir, mode="final", main_dir=main_dir)
 
-    assert result["status"] == "passed"
-    assert result["ignored_settings_for_best_check"] == ["without_soe_graph"]
+    assert result["status"] == "failed"
+    assert result["ignored_settings_for_best_check"] == []
+    assert any(
+        "without_soe_graph" in issue and "Tuple-F1-semantic@0.5" in issue
+        for issue in result["issues"]
+    )
 
 
 def test_final_gate_rejects_all_parse_failed_setting(tmp_path: Path) -> None:
@@ -165,7 +169,7 @@ def test_final_gate_rejects_all_parse_failed_setting(tmp_path: Path) -> None:
     assert any("direct_llm" in issue and "zero parsed attribution tuples" in issue for issue in result["issues"])
 
 
-def test_final_gate_ignores_raw_semantic_audit_threshold(tmp_path: Path) -> None:
+def test_final_gate_checks_main_semantic_05_threshold(tmp_path: Path) -> None:
     runs_dir = tmp_path / "runs"
     main_dir = runs_dir / "main"
     main_dir.mkdir(parents=True)
@@ -187,7 +191,8 @@ def test_final_gate_ignores_raw_semantic_audit_threshold(tmp_path: Path) -> None
 
     result = run_gate(runs_dir=runs_dir, mode="final", main_dir=main_dir)
 
-    assert result["status"] == "passed"
+    assert result["status"] == "failed"
+    assert any("direct_llm" in issue and "Tuple-F1-semantic@0.5" in issue for issue in result["issues"])
 
 
 def write_setting(

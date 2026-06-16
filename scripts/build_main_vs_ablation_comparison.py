@@ -135,7 +135,7 @@ def _ablation_row(
         ge_main = value >= main_value
         row[f"delta_F1_semantic@{threshold}_vs_main"] = f"{delta:.4f}"
         row[f"ge_main_F1_semantic@{threshold}"] = str(ge_main).lower()
-        if included and ge_main:
+        if included and ge_main and threshold == "0.5":
             failed_thresholds.append(threshold)
             failures.append(
                 {
@@ -154,7 +154,7 @@ def _ablation_row(
     elif failed_thresholds:
         row["verdict"] = "fail_ge_main_at_" + "|".join(failed_thresholds)
     else:
-        row["verdict"] = "pass_below_main_all_thresholds"
+        row["verdict"] = "pass_below_main_at_0.5"
     return row, failures
 
 

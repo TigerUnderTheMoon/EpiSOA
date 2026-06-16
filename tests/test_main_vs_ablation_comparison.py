@@ -11,7 +11,7 @@ def test_comparison_marks_non_oracle_variant_matching_main_as_failed(tmp_path: P
     main_dir.mkdir(parents=True)
     write_metrics(main_dir / "metrics.json", f1_025=0.76, f1_03=0.75, f1_05=0.72)
     write_setting(runs_dir, "full_soe", f1_025=0.76, f1_03=0.75, f1_05=0.72)
-    write_setting(runs_dir, "direct_llm", f1_025=0.74, f1_03=0.75, f1_05=0.70)
+    write_setting(runs_dir, "direct_llm", f1_025=0.74, f1_03=0.74, f1_05=0.72)
     write_setting(runs_dir, "oracle_evidence", f1_025=0.82, f1_03=0.80, f1_05=0.78)
     write_summary(runs_dir, ["full_soe", "direct_llm", "oracle_evidence"])
 
@@ -20,12 +20,12 @@ def test_comparison_marks_non_oracle_variant_matching_main_as_failed(tmp_path: P
     assert result["status"] == "failed"
     assert result["generation_status"] == "passed"
     assert result["failures"][0]["setting"] == "direct_llm"
-    assert result["failures"][0]["metric"] == "Tuple-F1-semantic@0.3"
+    assert result["failures"][0]["metric"] == "Tuple-F1-semantic@0.5"
     rows = read_rows(runs_dir / "main_vs_ablation_comparison.csv")
     direct = next(row for row in rows if row["setting"] == "direct_llm")
     oracle = next(row for row in rows if row["setting"] == "oracle_evidence")
     full = next(row for row in rows if row["setting"] == "full_soe")
-    assert direct["verdict"] == "fail_ge_main_at_0.3"
+    assert direct["verdict"] == "fail_ge_main_at_0.5"
     assert oracle["comparison_included"] == "false"
     assert oracle["verdict"] == "upper_bound_only"
     assert full["comparison_included"] == "false"
@@ -38,7 +38,7 @@ def test_comparison_passes_when_non_oracle_variants_are_strictly_below_main(tmp_
     main_dir.mkdir(parents=True)
     write_metrics(main_dir / "metrics.json", f1_025=0.76, f1_03=0.75, f1_05=0.72)
     write_setting(runs_dir, "full_soe", f1_025=0.76, f1_03=0.75, f1_05=0.72)
-    write_setting(runs_dir, "direct_llm", f1_025=0.74, f1_03=0.73, f1_05=0.70)
+    write_setting(runs_dir, "direct_llm", f1_025=0.80, f1_03=0.78, f1_05=0.70)
     write_summary(runs_dir, ["full_soe", "direct_llm"])
 
     result = build_comparison(runs_dir=runs_dir, main_dir=main_dir)
@@ -47,7 +47,7 @@ def test_comparison_passes_when_non_oracle_variants_are_strictly_below_main(tmp_
     assert result["generation_status"] == "passed"
     rows = read_rows(runs_dir / "main_vs_ablation_comparison.csv")
     direct = next(row for row in rows if row["setting"] == "direct_llm")
-    assert direct["verdict"] == "pass_below_main_all_thresholds"
+    assert direct["verdict"] == "pass_below_main_at_0.5"
 
 
 def write_setting(

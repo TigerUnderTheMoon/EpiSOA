@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 import csv
 from datetime import datetime, timezone
 import hashlib
@@ -60,6 +60,7 @@ from episoa.graph.evidence_graph import (
 from episoa.llm.client import OpenAICompatibleClient
 from episoa.retrieval.event_chain_retriever import retrieve_event_chains
 from episoa.verifier.faithfulness_verifier import verify_tuples
+from episoa.verification.faithfulness_verifier import chain_stages_by_event
 
 
 def _create_llm_client(config) -> OpenAICompatibleClient:
@@ -416,12 +417,28 @@ def _tuple_failure_reason(gold_row: GoldTuple, pred_row: PredictionTuple | None,
     return "below_threshold"
 
 
+def _write_tuple_failure_audit_csv(path: Path, diagnostics_path: Path) -> None:
+    counter: Counter[str] = Counter()
+    if diagnostics_path.exists():
+        with diagnostics_path.open(encoding="utf-8", newline="") as handle:
+            for row in csv.DictReader(handle):
+                reason = str(row.get("failure_reason") or "").strip()
+                if reason:
+                    counter[reason] += 1
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["failure_reason", "count"])
+        writer.writeheader()
+        for reason, count in counter.most_common():
+            writer.writerow({"failure_reason": reason, "count": count})
+
+
 def _write_scoring_artifacts(run_dir: Path, gold, predictions) -> dict[str, object]:
     _write_event_level_csv(run_dir / "event_level_metrics.csv", gold, predictions)
     excluded_summary = _write_excluded_predictions_csv(run_dir / "excluded_predictions.csv", gold, predictions)
     _write_threshold_sensitivity_csv(run_dir / "metric_threshold_sensitivity.csv", gold, predictions)
-    _write_tuple_match_diagnostics_csv(run_dir / "tuple_match_diagnostics.csv", gold, predictions)
-    _write_tuple_match_diagnostics_csv(run_dir / "tuple_failure_audit.csv", gold, predictions)
+    diagnostics_path = run_dir / "tuple_match_diagnostics.csv"
+    _write_tuple_match_diagnostics_csv(diagnostics_path, gold, predictions)
+    _write_tuple_failure_audit_csv(run_dir / "tuple_failure_audit.csv", diagnostics_path)
     return excluded_summary
 
 
@@ -575,6 +592,7 @@ def _run_core_pipeline(
             mode=verifier_mode,
             cache_dir=cache_dir,
             max_api_concurrency=max_api_concurrency,
+            chain_stages_by_event=chain_stages_by_event(chains),
         )
         verifier_metrics = evaluate_verifier(verified_all)
         verified, gate_summary = _apply_verifier_quality_gate(
@@ -1084,18 +1102,18 @@ def run_paper_pipeline(
     llm_client = _create_llm_client(config)
     effective_cache_dir = Path(runtime["cache_dir"])
     paper_flags = {
-        "use_graph": False,
+        "use_graph": True,
         "use_event_chain": True,
         "use_verifier": True,
         "hide_chain_in_prompt": False,
         "skip_chain_ranking": False,
-        "use_soe_graph": False,
+        "use_soe_graph": True,
         "selector_mode": "coverage_optimized",
         "verifier_mode": "id_only" if runtime["skip_llm_verifier"] else "decomposed",
         "method_version": SOE_V3_METHOD_VERSION,
-        "use_stage_attribution": False,
-        "use_event_level_safety_net": False,
-        "use_hybrid_refinement": False,
+        "use_stage_attribution": True,
+        "use_event_level_safety_net": True,
+        "use_hybrid_refinement": True,
         "use_verifier_quality_gate": True,
     }
     timestamp = datetime.now(timezone.utc).isoformat()
@@ -1231,17 +1249,17 @@ def _apply_verifier_quality_gate(
 
 
 ABLATION_SETTINGS = {
-    "full_soe":                       {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "full_soe_high_recall":           {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
+    "full_soe":                       {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True,  "use_stage_attribution": True,  "use_event_level_safety_net": True,  "use_hybrid_refinement": True,  "use_verifier_quality_gate": True,  "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "full_soe_high_recall":           {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True,  "use_stage_attribution": True,  "use_event_level_safety_net": True,  "use_hybrid_refinement": True,  "use_verifier_quality_gate": True,  "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8, "max_evidence_per_event": 60},
     "full_oracle_evidence":            {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "selector_mode": "oracle", "verifier_mode": "decomposed"},
     "oracle_evidence":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "oracle_evidence": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "oracle", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "direct_llm":                      {"use_graph": False, "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True,  "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "direct_llm"},
-    "without_soe_graph":               {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "use_verifier_quality_gate": True, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_soe_graph":               {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": True,  "use_event_level_safety_net": True,  "use_hybrid_refinement": True,  "use_verifier_quality_gate": True,  "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_chain_aware_selection":   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "quality_topk_selector":          {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "bm25_selector":                   {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "bm25_keyword", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "random_selector":                 {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": True, "use_soe_graph": True, "use_stage_attribution": True, "use_event_level_safety_net": True, "use_hybrid_refinement": True, "use_verifier_quality_gate": True, "selector_mode": "random", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
-    "without_decomposed_verifier":     {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
+    "without_decomposed_verifier":     {"use_graph": True,  "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True,  "use_stage_attribution": True,  "use_event_level_safety_net": True,  "use_hybrid_refinement": True,  "use_verifier_quality_gate": False, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_graph":                   {"use_graph": False, "use_event_chain": True,  "use_verifier": True,  "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "coverage_optimized", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_event_chain":             {"use_graph": True,  "use_event_chain": False, "use_verifier": True,  "hide_chain_in_prompt": True,  "skip_chain_ranking": True, "use_soe_graph": False, "use_stage_attribution": False, "selector_mode": "quality_topk", "verifier_mode": "decomposed", "method_version": "soe_v3", "max_tuples_per_event": 8},
     "without_verifier":                {"use_graph": True,  "use_event_chain": True,  "use_verifier": False, "hide_chain_in_prompt": False, "skip_chain_ranking": False, "use_soe_graph": True, "use_stage_attribution": True, "selector_mode": "coverage_optimized", "verifier_mode": "id_only", "method_version": "soe_v3", "max_tuples_per_event": 8},
@@ -1745,7 +1763,8 @@ def _write_ablation_csv(path: Path, all_metrics: dict[str, dict[str, float | Non
         "Excluded-Predictions",
         "Excluded-Event-Count",
         "Tuple-F1-soft",
-        "Tuple-F1-strict-char@0.5",
+        "Tuple-F1-char@0.5",
+        "Tuple-F1-exact",
         "Tuple-F1-semantic",
         "Tuple-Precision",
         "Tuple-Recall",

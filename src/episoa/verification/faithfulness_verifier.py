@@ -98,6 +98,7 @@ DIAGNOSIS_FIELDS = {
     "contradiction_detected",
 }
 POSITIVE_ATTITUDE_TERMS = ["支持", "点赞", "满意", "认可", "感谢", "欢迎", "肯定", "赞扬", "好事", "益处", "有益"]
+NEGATIVE_ATTITUDE_TERMS = ["反对", "质疑", "不满", "投诉", "举报", "抵触", "不同意", "难以接受", "担忧"]
 INFERENTIAL_ATTITUDE_TERMS = ["抵触", "强烈反对", "质疑", "认可", "满意", "支持", "赞扬"]
 OFFICIAL_POSITIVE_STAKEHOLDERS = [
     "政府部门",
@@ -485,11 +486,12 @@ def rule_precheck(
     opinion = str(candidate.get("opinion", ""))
     rationale = str(candidate.get("rationale", ""))
     sentiment = str(candidate.get("sentiment", ""))
+    stakeholder_alias_list = normalize_string_list(candidate.get("stakeholder_aliases", []), max_items=12, max_chars=40)
     if missing_evidence_ids:
         flags.append("missing_evidence")
     if any(not str(item.get("text", "")).strip() for item in evidence_items):
         flags.append("weak_evidence")
-    if evidence_items and stakeholder and not stakeholder_supported_by_evidence(stakeholder, evidence_text, evidence_items):
+    if evidence_items and stakeholder and not stakeholder_supported_by_evidence(stakeholder, evidence_text, evidence_items, stakeholder_alias_list):
         flags.append("stakeholder_not_supported")
     if evidence_items and rationale and not claim_supported_by_evidence(rationale, evidence_text):
         flags.append("rationale_not_supported")
@@ -504,6 +506,8 @@ def rule_precheck(
             flags.append("sentiment_not_supported")
     if any(term in opinion for term in INFERENTIAL_ATTITUDE_TERMS) and not contains_any(evidence_text, INFERENTIAL_ATTITUDE_TERMS):
         flags.append("opinion_overgeneralized")
+    if _obvious_contradiction(sentiment, opinion, evidence_text):
+        flags.append("contradiction_detected")
     event_id = str(candidate.get("event_id", ""))
     stage = str(candidate.get("event_chain_stage", ""))
     known_stages = chain_stages_by_event.get(event_id, set())
@@ -894,10 +898,15 @@ def contains_any(text: str, terms: list[str]) -> bool:
     return any(term in text for term in terms)
 
 
-def stakeholder_supported_by_evidence(stakeholder: str, evidence_text: str, evidence_items: list[dict[str, Any]]) -> bool:
+def stakeholder_supported_by_evidence(
+    stakeholder: str,
+    evidence_text: str,
+    evidence_items: list[dict[str, Any]],
+    candidate_aliases: list[str] | None = None,
+) -> bool:
     if loose_contains(evidence_text, stakeholder):
         return True
-    aliases = stakeholder_aliases(stakeholder)
+    aliases = [*(candidate_aliases or []), *stakeholder_aliases(stakeholder)]
     if any(alias and alias in evidence_text for alias in aliases):
         return True
     source_text = "\n".join(
@@ -910,9 +919,21 @@ def stakeholder_supported_by_evidence(stakeholder: str, evidence_text: str, evid
     return False
 
 
+def _obvious_contradiction(sentiment: str, opinion: str, evidence_text: str) -> bool:
+    positive_claim = sentiment == "positive" or contains_any(opinion, POSITIVE_ATTITUDE_TERMS)
+    negative_claim = sentiment == "negative" or contains_any(opinion, NEGATIVE_ATTITUDE_TERMS)
+    evidence_positive = contains_any(evidence_text, POSITIVE_ATTITUDE_TERMS)
+    evidence_negative = contains_any(evidence_text, NEGATIVE_ATTITUDE_TERMS)
+    if positive_claim and evidence_negative and not evidence_positive:
+        return True
+    if negative_claim and evidence_positive and not evidence_negative:
+        return True
+    return False
+
+
 def stakeholder_aliases(stakeholder: str) -> list[str]:
     aliases: list[str] = []
-    if "住建" in stakeholder:
+    if "住建" in stakeholder or "住房城乡建设" in stakeholder or "住房建设" in stakeholder:
         aliases.extend(["住房建设局", "住房城乡建设", "住房建设", "住建局"])
     if "教育" in stakeholder:
         aliases.extend(["教育厅", "教育局", "教育体育局", "教体局", "学校"])

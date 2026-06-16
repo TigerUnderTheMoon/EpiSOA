@@ -4,6 +4,7 @@ import json
 import math
 import random
 import re
+import shutil
 import zipfile
 from collections import Counter
 from csv import DictReader, DictWriter
@@ -35,6 +36,7 @@ ANONYMOUS_DOCX = OUT_DIR / "episoa_full_draft_anonymous.docx"
 FULL_PDF = OUT_DIR / "episoa_full_draft.pdf"
 ANONYMOUS_PDF = OUT_DIR / "episoa_full_draft_anonymous.pdf"
 PIPELINE_PNG = OUT_DIR / "episoa_pipeline.png"
+FRAMEWORK_FIGURE_PNG = ROOT / "docs" / "figures" / "episoa_framework.png"
 QA_JSON = OUT_DIR / "episoa_manuscript_qa.json"
 SIGNIFICANCE_JSON = OUT_DIR / "significance_report.json"
 SUPPORTING_DATA_DIR = OUT_DIR / "submission_supporting_data"
@@ -153,36 +155,25 @@ def data_stats() -> dict[str, object]:
     }
 
 
-def metrics() -> dict[str, object]:
-    return {
-        "Metric-Scope": "gold_event_scope",
-        "Tuple-F1-soft": 0.2012,
-        "Tuple-F1-strict-char@0.5": 0.2012,
-        "Tuple-Precision": 0.2073,
-        "Tuple-Recall": 0.1954,
-        "Tuple-F1-semantic": 0.7337,
-        "Tuple-Precision-semantic": 0.7561,
-        "Tuple-Recall-semantic": 0.7126,
-        "Tuple-F1-semantic@0.3": 0.6923,
-        "Tuple-F1-semantic@0.5": 0.4320,
-        "Stakeholder-Recall": 0.4425,
-        "Opinion-Recall": 0.092,
-        "Sentiment-Acc": 0.7353,
-        "Num-Tuples": 164,
-        "Num-Tuples-All": 182,
-        "Num-Gold": 174,
-        "Excluded-Predictions": 18,
-        "Excluded-Event-Count": 5,
-        "Excluded-Event-Ids": "E002|E008|E016|E018|E041",
-        "ESR": 1.0,
-        "UTR": 0.0,
-        "ESR-All": 1.0,
-        "UTR-All": 0.0,
-    }
+def metrics(runs_dir: str | Path = "") -> dict[str, object]:
+    metrics_path = _formal_main_run_dir(runs_dir) / "metrics.json"
+    if not metrics_path.exists():
+        raise FileNotFoundError(f"formal main metrics artifact not found: {metrics_path}")
+    payload = load_json(metrics_path)
+    if not isinstance(payload, dict):
+        raise ValueError(f"formal main metrics artifact must contain a JSON object: {metrics_path}")
+    return payload
 
 
 def _formal_runs_dir(runs_dir: str | Path = "") -> Path:
     return Path(runs_dir) if runs_dir else ROOT / "outputs" / "runs_human_gold_v2"
+
+
+def _formal_main_run_dir(runs_dir: str | Path = "") -> Path:
+    base = _formal_runs_dir(runs_dir)
+    if (base / "metrics.json").exists():
+        return base
+    return base / "pubevent-soa-lite-human-gold-v2-paper"
 
 
 def _coerce_metric_value(value: object) -> object:
@@ -202,22 +193,8 @@ def _coerce_metric_value(value: object) -> object:
 
 def ablation_summary(runs_dir: str | Path = "") -> dict[str, object]:
     summary: dict[str, object] = {
-        "metrics": {
-            "full_soe": {"Tuple-F1-semantic@0.25": 0.7198, "Tuple-F1-semantic@0.3": 0.6962, "Tuple-F1-semantic@0.5": 0.413, "Tuple-F1-semantic": 0.7198, "Tuple-F1-soft": 0.2006, "Num-Tuples": 165},
-            "full_soe_high_recall": {"Tuple-F1-semantic@0.25": 0.6735, "Tuple-F1-semantic@0.3": 0.6582, "Tuple-F1-semantic@0.5": 0.4388, "Tuple-F1-soft": 0.148, "Num-Tuples": 218},
-            "direct_llm": {"Tuple-F1-semantic@0.25": 0.0, "Tuple-F1-semantic@0.3": 0.0, "Tuple-F1-semantic@0.5": 0.0, "Tuple-F1-soft": 0.0, "Num-Tuples": 0},
-            "without_soe_graph": {"Tuple-F1-semantic@0.25": 0.7198, "Tuple-F1-semantic@0.3": 0.6962, "Tuple-F1-semantic@0.5": 0.413, "Tuple-F1-soft": 0.2006, "Num-Tuples": 165},
-            "without_chain_aware_selection": {"Tuple-F1-semantic@0.25": 0.6616, "Tuple-F1-semantic@0.3": 0.6361, "Tuple-F1-semantic@0.5": 0.4427, "Tuple-F1-soft": 0.1476, "Num-Tuples": 219},
-            "quality_topk_selector": {"Tuple-F1-semantic@0.25": 0.6616, "Tuple-F1-semantic@0.3": 0.6361, "Tuple-F1-semantic@0.5": 0.4427, "Tuple-F1-soft": 0.1476, "Num-Tuples": 219},
-            "bm25_selector": {"Tuple-F1-semantic@0.25": 0.626, "Tuple-F1-semantic@0.3": 0.6048, "Tuple-F1-semantic@0.5": 0.3714, "Tuple-F1-soft": 0.1008, "Num-Tuples": 203},
-            "random_selector": {"Tuple-F1-semantic@0.25": 0.6355, "Tuple-F1-semantic@0.3": 0.6108, "Tuple-F1-semantic@0.5": 0.4384, "Tuple-F1-soft": 0.1379, "Num-Tuples": 232},
-            "without_decomposed_verifier": {"Tuple-F1-semantic@0.25": 0.6798, "Tuple-F1-semantic@0.3": 0.6461, "Tuple-F1-semantic@0.5": 0.4045, "Tuple-F1-soft": 0.1404, "Num-Tuples": 182},
-            "oracle_evidence": {"Tuple-F1-semantic@0.25": 0.6581, "Tuple-F1-semantic@0.3": 0.6324, "Tuple-F1-semantic@0.5": 0.3702, "Tuple-F1-soft": 0.144, "Num-Tuples": 215},
-        },
-        "reuse": {
-            "without_soe_graph": {"reuse_source_setting": "full_soe"},
-            "quality_topk_selector": {"reuse_source_setting": "without_chain_aware_selection"},
-        },
+        "metrics": {},
+        "reuse": {},
     }
     runs_path = _formal_runs_dir(runs_dir)
     results_path = runs_path / "ablation_results.csv"
@@ -577,13 +554,31 @@ def compute_significance_report(
 
 
 def load_failure_reason_counts(run_dir: str | Path = "", limit: int = 5) -> list[list[str]]:
-    return [
-        ["stakeholder_mismatch", "68"],
-        ["opinion_mismatch", "52"],
-        ["sentiment_mismatch", "31"],
-        ["rationale_mismatch", "27"],
-        ["evidence_insufficient", "15"],
-    ]
+    main_dir = _formal_main_run_dir(run_dir)
+    audit_path = main_dir / "tuple_failure_audit.csv"
+    diagnostics_path = main_dir / "tuple_match_diagnostics.csv"
+    source_path = audit_path if audit_path.exists() else diagnostics_path
+    if not source_path.exists():
+        return []
+
+    with source_path.open(encoding="utf-8", newline="") as handle:
+        reader = DictReader(handle)
+        rows = list(reader)
+        fieldnames = reader.fieldnames or []
+
+    if "failure_reason" in fieldnames and "count" in fieldnames:
+        return [
+            [str(row.get("failure_reason", "")), str(row.get("count", ""))]
+            for row in rows[:limit]
+            if str(row.get("failure_reason", "")).strip()
+        ]
+
+    counter: Counter[str] = Counter()
+    for row in rows:
+        reason = str(row.get("failure_reason") or "").strip()
+        if reason:
+            counter[reason] += 1
+    return [[reason, str(count)] for reason, count in counter.most_common(limit)]
 
 
 REFERENCES = [
@@ -909,7 +904,21 @@ def add_table(doc: Document, caption: str, headers: list[str], rows: list[list[s
     return table
 
 
+def prepare_pipeline_png() -> None:
+    if not FRAMEWORK_FIGURE_PNG.exists():
+        raise FileNotFoundError(
+            f"Missing framework figure source: {FRAMEWORK_FIGURE_PNG}. "
+            "Run scripts/draw_episoa_framework.py first."
+        )
+    PIPELINE_PNG.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(FRAMEWORK_FIGURE_PNG, PIPELINE_PNG)
+
+
 def build_pipeline_png(stats: dict[str, object]):
+    _ = stats
+    prepare_pipeline_png()
+    return
+
     from PIL import Image, ImageDraw, ImageFont
 
     width, height = 2400, 1380
@@ -1109,7 +1118,7 @@ def full_sections(
                 "第二步是coverage-optimized evidence selection。面对同一事件的多条候选证据，简单top-k容易偏向高质量新闻或重复报道，导致利益相关者和阶段覆盖不足。EpiSOA的选择器在事件相关性、chain stage score、stakeholder signal、source prior和quality score基础上，加入阶段覆盖奖励、来源族覆盖奖励、利益相关者覆盖奖励，并对近重复标题或文本施加冗余惩罚。每个事件的request_summary会记录covered/uncovered stakeholder candidates、selected evidence IDs、stage coverage、source distribution和coverage objective components。",
                 "第三步是stakeholder-canonical schema attribution。soe_v3不是要求LLM按固定数量生成tuple，max_tuples_per_event仅作为兼容配置保留，不再代表生成目标。正式attributor先执行stage_extract，把阶段级SOA候选写入stage_soa_candidates.jsonl；再执行canonical_merge，把同一事件中语义相同的利益相关者观点合并为event-level canonical tuple，并写入candidate_soa_tuples.jsonl。同一stakeholder_cluster_id默认只输出一条canonical tuple，只有存在不同证据支持的观点或行动时才允许拆分，并必须填写opinion_split_reason。",
                 "第四步是decomposed faithfulness verifier。验证器不只给出单一support label，而是对stakeholder、opinion、sentiment、rationale、evidence span、temporal stage、over-inference和contradiction等字段进行诊断。阈值用于最终label，字段级诊断用于解释错误来源和后续人工审阅。若证据ID缺失或证据文本无法支持核心字段，tuple会被标记为insufficient_evidence或进入质量门控处理。",
-                "第五步是评估与消融。主实验输出predictions、metrics、summary、input_manifest和runtime_manifest；消融实验在setting内部按event/tuple复用缓存和并发执行，但正式比较以outputs/runs_human_gold_v2为唯一来源。without_decomposed_verifier可复用与full_soe相同的attribution candidates，只重算verifier与metrics；same-fingerprint设置通过manifest记录alias/reuse来源，避免把等价配置误解释为独立证据。",
+                "第五步是评估与消融。主实验输出predictions、metrics、summary、input_manifest和runtime_manifest；消融实验在setting内部按event/tuple复用缓存和并发执行，但正式比较以outputs/runs_human_gold_v2为唯一来源。without_decomposed_verifier可复用与full_soe相同的attribution candidates，只重算verifier与metrics；same-fingerprint设置通过manifest记录reuse来源，without_soe_graph作为no-graph control单独比较，避免把不同控制项误解释为独立证据。",
             ],
         ),
         (
@@ -1122,8 +1131,8 @@ def full_sections(
             "4.1 实验设计",
             [
                 "实验目标包括三个方面：第一，验证EpiSOA在正式human_gold_v2上的利益相关者观点归因能力；第二，分析事件链、覆盖优化证据选择和分解式验证对结果的影响；第三，明确系统当前适用边界，特别是严格字符级匹配、direct LLM输出稳定性和高阈值语义匹配方面的不足。",
-                "主实验采用正式配置：soe_v3方法版本、coverage_optimized证据选择、stakeholder-canonical schema attribution、decomposed verifier、quality gate、safety和refinement语义保持不变。评价范围为gold_event_scope，即在human gold覆盖的事件范围内评估预测tuple。主指标为Tuple-F1-semantic、Tuple-Precision-semantic和Tuple-Recall-semantic；辅助指标包括Tuple-F1-semantic@0.3、Tuple-F1-semantic@0.5、strict-char/soft F1、Stakeholder-Recall、Opinion-Recall、Sentiment-Acc、ESR和UTR。",
-                "消融设置覆盖full_soe、full_soe_high_recall、without_decomposed_verifier、without_chain_aware_selection、quality_topk_selector、bm25_selector、random_selector、oracle_evidence和direct_llm等。需要特别说明的是，without_soe_graph与full_soe为same-fingerprint alias，quality_topk_selector与without_chain_aware_selection也存在same-fingerprint复用，因此这两类结果只用于说明配置等价和复用机制，不作为独立胜负证据。oracle_evidence使用gold-like证据选择，不代表可部署系统能力，也不用于主结论。",
+                "主实验采用正式配置：soe_v3方法版本、coverage_optimized证据选择、stakeholder-canonical schema attribution、decomposed verifier、quality gate、safety和refinement语义保持不变。评价范围为gold_event_scope，即在human gold覆盖的事件范围内评估预测tuple。主指标为normalized Tuple-F1-semantic@0.5、Tuple-Precision-semantic@0.5和Tuple-Recall-semantic@0.5；辅助指标包括Tuple-F1-semantic@0.25、Tuple-F1-semantic@0.3、Tuple-F1-char@0.5、Tuple-F1-exact、Stakeholder-Recall、Opinion-Recall、Sentiment-Acc、ESR和UTR。",
+                "消融设置覆盖full_soe、full_soe_high_recall、without_decomposed_verifier、without_soe_graph、without_chain_aware_selection、quality_topk_selector、bm25_selector、random_selector、oracle_evidence和direct_llm等。需要特别说明的是，without_soe_graph是真实no-graph control；quality_topk_selector与without_chain_aware_selection可能存在same-fingerprint复用，因此只用于说明配置等价和复用机制，不作为独立胜负证据。oracle_evidence使用gold-like证据选择，不代表可部署系统能力，也不用于主结论。",
                 "结果一致性由scripts/check_result_targets.py进行最终检查。当前正式检查在outputs/runs_human_gold_v2上通过，status为passed，issues为空，并在最佳比较中忽略oracle_evidence和without_soe_graph。该检查保证本文表格只来自正式产物，不使用diagnostic-only输出或历史损坏JSONL缓存。",
                 f"统计显著性检验以事件为成对样本单位，使用{significance['method']}。表4中的{n_text}来自baseline与variant的gold_event_scope成对事件交集；{excluded_count}个heldout_no_gold事件未进入该检验，bootstrap只用于估计成对均值差的不确定性。该检验只用于增强实验说明力，不改变本文的保守定位：置信区间和p值应与效应方向、错误分析和数据边界共同解释，而不作为大规模SOTA结论。",
             ],
@@ -1133,10 +1142,10 @@ def full_sections(
             "4.2 主实验结果",
             [
                 f"主实验结果见表5。EpiSOA在gold_event_scope上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}，Tuple-Precision-semantic={fmt(m['Tuple-Precision-semantic'])}，Tuple-Recall-semantic={fmt(m['Tuple-Recall-semantic'])}。这说明在较宽松的语义等价口径下，系统能够较稳定地识别证据支持的利益相关者观点结构。ESR={fmt(m['ESR'], 1)}、UTR={fmt(m['UTR'], 1)}表明正式预测tuple均保留证据引用，未出现无证据tuple，这与本文强调的证据链驱动和可审计定位一致。",
-                f"同时，严格指标揭示了重要局限。Tuple-F1-soft/strict-char@0.5为{fmt(m['Tuple-F1-soft'])}，Tuple-F1-semantic@0.5为{fmt(m['Tuple-F1-semantic@0.5'])}，Stakeholder-Recall为{fmt(m['Stakeholder-Recall'])}，Opinion-Recall为{fmt(m['Opinion-Recall'])}。这些数值说明系统在字符串级边界、主体命名粒度和观点表述粒度上仍与human gold存在差异。本文因此不将EpiSOA表述为精确抽取SOTA，而将其定位为证据链驱动的知识发现与审计型观点归因框架。",
-                "消融结果见表6。full_soe在semantic@0.25和semantic@0.3主口径上保持最佳或接近最佳，without_decomposed_verifier下降，说明分解式验证和质量门控有助于过滤部分弱支持或过度推断tuple。替换覆盖感知选择器后，bm25_selector、random_selector和without_chain_aware_selection在主口径上整体下降，表明事件链阶段、来源族和利益相关者覆盖对于公共事件观点归因具有实际作用。",
+                f"同时，严格指标揭示了重要局限。Tuple-F1-char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}, Tuple-F1-exact={fmt(m.get('Tuple-F1-exact', 0))}, Tuple-F1-semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}, Stakeholder-Recall={fmt(m['Stakeholder-Recall'])}, Opinion-Recall={fmt(m['Opinion-Recall'])}。这些数值说明系统在字符串级边界、主体命名粒度和观点表述粒度上仍与human gold存在差异。本文因此不将EpiSOA表述为精确抽取SOTA，而将其定位为证据链驱动的知识发现与审计型观点归因框架。",
+                "消融结果见表6。full_soe在semantic@0.5主口径上保持最佳或接近最佳，without_decomposed_verifier下降，说明分解式验证和质量门控有助于过滤部分弱支持或过度推断tuple。替换覆盖感知选择器后，bm25_selector、random_selector和without_chain_aware_selection在主口径上整体下降，表明事件链阶段、来源族和利益相关者覆盖对于公共事件观点归因具有实际作用。",
                 direct_llm_result_paragraph(direct),
-                "从错误类型看，主要瓶颈并非单一模型能力不足，而是公共事件观点归因本身的粒度对齐问题。human gold可能把一个主体拆分为更精细组织或群体，模型则倾向输出概括主体；gold中的观点可能强调具体诉求、处置结果或争议焦点，模型则输出较宽泛的态度摘要。tuple_match_diagnostics显示的高频失败类型包括stakeholder_mismatch和opinion_mismatch，metric_threshold_sensitivity也显示strict-char与semantic@0.5显著低于semantic@0.25。未来需要进一步改进stakeholder normalization、opinion canonicalization和多证据span对齐，才能提升严格匹配与高阈值语义指标。",
+                "从错误类型看，主要瓶颈并非单一模型能力不足，而是公共事件观点归因本身的粒度对齐问题。human gold可能把一个主体拆分为更精细组织或群体，模型则倾向输出概括主体；gold中的观点可能强调具体诉求、处置结果或争议焦点，模型则输出较宽泛的态度摘要。tuple_match_diagnostics显示的高频失败类型包括stakeholder_mismatch和opinion_mismatch，metric_threshold_sensitivity也显示char@0.5与semantic@0.5显著低于semantic@0.25。未来需要进一步改进stakeholder normalization、opinion canonicalization和多证据span对齐，才能提升严格匹配与高阈值语义指标。",
             ],
         ),
         (
@@ -1155,7 +1164,7 @@ def full_sections(
             "5 结语",
             [
                 "本文提出面向公共事件的证据链驱动利益相关者观点归因任务与EpiSOA框架。该框架从正式事件注册出发，经C-FSM证据采集、证据规范化、LLM silver预标注、人工adjudication和human_gold_v2构建，进一步通过事件链检索、覆盖优化证据选择、stakeholder-canonical schema attribution和decomposed faithfulness verifier输出可审计SOA tuple。",
-                f"正式实验表明，EpiSOA在human_gold_v2上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}、Precision={fmt(m['Tuple-Precision-semantic'])}、Recall={fmt(m['Tuple-Recall-semantic'])}，full_soe在消融主口径中表现最好。与此同时，strict-char和semantic@0.5指标较低，{direct_llm_limitation_clause(direct)}，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
+                f"正式实验表明，EpiSOA在human_gold_v2上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}、Precision={fmt(m['Tuple-Precision-semantic'])}、Recall={fmt(m['Tuple-Recall-semantic'])}，full_soe在消融主口径中表现最好。与此同时，char@0.5和semantic@0.5指标较低，{direct_llm_limitation_clause(direct)}，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
                 "未来工作将从三个方向展开：一是扩大human gold数据规模，补充更多事件类型和跨地区案例；二是加强利益相关者规范化、观点canonicalization和证据span标注，提高严格匹配与高阈值语义指标；三是将verifier诊断转化为主动学习和人机协同标注信号，使EpiSOA在公共事件知识库构建和信息管理决策支持中具有更稳定的应用价值。",
                 "AI使用声明：本文研究对象包含大语言模型辅助的信息抽取与验证流程；论文写作阶段可使用AI工具进行语言润色、格式检查和代码调试辅助。所有实验设计、数据筛选、结果解释和最终文字由作者负责核验，AI生成内容不作为未经核验的事实来源。",
                 "支撑数据与数据可用性声明：本文使用的数据来自公开可访问网页、公开新闻、官方信息、政民互动平台、论坛和公开社交内容引用。由于原始网页版权、平台条款和隐私边界限制，公开发布时优先提供事件注册、证据ID、规范化元数据、标注schema、统计表、评估脚本和可复现实验配置；原始全文证据按期刊和伦理要求提供可审计访问方式或脱敏摘录。",
@@ -1256,6 +1265,11 @@ def build_full_doc(
             r = p.add_run()
             r.add_picture(str(PIPELINE_PNG), width=Inches(5.7))
             add_caption(doc, "图1 EpiSOA总体流程")
+            add_p(
+                doc,
+                "图1概括了EpiSOA从数据构建到输出评估的主流程。上层首先完成事件注册、C-FSM公开证据采集、证据规范化、LLM silver预标注和人工裁决，形成human_gold_v2；随后系统基于六阶段事件链、coverage_optimized证据选择和规则evidence graph组织可追溯证据骨架，为SOA归因提供结构化上下文。归因层先抽取stage_soa_candidates，再通过canonical_merge生成candidate_soa_tuples；忠实性验证层使用decomposed verifier生成verification_diagnosis，并通过质量门控过滤弱支持或证据越界的结果。最下层对应论文实验产物，包括SOA结构化输出、metrics、summary和ablation outputs，体现证据ID回溯与实验复现路径。",
+                first_line=True,
+            )
         if heading == "4.1 实验设计":
             add_table(
                 doc,
@@ -1300,7 +1314,8 @@ def build_full_doc(
                     ["Tuple-Recall-semantic", fmt(m["Tuple-Recall-semantic"])],
                     ["Tuple-F1-semantic@0.3", fmt(m["Tuple-F1-semantic@0.3"])],
                     ["Tuple-F1-semantic@0.5", fmt(m["Tuple-F1-semantic@0.5"])],
-                    ["Tuple-F1-soft/strict-char@0.5", fmt(m["Tuple-F1-soft"])],
+                    ["Tuple-F1-char@0.5", fmt(m.get("Tuple-F1-char@0.5", m.get("Tuple-F1-soft", 0)))],
+                    ["Tuple-F1-exact", fmt(m.get("Tuple-F1-exact", 0))],
                     ["Sentiment-Acc", fmt(m["Sentiment-Acc"])],
                     ["ESR / UTR", f"{fmt(m['ESR'], 1)} / {fmt(m['UTR'], 1)}"],
                 ],
@@ -1310,7 +1325,7 @@ def build_full_doc(
             rows = []
             setting_labels = {
                 "full_soe": "full_soe",
-                "without_soe_graph": "no_graph(alias)",
+                "without_soe_graph": "no_graph",
                 "without_decomposed_verifier": "no_decomp_verifier",
                 "full_soe_high_recall": "high_recall",
                 "without_chain_aware_selection": "no_chain_select",
@@ -1332,10 +1347,13 @@ def build_full_doc(
                 "oracle_evidence",
                 "direct_llm",
             ]:
-                item = ab_metrics[setting]
+                item = ab_metrics.get(setting)
+                if not isinstance(item, dict):
+                    continue
                 note = ""
-                if setting in reuse:
-                    note = "alias: " + setting_labels.get(reuse[setting]["reuse_source_setting"], reuse[setting]["reuse_source_setting"])
+                if setting in reuse and setting != "without_soe_graph":
+                    source_setting = reuse[setting].get("reuse_source_setting", reuse[setting].get("source_setting", ""))
+                    note = "alias: " + setting_labels.get(source_setting, source_setting)
                 elif setting == "direct_llm":
                     note = "valid baseline" if direct.get("valid_baseline_evidence") else "structured-output failure"
                 elif setting == "oracle_evidence":
@@ -1343,9 +1361,9 @@ def build_full_doc(
                 rows.append(
                     [
                         setting_labels[setting],
-                        fmt(item.get("Tuple-F1-semantic@0.25", item.get("Tuple-F1-semantic", 0))),
-                        fmt(item.get("Tuple-F1-semantic@0.3", 0)),
                         fmt(item.get("Tuple-F1-semantic@0.5", 0)),
+                        fmt(item.get("Tuple-F1-semantic@0.3", 0)),
+                        fmt(item.get("Tuple-F1-semantic@0.25", item.get("Tuple-F1-semantic", 0))),
                         fmt(item.get("Tuple-F1-soft", 0)),
                         str(item.get("Num-Tuples", "")),
                         note,
@@ -1354,7 +1372,7 @@ def build_full_doc(
             add_table(
                 doc,
                 "表6 消融实验结果（正式runs_human_gold_v2产物）",
-                ["Setting", "F1@.25", "F1@.3", "F1@.5", "Soft", "N", "说明"],
+                ["Setting", "F1@.5", "F1@.3", "F1@.25", "Soft", "N", "说明"],
                 rows,
                 font_size=8,
             )
@@ -1372,13 +1390,13 @@ def build_full_doc(
                 "表8 主要风险与论文表述边界",
 ["风险点", "正式证据", "论文处理方式"],
                 [
-["严格指标低", f"strict-char={fmt(m['Tuple-F1-soft'])}, semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}", "作为局限，不宣称精确字符串抽取"],
+["严格指标低", f"char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}, exact={fmt(m.get('Tuple-F1-exact', 0))}", "作为局限，不宣称精确字符串抽取"],
 [
     "direct_llm baseline" if direct.get("valid_baseline_evidence") else "direct_llm失败",
     f"{direct['num_events_requested']}个事件processed={direct['num_events_processed']}, parse_failed={direct['parse_failed_count']}, Num-Tuples={direct['num_tuples']}",
     "作为有效baseline报告" if direct.get("valid_baseline_evidence") else "作为失败配置说明，不作为有效baseline胜负",
 ],
-["等价消融设置", "without_soe_graph与full_soe same-fingerprint alias", "manifest记录复用，不重复解释为独立证据"],
+["no-graph对照", "without_soe_graph关闭graph/soe_graph但保留stage/safety/refinement", "作为真实对照参与比较"],
 ["诊断输出边界", "diagnostic_only不得进入论文表格", "正文只使用outputs/runs_human_gold_v2正式产物"],
                 ],
                 font_size=8.5,

@@ -20,7 +20,7 @@ STAGES = ["trigger", "diffusion", "conflict", "response", "resolution", "follow_
 CORE_STAGES = {"trigger", "conflict", "response"}
 DEDUP_STAGE_PRIORITY = ["trigger", "conflict", "response", "resolution", "diffusion", "follow_up"]
 
-GENERIC_TOPIC_TERMS = {
+URBAN_RENEWAL_GENERIC_TOPIC_TERMS = {
     "旧城改造",
     "城市更新",
     "拆迁",
@@ -32,6 +32,16 @@ GENERIC_TOPIC_TERMS = {
     "旧改",
     "补偿标准",
 }
+COMMON_GENERIC_TOPIC_TERMS = {"政策解读", "管理办法", "暂行办法", "规定", "通知", "文件"}
+DOMAIN_GENERIC_TOPIC_TERMS = {
+    "urban_renewal": URBAN_RENEWAL_GENERIC_TOPIC_TERMS,
+    "education": {"在线开放课程", "课程管理", "教学管理", "教师职业道德", "校园安全", "食堂安全", "退费"},
+    "healthcare": {"医保", "骗保", "医院", "患者隐私", "挂号", "疫苗", "医托", "医疗纠纷"},
+    "public_safety": {"火灾事故", "燃气爆炸", "水体污染", "安全事故", "事故调查", "应急处置"},
+    "urban_mobility": {"共享单车", "无人出租车", "交通安全", "停车", "网约车", "外卖骑手"},
+    "digital_governance": {"App", "SDK", "个人信息", "用户权益", "高抽成", "平台治理"},
+}
+GENERIC_TOPIC_TERMS = URBAN_RENEWAL_GENERIC_TOPIC_TERMS
 EVENT_STOP_TERMS = GENERIC_TOPIC_TERMS | {
     "争议",
     "居民",
@@ -123,6 +133,7 @@ STAGE_KEYWORDS = {
 }
 WEAK_TRIGGER_TERMS = {"拆迁", "征收", "公告", "通知", "规划"}
 WEAK_DIFFUSION_TERMS = {"关注"}
+WEAK_CONFLICT_TERMS = {"担忧", "诉求", "反映", "异议", "分歧", "不同意", "难以接受"}
 WEAK_RESOLUTION_TERMS = {"补偿", "安置", "推进", "落实"}
 WEAK_FOLLOW_UP_TERMS = {"最新", "进展"}
 RESOLUTION_OFFICIAL_TERMS = ["答复", "处理", "回应", "结果"]
@@ -172,10 +183,12 @@ class EventChainRetriever:
         related = [row for row in evidence_rows if str(row.get("event_id", "")) == event_id]
 
         stage_candidates: dict[str, list[dict]] = {stage: [] for stage in STAGES}
+        all_stage_candidates: list[dict] = []
         relevance_scores: list[float] = []
         generic_penalty_count = 0
         passed_relevance = 0
         duplicate_assignments_removed = 0
+        stage_balanced_reassignments = 0
 
         for evidence in related:
             relevance = compute_event_relevance_score(event, evidence)
@@ -200,13 +213,23 @@ class EventChainRetriever:
                     continue
                 evidence_candidates.append(evidence_stage_record(evidence, stage, final_score, details, relevance))
 
-            if self.deduplicate_evidence_across_stages and len(evidence_candidates) > 1:
+            if evidence_candidates:
                 best = max(evidence_candidates, key=lambda record: (record["final_stage_score"], -stage_priority(record["stage"])))
-                stage_candidates[best["stage"]].append(best)
-                duplicate_assignments_removed += len(evidence_candidates) - 1
-            else:
                 for candidate in evidence_candidates:
-                    stage_candidates[candidate["stage"]].append(candidate)
+                    candidate["best_score_stage"] = best["stage"]
+                    candidate["candidate_stage_count"] = len(evidence_candidates)
+                all_stage_candidates.extend(evidence_candidates)
+
+        if self.deduplicate_evidence_across_stages:
+            assigned_candidates, stage_balanced_reassignments = stage_balanced_deduplicate(
+                all_stage_candidates,
+                top_k_per_stage=self.top_k_per_stage,
+            )
+            duplicate_assignments_removed = len(all_stage_candidates) - len(assigned_candidates)
+        else:
+            assigned_candidates = all_stage_candidates
+        for candidate in assigned_candidates:
+            stage_candidates[candidate["stage"]].append(candidate)
 
         stages = []
         stage_best_scores: dict[str, float] = {}
@@ -229,6 +252,8 @@ class EventChainRetriever:
             "generic_penalty_count": generic_penalty_count,
             "deduplicated_evidence_count": duplicate_assignments_removed,
             "removed_duplicate_stage_assignments": duplicate_assignments_removed,
+            "dedup_assignment_policy": "stage_balanced" if self.deduplicate_evidence_across_stages else "none",
+            "stage_balanced_reassignment_count": stage_balanced_reassignments,
             "num_stages_covered": sum(1 for stage in stages if stage["evidence"]),
             "source_distribution": dict(Counter(row.get("source", "unknown") for row in related)),
             "stage_best_scores": stage_best_scores,
@@ -255,6 +280,7 @@ def compute_event_relevance_score(event: dict, evidence: dict) -> dict:
     text = str(evidence.get("text", "") or "")
     combined = f"{title}\n{text}"
     event_id_match = str(evidence.get("event_id", "")) == str(event.get("event_id", ""))
+    event_domain = str(event.get("domain") or "urban_renewal")
 
     event_name_terms = extract_event_terms(str(event.get("event_name", "") or ""))
     description_terms = extract_event_terms(str(event.get("event_description", "") or ""))
@@ -273,8 +299,8 @@ def compute_event_relevance_score(event: dict, evidence: dict) -> dict:
     score += weighted_match_score(matched_seed_keywords, title, text, base_weight=0.12, cap=0.28)
     score += min(0.08, 0.025 * len(matched_stakeholder_terms))
 
-    generic = detect_generic_policy_content(title, text)
-    specific_terms = [term for term in matched_event_terms if is_event_specific_term(term)]
+    generic = detect_generic_policy_content(title, text, domain=event_domain)
+    specific_terms = [term for term in matched_event_terms if is_event_specific_term(term, domain=event_domain)]
     generic_only = bool(generic["is_generic"]) and not specific_terms
     if generic["is_generic"]:
         penalty = generic["penalty"] * (0.15 if specific_terms else 1.0)
@@ -296,10 +322,10 @@ def compute_event_relevance_score(event: dict, evidence: dict) -> dict:
     }
 
 
-def detect_generic_policy_content(title: str, text: str) -> dict:
+def detect_generic_policy_content(title: str, text: str, domain: str = "urban_renewal") -> dict:
     combined = f"{title}\n{text}"
-    matched = [term for term in GENERIC_PATTERNS if term and term in combined]
-    topic_hits = [term for term in GENERIC_TOPIC_TERMS if term and term in combined]
+    matched = [term for term in GENERIC_PATTERNS if term and term_matches(combined, term)]
+    topic_hits = [term for term in generic_topic_terms_for_domain(domain) if term and term_matches(combined, term)]
     all_terms = unique(matched + topic_hits[:4])
     if not all_terms:
         return {"is_generic": False, "matched_terms": [], "penalty": 0.0}
@@ -317,18 +343,20 @@ def score_evidence_for_stage(text: str, source: str, stage: str) -> float:
 def score_evidence_for_stage_details(text: str, source: str, stage: str) -> dict:
     if stage not in STAGE_KEYWORDS:
         return {"stage_keyword_score": 0.0, "matched_stage_keywords": [], "source_prior_component": 0.0}
-    matched = [term for term in STAGE_KEYWORDS[stage] if term in text]
+    matched = [term for term in STAGE_KEYWORDS[stage] if term_matches(text, term)]
     weak_matched: list[str] = []
     if stage == "trigger":
-        weak_matched = [term for term in WEAK_TRIGGER_TERMS if term in text]
+        weak_matched = [term for term in WEAK_TRIGGER_TERMS if term_matches(text, term)]
     elif stage == "diffusion":
-        weak_matched = [term for term in WEAK_DIFFUSION_TERMS if term in text]
+        weak_matched = [term for term in WEAK_DIFFUSION_TERMS if term_matches(text, term)]
+    elif stage == "conflict":
+        weak_matched = [term for term in WEAK_CONFLICT_TERMS if term_matches(text, term)]
     elif stage == "resolution":
-        weak_matched = [term for term in WEAK_RESOLUTION_TERMS if term in text]
-        if source == "official" and any(term in text for term in RESOLUTION_OFFICIAL_TERMS):
+        weak_matched = [term for term in WEAK_RESOLUTION_TERMS if term_matches(text, term)]
+        if source == "official" and any(term_matches(text, term) for term in RESOLUTION_OFFICIAL_TERMS):
             matched.append("official_response_result")
     elif stage == "follow_up":
-        weak_matched = [term for term in WEAK_FOLLOW_UP_TERMS if term in text]
+        weak_matched = [term for term in WEAK_FOLLOW_UP_TERMS if term_matches(text, term)]
 
     strong_hits = len(unique(matched))
     weak_hits = len(unique(weak_matched))
@@ -349,7 +377,7 @@ def compute_final_stage_score(evidence: dict, details: dict, relevance: dict) ->
     quality = safe_float(evidence.get("quality_score"), 0.5)
     source_prior = safe_float(details.get("source_prior_component"), 0.0)
     text = str(evidence.get("text", "") or "")
-    stakeholder_signal = min(1.0, 0.25 * len([term for term in STAKEHOLDER_TERMS if term in text]))
+    stakeholder_signal = min(1.0, 0.25 * len([term for term in STAKEHOLDER_TERMS if term_matches(text, term)]))
     generic_penalty = 0.12 if relevance.get("is_generic_penalized") else 0.0
     score = (
         0.40 * safe_float(details.get("stage_keyword_score"), 0.0)
@@ -368,7 +396,7 @@ def evidence_stage_record(evidence: dict, stage: str, final_score: float, detail
     quality = safe_float(evidence.get("quality_score"), 0.5)
     source_prior = safe_float(details.get("source_prior_component"), 0.0)
     text = str(evidence.get("text", "") or "")
-    stakeholder_signal = min(1.0, 0.25 * len([term for term in STAKEHOLDER_TERMS if term in text]))
+    stakeholder_signal = min(1.0, 0.25 * len([term for term in STAKEHOLDER_TERMS if term_matches(text, term)]))
     return {
         "evidence_id": evidence.get("evidence_id"),
         "stage": stage,
@@ -426,6 +454,52 @@ def chain_confidence(stages: list[dict]) -> float:
     if avg_event_relevance < 0.30:
         confidence = min(confidence, 0.60)
     return round(confidence, 4)
+
+
+def stage_balanced_deduplicate(candidates: list[dict], *, top_k_per_stage: int) -> tuple[list[dict], int]:
+    by_stage: dict[str, list[dict]] = {stage: [] for stage in STAGES}
+    for candidate in candidates:
+        stage = str(candidate.get("stage", ""))
+        if stage in by_stage:
+            by_stage[stage].append(candidate)
+    for stage_candidates in by_stage.values():
+        stage_candidates.sort(
+            key=lambda item: (safe_float(item.get("final_stage_score"), 0.0), parse_time_sort_key(item.get("publish_time"))),
+            reverse=True,
+        )
+
+    stage_order = sorted(
+        STAGES,
+        key=lambda stage: (len(by_stage[stage]) if by_stage[stage] else math.inf, stage_priority(stage)),
+    )
+    assigned_by_stage: dict[str, list[dict]] = {stage: [] for stage in STAGES}
+    used_evidence_ids: set[str] = set()
+    reassigned = 0
+    target_per_stage = max(1, int(top_k_per_stage or 1))
+
+    while True:
+        progressed = False
+        for stage in stage_order:
+            if len(assigned_by_stage[stage]) >= target_per_stage:
+                continue
+            available = [
+                candidate
+                for candidate in by_stage[stage]
+                if str(candidate.get("evidence_id", "")) not in used_evidence_ids
+            ]
+            if not available:
+                continue
+            selected = available[0]
+            assigned_by_stage[stage].append(selected)
+            used_evidence_ids.add(str(selected.get("evidence_id", "")))
+            if selected.get("best_score_stage") and selected.get("best_score_stage") != selected.get("stage"):
+                reassigned += 1
+            progressed = True
+        if not progressed:
+            break
+
+    assigned = [candidate for stage in STAGES for candidate in assigned_by_stage[stage]]
+    return assigned, reassigned
 
 
 def build_retrieval_summary(candidates: list[dict], output_path: str) -> dict:
@@ -553,10 +627,10 @@ def extract_event_terms(text: str) -> list[str]:
     return unique([term for term in terms if term and term not in EVENT_STOP_TERMS])
 
 
-def is_event_specific_term(term: str) -> bool:
+def is_event_specific_term(term: str, domain: str = "urban_renewal") -> bool:
     if not term or term in EVENT_STOP_TERMS or len(term) < 2:
         return False
-    return not any(generic in term for generic in GENERIC_TOPIC_TERMS)
+    return not any(generic in term for generic in generic_topic_terms_for_domain(domain))
 
 
 def split_long_chinese_token(token: str) -> list[str]:
@@ -584,17 +658,39 @@ def normalize_term_list(values: Any) -> list[str]:
 
 
 def matched_terms(terms: list[str], text: str) -> list[str]:
-    return unique([term for term in terms if term and term in text])
+    return unique([term for term in terms if term and term_matches(text, term)])
 
 
 def weighted_match_score(terms: list[str], title: str, text: str, base_weight: float, cap: float) -> float:
     score = 0.0
     for term in terms:
-        if term in title:
+        if term_matches(title, term):
             score += base_weight * 1.35
-        elif term in text:
+        elif term_matches(text, term):
             score += base_weight
     return min(cap, score)
+
+
+def generic_topic_terms_for_domain(domain: str) -> set[str]:
+    return set(COMMON_GENERIC_TOPIC_TERMS) | set(DOMAIN_GENERIC_TOPIC_TERMS.get(domain, set()))
+
+
+def term_matches(text: str, term: str) -> bool:
+    text = str(text or "")
+    term = str(term or "")
+    if not term:
+        return False
+    if term.startswith(("不", "未", "无", "非")):
+        return term in text
+    for match in re.finditer(re.escape(term), text):
+        if not _is_negated_occurrence(text, match.start()):
+            return True
+    return False
+
+
+def _is_negated_occurrence(text: str, start: int) -> bool:
+    prefix = text[max(0, start - 4) : start]
+    return prefix.endswith(("不", "未", "无", "非", "并非", "不会", "不得", "不再", "无需", "不涉及", "未涉及"))
 
 
 def relevance_reason(score: float, event_id_match: bool, specific_terms: list[str], generic_only: bool, generic: dict) -> str:

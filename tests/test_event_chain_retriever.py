@@ -9,6 +9,7 @@ from episoa.retrieval.event_chain_retriever import (
     compute_event_relevance_score,
     detect_generic_policy_content,
     score_evidence_for_stage,
+    score_evidence_for_stage_details,
 )
 
 
@@ -38,6 +39,32 @@ def test_generic_policy_content_is_detected_and_penalized():
     assert result["is_generic"] is True
     assert result["penalty"] > 0
     assert "2026拆迁新政" in result["matched_terms"]
+
+
+def test_negated_topic_term_does_not_match_generic_or_trigger():
+    generic = detect_generic_policy_content("不征收说明", "本区域明确不征收房屋")
+    trigger_score = score_evidence_for_stage("本区域明确不征收房屋", "news", "trigger")
+
+    assert generic["is_generic"] is False
+    assert "征收" not in generic["matched_terms"]
+    assert trigger_score < 0.05
+
+
+def test_conflict_weak_terms_are_low_strength_stage_signal():
+    details = score_evidence_for_stage_details("居民反映补偿方案存在分歧并提出诉求", "public_interaction", "conflict")
+
+    assert 0 < details["stage_keyword_score"] < 0.25
+    assert {"反映", "分歧", "诉求"} & set(details["matched_stage_keywords"])
+
+
+def test_generic_topic_terms_are_domain_scoped():
+    urban = detect_generic_policy_content("旧改补偿标准", "征收补偿安置细则", domain="urban_renewal")
+    education = detect_generic_policy_content("旧改补偿标准", "征收补偿安置细则", domain="education")
+    education_generic = detect_generic_policy_content("课程管理规定", "在线开放课程教学管理办法", domain="education")
+
+    assert urban["is_generic"] is True
+    assert education["is_generic"] is False
+    assert education_generic["is_generic"] is True
 
 
 def test_generic_policy_text_does_not_pass_event_relevance():
@@ -71,6 +98,22 @@ def test_same_evidence_is_not_repeated_across_stages():
 
     assert selected_ids == ["a"]
     assert result["retrieval_diagnostics"]["deduplicated_evidence_count"] > 0
+
+
+def test_stage_balanced_dedup_assigns_multistage_evidence_to_scarce_stage():
+    events = [event_row()]
+    evidence = [
+        evidence_row("multi", "E001", "official", "明府城片区发布征收公告，居民投诉补偿争议，官方回应说明情况。"),
+        evidence_row("trigger", "E001", "news", "明府城片区发布征收公告并启动旧城改造。"),
+        evidence_row("response", "E001", "official", "明府城片区官方回应称部门表示将说明情况。"),
+    ]
+
+    result = EventChainRetriever(top_k_per_stage=1, min_stage_score=0.20, min_event_relevance=0.30).retrieve_for_event(events[0], evidence)
+    selected_ids = [ev["evidence_id"] for stage in result["stages"] for ev in stage["evidence"]]
+
+    assert "conflict" not in result["missing_stages"]
+    assert len(selected_ids) == len(set(selected_ids))
+    assert result["retrieval_diagnostics"]["dedup_assignment_policy"] == "stage_balanced"
 
 
 def test_resolution_requires_strong_resolution_signal():

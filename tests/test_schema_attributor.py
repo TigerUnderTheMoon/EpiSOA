@@ -377,6 +377,30 @@ def test_raw_response_records_ablation_request_summary_flags(tmp_path):
     assert summary["canonical_stakeholder_inventory"]
 
 
+def test_no_chain_context_with_evidence_is_processed_not_skipped(tmp_path):
+    fake = FakeLLMClient(valid_payload())
+
+    summary = run_schema_attribution(
+        events=[event_row()],
+        evidence_rows=[evidence_row("ev-1")],
+        chains=[],
+        graph_nodes=[],
+        llm_client=fake,
+        model_name="fake",
+        output_dir=tmp_path,
+        dry_run=False,
+        method_version="direct_llm",
+        hide_chain_in_prompt=True,
+        skip_chain_ranking=True,
+    )
+
+    assert fake.calls == 1
+    assert summary["no_chain_context_events"] == ["E012"]
+    assert summary["num_events_requested"] == 1
+    assert summary["num_events_processed"] == 1
+    assert summary["num_events_skipped"] == 0
+
+
 def test_module_does_not_read_or_generate_gold(tmp_path):
     gold = tmp_path / "gold_tuples.jsonl"
     fake = FakeLLMClient('{"event_id":"E012","tuples":[]}')
@@ -551,6 +575,8 @@ def test_soe_v3_two_pass_falls_back_to_single_pass_after_stage_parse_failure(tmp
         method_version="soe_v3",
         selector_mode="coverage_optimized",
         use_stage_attribution=True,
+        use_event_level_safety_net=True,
+        use_hybrid_refinement=True,
     )
 
     candidates = [json.loads(line) for line in (tmp_path / "candidate_soa_tuples.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -560,6 +586,14 @@ def test_soe_v3_two_pass_falls_back_to_single_pass_after_stage_parse_failure(tmp
     assert summary["num_api_calls"] == 3
     assert candidates[0]["attribution_pass"] == "legacy_single_pass"
     assert raw_rows[0]["request_summary"]["fallback_mode"] == "legacy_single_pass"
+    assert raw_rows[0]["request_summary"]["requested_event_level_safety_net"] is True
+    assert raw_rows[0]["request_summary"]["requested_hybrid_refinement"] is True
+    assert raw_rows[0]["request_summary"]["use_event_level_safety_net"] is False
+    assert raw_rows[0]["request_summary"]["use_hybrid_refinement"] is False
+    assert raw_rows[0]["request_summary"]["stage_dependent_extensions_skipped_by_fallback"] == [
+        "event_level_safety_net",
+        "hybrid_refinement",
+    ]
 
 
 def test_soe_v3_two_pass_falls_back_to_single_pass_after_empty_stage_candidates(tmp_path):

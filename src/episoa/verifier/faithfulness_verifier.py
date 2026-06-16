@@ -10,8 +10,27 @@ import hashlib
 import json
 from pathlib import Path
 import time
+from typing import Any
 
 from episoa.data.schema import EvidenceRecord, PredictionTuple
+from episoa.verification.faithfulness_verifier import (
+    VERIFIER_RESPONSE_FORMAT as DECOMPOSED_VERIFIER_RESPONSE_FORMAT,
+    normalize_issue_flags as normalize_verifier_issue_flags,
+    normalize_verification_diagnosis as normalize_script_verification_diagnosis,
+    rule_precheck,
+)
+
+
+PIPELINE_VERIFIER_SCHEMA_VERSION = 2
+HARD_PRECHECK_FLAGS = {
+    "missing_evidence",
+    "stakeholder_not_supported",
+    "sentiment_not_supported",
+    "rationale_not_supported",
+    "evidence_span_not_supported",
+    "stage_mismatch",
+    "contradiction_detected",
+}
 
 
 def verify_tuples(
@@ -23,6 +42,7 @@ def verify_tuples(
     mode: str = "decomposed",
     cache_dir: str | Path | None = None,
     max_api_concurrency: int = 1,
+    chain_stages_by_event: dict[str, set[str]] | None = None,
 ) -> list[PredictionTuple]:
     """Verify prediction tuples against evidence.
 
@@ -33,12 +53,30 @@ def verify_tuples(
     cache_base = Path(cache_dir) / "verifier" if cache_dir is not None else None
     if cache_base is not None:
         cache_base.mkdir(parents=True, exist_ok=True)
+    chain_stages = chain_stages_by_event or {}
 
     def verify_one(index: int, prediction: PredictionTuple) -> tuple[int, PredictionTuple]:
-        # Pre-check: all evidence_ids must exist
         missing = [eid for eid in prediction.evidence_ids if eid not in evidence_map]
+        candidate = _prediction_to_candidate(prediction)
+        evidence_items = [_evidence_to_dict(evidence_map[eid]) for eid in prediction.evidence_ids if eid in evidence_map]
+        if mode == "id_only":
+            precheck_flags = normalize_verifier_issue_flags(["missing_evidence"] if missing else [])
+        else:
+            precheck_flags = rule_precheck(
+                candidate=candidate,
+                evidence_items=evidence_items,
+                missing_evidence_ids=missing,
+                chain_stages_by_event=chain_stages,
+            )
         if missing:
-            diagnosis = decomposed_diagnosis(prediction, evidence_map, score=0.0, missing_evidence_ids=missing)
+            diagnosis = decomposed_diagnosis(
+                prediction,
+                evidence_map,
+                score=0.0,
+                missing_evidence_ids=missing,
+                llm_details={},
+                issue_flags=precheck_flags,
+            )
             return index, (
                 prediction.model_copy(
                     update={
@@ -61,6 +99,7 @@ def verify_tuples(
                 model_name=str(getattr(llm_client, "model_name", "")),
                 base_url=str(getattr(llm_client, "base_url", "")),
                 mode=mode,
+                precheck_flags=precheck_flags,
             )
             cached = _read_verifier_cache(cache_base / f"{key}.json") if cache_base is not None else None
             if cached is None:
@@ -69,7 +108,7 @@ def verify_tuples(
                     _write_verifier_cache(
                         cache_base / f"{key}.json",
                         {
-                            "schema_version": 1,
+                            "schema_version": PIPELINE_VERIFIER_SCHEMA_VERSION,
                             "cache_key": key,
                             "score": score,
                             "llm_details": llm_details,
@@ -87,7 +126,15 @@ def verify_tuples(
             score = 1.0  # fallback: all evidence_ids exist
             llm_details = {}
 
-        diagnosis = decomposed_diagnosis(prediction, evidence_map, score=score, llm_details=llm_details)
+        issue_flags = _merge_issue_flags(precheck_flags, llm_details)
+        score = _apply_hard_flag_score_cap(score, issue_flags)
+        diagnosis = decomposed_diagnosis(
+            prediction,
+            evidence_map,
+            score=score,
+            llm_details=llm_details,
+            issue_flags=issue_flags,
+        )
         if "cache_hit" in llm_details:
             diagnosis["cache_hit"] = llm_details["cache_hit"]
         if "cache_key" in llm_details:
@@ -122,20 +169,26 @@ def verifier_cache_key(
     model_name: str,
     base_url: str,
     mode: str,
+    precheck_flags: list[str] | None = None,
 ) -> str:
     payload = {
-        "schema_version": 1,
+        "schema_version": PIPELINE_VERIFIER_SCHEMA_VERSION,
         "mode": mode,
         "model_name": model_name,
         "base_url": base_url,
         "verifier_system": VERIFIER_SYSTEM,
+        "precheck_flags": normalize_verifier_issue_flags(precheck_flags or []),
         "tuple": {
+            "tuple_id": getattr(prediction, "tuple_id", ""),
             "event_id": prediction.event_id,
             "stakeholder": prediction.stakeholder,
+            "stakeholder_aliases": list(getattr(prediction, "stakeholder_aliases", []) or []),
             "opinion": prediction.opinion,
             "sentiment": prediction.sentiment,
             "rationale": prediction.rationale,
             "evidence_ids": list(prediction.evidence_ids),
+            "event_chain_stage": prediction.event_chain_stage,
+            "evidence_spans": list(prediction.evidence_spans or []),
         },
         "evidence": [
             {
@@ -190,42 +243,72 @@ def decomposed_diagnosis(
     score: float,
     missing_evidence_ids: list[str] | None = None,
     llm_details: dict | None = None,
+    issue_flags: list[str] | None = None,
 ) -> dict:
     evidence_items = [evidence_map[eid] for eid in prediction.evidence_ids if eid in evidence_map]
-    evidence_text = "\n".join(item.text for item in evidence_items)
-    stakeholder_support = bool(evidence_text and loose_contains(evidence_text, prediction.stakeholder))
-    opinion_overlap = char_overlap(prediction.opinion, evidence_text)
-    rationale_overlap = char_overlap(prediction.rationale, evidence_text)
-    diagnosis = {
-        "stakeholder_support": stakeholder_support,
-        "opinion_support": support_level(opinion_overlap, score),
-        "sentiment_support": True,
-        "rationale_support": support_level(rationale_overlap, score),
-        "evidence_span_support": evidence_span_support(prediction, evidence_text),
-        "evidence_same_event": all(item.event_id == prediction.event_id for item in evidence_items),
-        "temporal_stage_consistency": True,
-        "over_inference": score < 0.4 or (opinion_overlap < 0.08 and rationale_overlap < 0.08),
-        "contradiction_detected": False,
-        "missing_evidence_ids": missing_evidence_ids or [],
-        "support_score": round(float(score), 4),
-    }
+    flags = normalize_verifier_issue_flags(issue_flags or [])
+    payload = llm_details if isinstance(llm_details, dict) else {}
+    diagnosis = normalize_script_verification_diagnosis(payload, flags=flags, score=score)
+    evidence_same_event = bool(evidence_items) and all(item.event_id == prediction.event_id for item in evidence_items)
+    if missing_evidence_ids:
+        evidence_same_event = False
+    if not evidence_same_event:
+        diagnosis["evidence_same_event"] = False
+    else:
+        diagnosis.setdefault("evidence_same_event", True)
+    diagnosis["missing_evidence_ids"] = missing_evidence_ids or []
+    diagnosis["support_score"] = round(float(score), 4)
+    diagnosis["issue_flags"] = flags
     if llm_details:
-        for key in (
-            "stakeholder_support",
-            "opinion_support",
-            "sentiment_support",
-            "rationale_support",
-            "evidence_span_support",
-            "evidence_same_event",
-            "temporal_stage_consistency",
-            "over_inference",
-            "contradiction_detected",
-        ):
-            if key in llm_details:
-                diagnosis[key] = llm_details[key]
         if "reason" in llm_details:
             diagnosis["llm_reason"] = llm_details["reason"]
+        if "verification_rationale" in llm_details:
+            diagnosis["llm_reason"] = llm_details["verification_rationale"]
     return diagnosis
+
+
+def _prediction_to_candidate(prediction: PredictionTuple) -> dict[str, Any]:
+    return prediction.model_dump()
+
+
+def _evidence_to_dict(evidence: EvidenceRecord) -> dict[str, Any]:
+    return evidence.model_dump()
+
+
+def _merge_issue_flags(precheck_flags: list[str], llm_details: dict | None) -> list[str]:
+    flags: list[str] = list(precheck_flags or [])
+    details = llm_details if isinstance(llm_details, dict) else {}
+    raw_llm_flags = details.get("issue_flags", [])
+    if isinstance(raw_llm_flags, str):
+        flags.append(raw_llm_flags)
+    elif isinstance(raw_llm_flags, list):
+        flags.extend(str(flag) for flag in raw_llm_flags)
+    diagnosis = details.get("verification_diagnosis") if isinstance(details.get("verification_diagnosis"), dict) else details
+    if _diagnosis_false(diagnosis.get("stakeholder_support")):
+        flags.append("stakeholder_not_supported")
+    if _diagnosis_false(diagnosis.get("sentiment_support")):
+        flags.append("sentiment_not_supported")
+    if _diagnosis_false(diagnosis.get("rationale_support")):
+        flags.append("rationale_not_supported")
+    if _diagnosis_false(diagnosis.get("evidence_span_support")):
+        flags.append("evidence_span_not_supported")
+    if _diagnosis_false(diagnosis.get("temporal_stage_consistency")):
+        flags.append("stage_mismatch")
+    if diagnosis.get("contradiction_detected") is True or str(diagnosis.get("contradiction_detected", "")).lower() == "true":
+        flags.append("contradiction_detected")
+    return normalize_verifier_issue_flags(flags)
+
+
+def _diagnosis_false(value: Any) -> bool:
+    if value is False:
+        return True
+    return str(value).strip().lower() in {"false", "unsupported", "no"}
+
+
+def _apply_hard_flag_score_cap(score: float, issue_flags: list[str]) -> float:
+    if any(flag in HARD_PRECHECK_FLAGS for flag in issue_flags):
+        return min(float(score), 0.39)
+    return float(score)
 
 
 def support_level(overlap: float, score: float) -> str:
@@ -270,8 +353,7 @@ def evidence_span_support(prediction: PredictionTuple, evidence_text: str) -> bo
 
 VERIFIER_SYSTEM = """你是严格的中文公共事件证据支撑度判定专家。判断证据是否直接支撑利益相关方的具体观点。
 
-输出严格 JSON：
-{"score": 0.0-1.0, "reason": "简要理由"}
+输出严格 JSON，包含 score/reason，也尽量给出 issue_flags 和 verification_diagnosis。
 
 严格规则：
 1. 证据必须同时满足两点才算支撑：(a) 明确提及该利益相关方或群体，(b) 明确表述或直接暗示该具体观点
@@ -287,7 +369,22 @@ VERIFIER_USER = """利益相关方：{stakeholder}
 证据列表：
 {evidence_texts}
 
-请判定：这些证据是否支撑上述观点声明？输出 JSON。"""
+请判定：这些证据是否支撑上述观点声明？输出 JSON：
+{{
+  "score": 0.0,
+  "reason": "简要理由",
+  "issue_flags": ["no_issue"],
+  "verification_diagnosis": {{
+    "stakeholder_support": true,
+    "opinion_support": "supported|partial|unsupported|unclear",
+    "sentiment_support": true,
+    "rationale_support": true,
+    "evidence_span_support": true,
+    "temporal_stage_consistency": true,
+    "over_inference": false,
+    "contradiction_detected": false
+  }}
+}}"""
 
 
 def _llm_verify(
@@ -303,7 +400,7 @@ def _llm_verify(
             evidence_texts.append(f"[{eid}] {ev.text[:500]}")
 
     if not evidence_texts:
-        return 0.0
+        return 0.0, {}
 
     user_prompt = VERIFIER_USER.format(
         stakeholder=prediction.stakeholder,
@@ -319,6 +416,7 @@ def _llm_verify(
         resp = llm_client.chat(
             system_prompt=VERIFIER_SYSTEM,
             user_prompt=user_prompt,
+            response_format=DECOMPOSED_VERIFIER_RESPONSE_FORMAT,
         )
         content = resp.content.strip()
         m = re.search(r"\{.*\}", content, re.DOTALL)

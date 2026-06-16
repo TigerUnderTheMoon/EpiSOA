@@ -525,7 +525,9 @@ def test_ablation_resume_rejects_stale_manifest_before_rewriting(monkeypatch, tm
     assert calls == ["ablation_full_soe"]
     assert summary["metrics"]["full_soe"]["Tuple-F1-soft"] == 1.0
     rewritten_manifest = json.loads((setting_dir / "input_manifest.json").read_text(encoding="utf-8"))
-    assert rewritten_manifest["flags"]["use_graph"] is False
+    assert rewritten_manifest["flags"]["use_graph"] is True
+    assert rewritten_manifest["flags"]["use_soe_graph"] is True
+    assert rewritten_manifest["flags"]["use_stage_attribution"] is True
 
 
 def test_diagnostic_mode_writes_isolated_diagnostic_metadata(monkeypatch, tmp_path):
@@ -579,20 +581,23 @@ def test_paper_pipeline_preserves_formal_full_soe_path(monkeypatch, tmp_path):
     summary = run_paper_pipeline(config_path, resume=True, cache_dir=tmp_path / "cache")
 
     assert summary["status"] == "completed"
-    assert captured["use_graph"] is False
+    assert captured["use_graph"] is True
     assert captured["use_event_chain"] is True
-    assert captured["use_soe_graph"] is False
-    assert captured["use_stage_attribution"] is False
-    assert captured["use_event_level_safety_net"] is False
-    assert captured["use_hybrid_refinement"] is False
+    assert captured["use_soe_graph"] is True
+    assert captured["use_stage_attribution"] is True
+    assert captured["use_event_level_safety_net"] is True
+    assert captured["use_hybrid_refinement"] is True
     assert captured["use_verifier_quality_gate"] is True
     input_manifest = json.loads((Path(summary["run_dir"]) / "input_manifest.json").read_text())
     prompt_manifest = json.loads((Path(summary["run_dir"]) / "prompt_manifest.json").read_text())
     assert input_manifest["run_id"] == "paper"
     assert input_manifest["setting"] == "paper_main"
     assert input_manifest["mode"] == "paper"
-    assert input_manifest["flags"]["use_graph"] is False
-    assert input_manifest["flags"]["use_soe_graph"] is False
+    assert input_manifest["flags"]["use_graph"] is True
+    assert input_manifest["flags"]["use_soe_graph"] is True
+    assert input_manifest["flags"]["use_stage_attribution"] is True
+    assert input_manifest["flags"]["use_event_level_safety_net"] is True
+    assert input_manifest["flags"]["use_hybrid_refinement"] is True
     assert prompt_manifest["prompt_version"] == "schema_attribution_v3_stakeholder_canonical_json"
 
 

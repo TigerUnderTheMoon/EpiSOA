@@ -152,6 +152,58 @@ def test_direct_llm_valid_baseline_summary_uses_artifacts(tmp_path):
     assert summary["valid_baseline_evidence"] is True
 
 
+def test_main_metrics_are_loaded_from_formal_artifact(tmp_path):
+    builder = importlib.import_module("scripts.build_episoa_manuscript")
+    runs_dir = tmp_path / "runs"
+    main_dir = runs_dir / "pubevent-soa-lite-human-gold-v2-paper"
+    main_dir.mkdir(parents=True)
+    (main_dir / "metrics.json").write_text(
+        json.dumps(
+            {
+                "Metric-Scope": "gold_event_scope",
+                "Tuple-F1-semantic": 0.5123,
+                "Tuple-Precision-semantic": 0.6,
+                "Tuple-Recall-semantic": 0.45,
+                "Tuple-F1-semantic@0.5": 0.5123,
+                "Tuple-F1-char@0.5": 0.21,
+                "Tuple-F1-soft": 0.21,
+                "Tuple-F1-exact": 0.08,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    metrics = builder.metrics(runs_dir)
+
+    assert metrics["Tuple-F1-semantic"] == 0.5123
+    assert metrics["Tuple-F1-semantic"] != 0.7337
+    assert metrics["Tuple-F1-char@0.5"] == 0.21
+    assert metrics["Tuple-F1-exact"] == 0.08
+
+
+def test_failure_reason_counts_are_loaded_from_failure_audit(tmp_path):
+    builder = importlib.import_module("scripts.build_episoa_manuscript")
+    run_dir = tmp_path / "runs"
+    main_dir = run_dir / "pubevent-soa-lite-human-gold-v2-paper"
+    main_dir.mkdir(parents=True)
+    (main_dir / "tuple_failure_audit.csv").write_text(
+        "\n".join(
+            [
+                "failure_reason,count",
+                "opinion_mismatch,7",
+                "stakeholder_mismatch,3",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    counts = builder.load_failure_reason_counts(run_dir)
+
+    assert counts == [["opinion_mismatch", "7"], ["stakeholder_mismatch", "3"]]
+    assert ["sentiment_mismatch", "31"] not in counts
+
+
 def test_ablation_summary_updates_direct_llm_from_ablation_results(tmp_path):
     builder = importlib.import_module("scripts.build_episoa_manuscript")
     run_dir = tmp_path / "runs"

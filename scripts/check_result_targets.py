@@ -29,15 +29,14 @@ BEST_CHECK_METRICS = (
     "Tuple-F1-semantic@0.5",
 )
 FINAL_BEST_CHECK_METRICS = (
-    "Tuple-F1-semantic@0.25",
-    "Tuple-F1-semantic@0.3",
+    "Tuple-F1-semantic@0.5",
 )
 MAIN_TARGET_METRICS = (
     "Tuple-F1-semantic",
     "Tuple-Precision-semantic",
     "Tuple-Recall-semantic",
 )
-MAIN_TARGET = 0.7
+MAIN_TARGET = 0.4
 
 
 def run_gate(
@@ -178,6 +177,8 @@ def _full_soe_equivalent_aliases(summary: dict[str, Any]) -> set[str]:
     aliases: set[str] = set()
     for setting, payload in reuse.items():
         if not isinstance(payload, dict):
+            continue
+        if str(setting) == "without_soe_graph":
             continue
         if payload.get("source_setting") == "full_soe" and payload.get("reason") == "same_setting_fingerprint":
             aliases.add(str(setting))

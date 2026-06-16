@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import networkx as nx
+
 from episoa.data.schema import GoldTuple, PredictionTuple
 
 logger = logging.getLogger(__name__)
@@ -231,13 +233,16 @@ def match_tuples(
     field_weights: dict[str, float] | None = None,
     require_same_event: bool = True,
 ) -> dict[str, Any]:
-    """Greedy one-to-one tuple matching with matched/unmatched details."""
+    """One-to-one tuple matching with matched/unmatched details."""
     gold_list = list(gold)
     pred_list = list(predictions)
     candidate_pairs: list[dict[str, Any]] = []
+    graph = nx.Graph()
 
     for gold_idx, gt in enumerate(gold_list):
+        graph.add_node(("gold", gold_idx), bipartite=0)
         for pred_idx, pt in enumerate(pred_list):
+            graph.add_node(("pred", pred_idx), bipartite=1)
             score, field_scores = tuple_pair_score(
                 gt,
                 pt,
@@ -254,26 +259,40 @@ def match_tuples(
                         "field_scores": field_scores,
                     }
                 )
+                graph.add_edge(
+                    ("gold", gold_idx),
+                    ("pred", pred_idx),
+                    weight=float(score),
+                    pair_index=len(candidate_pairs) - 1,
+                )
 
-    candidate_pairs.sort(
-        key=lambda item: (-float(item["score"]), int(item["gold_index"]), int(item["pred_index"]))
+    matching = nx.algorithms.matching.max_weight_matching(
+        graph,
+        maxcardinality=True,
+        weight="weight",
     )
     matched_gold_indices: set[int] = set()
     matched_pred_indices: set[int] = set()
     matched_pairs: list[dict[str, Any]] = []
 
-    for item in candidate_pairs:
+    for left, right in matching:
+        gold_node, pred_node = (left, right) if left[0] == "gold" else (right, left)
+        edge = graph.get_edge_data(gold_node, pred_node) or {}
+        pair_index = edge.get("pair_index")
+        if pair_index is None:
+            continue
+        item = candidate_pairs[int(pair_index)]
         gold_idx = int(item["gold_index"])
         pred_idx = int(item["pred_index"])
-        if gold_idx in matched_gold_indices or pred_idx in matched_pred_indices:
-            continue
         matched_gold_indices.add(gold_idx)
         matched_pred_indices.add(pred_idx)
         matched_pairs.append(item)
+    matched_pairs.sort(key=lambda item: (int(item["gold_index"]), int(item["pred_index"])))
 
     return {
         "matcher": matcher,
         "threshold": threshold,
+        "matching_strategy": "max_cardinality_max_score",
         "matches": matched_pairs,
         "matched_gold_indices": sorted(matched_gold_indices),
         "matched_pred_indices": sorted(matched_pred_indices),

@@ -1015,6 +1015,8 @@ class SchemaAttributor:
                 hide_chain_in_prompt=hide_chain_in_prompt,
                 skip_chain_ranking=skip_chain_ranking,
                 enforce_candidate_constraints=enforce_candidate_constraints,
+                use_event_level_safety_net=use_event_level_safety_net,
+                use_hybrid_refinement=use_hybrid_refinement,
                 prior_api_calls=int(request_summary["api_calls_made"]),
                 fallback_reason=stage_parsed.parse_error or "stage_extract_failed",
                 stage_candidates=[],
@@ -1045,6 +1047,8 @@ class SchemaAttributor:
                 hide_chain_in_prompt=hide_chain_in_prompt,
                 skip_chain_ranking=skip_chain_ranking,
                 enforce_candidate_constraints=enforce_candidate_constraints,
+                use_event_level_safety_net=use_event_level_safety_net,
+                use_hybrid_refinement=use_hybrid_refinement,
                 prior_api_calls=int(request_summary["api_calls_made"]),
                 fallback_reason="empty_stage_candidates",
                 stage_candidates=[],
@@ -1101,6 +1105,8 @@ class SchemaAttributor:
                 hide_chain_in_prompt=hide_chain_in_prompt,
                 skip_chain_ranking=skip_chain_ranking,
                 enforce_candidate_constraints=enforce_candidate_constraints,
+                use_event_level_safety_net=use_event_level_safety_net,
+                use_hybrid_refinement=use_hybrid_refinement,
                 prior_api_calls=int(request_summary["api_calls_made"]),
                 fallback_reason=merge_parsed.parse_error or "canonical_merge_failed",
                 stage_candidates=stage_parsed.tuples,
@@ -1291,6 +1297,8 @@ class SchemaAttributor:
         hide_chain_in_prompt: bool,
         skip_chain_ranking: bool,
         enforce_candidate_constraints: bool,
+        use_event_level_safety_net: bool,
+        use_hybrid_refinement: bool,
         prior_api_calls: int,
         fallback_reason: str,
         stage_candidates: list[dict[str, Any]],
@@ -1312,6 +1320,16 @@ class SchemaAttributor:
         summary["fallback_reason"] = fallback_reason
         summary["stage_candidate_count"] = len(stage_candidates)
         summary["api_calls_made"] = prior_api_calls + int(summary.get("api_calls_made", 0) or 0)
+        summary["requested_event_level_safety_net"] = bool(use_event_level_safety_net)
+        summary["requested_hybrid_refinement"] = bool(use_hybrid_refinement)
+        summary["use_event_level_safety_net"] = False
+        summary["use_hybrid_refinement"] = False
+        skipped_extensions: list[str] = []
+        if use_event_level_safety_net:
+            skipped_extensions.append("event_level_safety_net")
+        if use_hybrid_refinement:
+            skipped_extensions.append("hybrid_refinement")
+        summary["stage_dependent_extensions_skipped_by_fallback"] = skipped_extensions
         diagnostics = legacy_record.setdefault("parse_diagnostics", {})
         diagnostics["stage_candidates"] = stage_candidates
         for row in legacy_tuples:
@@ -1730,7 +1748,7 @@ def run_schema_attribution(
     write_canonicalization_map_table(output_dir / "canonicalization_map.csv", raw_records)
     summary = build_summary(
         requested=len(selected_events),
-        processed=len(selected_events) - len(no_chain_context_events),
+        processed=len(raw_records),
         tuples=tuples,
         api_calls=api_calls,
         api_failures=api_failures,
@@ -2400,7 +2418,7 @@ def canonicalize_tuple_rows(
         canonical_rows.append(new_row)
 
     merged_rows, merge_count = merge_duplicate_canonical_rows(canonical_rows, str(event.get("event_id", "")))
-    merged_rows = promote_generic_stakeholders(merged_rows, event)
+    merged_rows = preserve_generic_stakeholders_for_recall(merged_rows, event)
     diagnostics = {
         "candidate_inventory": inventory,
         "candidate_inventory_count": len(inventory),
@@ -2656,7 +2674,7 @@ def merge_sentiment(left: str, right: str) -> str:
 
 
 
-def promote_generic_stakeholders(
+def preserve_generic_stakeholders_for_recall(
     rows: list[dict[str, Any]],
     event: dict[str, Any],
 ) -> list[dict[str, Any]]:
@@ -2667,6 +2685,14 @@ def promote_generic_stakeholders(
     Now we keep all tuples and let the evaluation handle matching.
     """
     return rows
+
+
+def promote_generic_stakeholders(
+    rows: list[dict[str, Any]],
+    event: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Backward-compatible wrapper for the renamed no-op."""
+    return preserve_generic_stakeholders_for_recall(rows, event)
 
 
 def make_stakeholder_id(event_id: str, stakeholder: str) -> str:

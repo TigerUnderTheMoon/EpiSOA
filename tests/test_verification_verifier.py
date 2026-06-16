@@ -110,6 +110,18 @@ def test_rule_precheck_stakeholder_not_supported():
 
 
 @pytest.mark.unit
+def test_rule_precheck_uses_candidate_stakeholder_aliases():
+    flags = rule_precheck(
+        candidate=candidate_row(stakeholder="住房城乡建设部门", stakeholder_aliases=["住建局"]),
+        evidence_items=[evidence_row("ev-1", text="住建局回应居民诉求并说明整改安排")],
+        missing_evidence_ids=[],
+        chain_stages_by_event={},
+    )
+
+    assert "stakeholder_not_supported" not in flags
+
+
+@pytest.mark.unit
 def test_rule_precheck_rationale_not_supported():
     flags = rule_precheck(
         candidate=candidate_row(rationale="外星文明介入调查"),
@@ -151,6 +163,18 @@ def test_rule_precheck_opinion_overgeneralized():
         chain_stages_by_event={},
     )
     assert "opinion_overgeneralized" in flags
+
+
+@pytest.mark.unit
+def test_rule_precheck_detects_obvious_attitude_contradiction():
+    flags = rule_precheck(
+        candidate=candidate_row(opinion="家长支持学校处理方案", sentiment="positive"),
+        evidence_items=[evidence_row("ev-1", text="家长质疑学校处理方案并表示不满")],
+        missing_evidence_ids=[],
+        chain_stages_by_event={},
+    )
+
+    assert "contradiction_detected" in flags
 
 
 @pytest.mark.unit

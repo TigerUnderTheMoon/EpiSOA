@@ -1,9 +1,58 @@
+import json
+
 from episoa.data.schema import EvidenceRecord, PredictionTuple
 from episoa.verifier.faithfulness_verifier import verify_tuples
 
 
+class FakeDecomposedVerifierClient:
+    model_name = "fake-model"
+    base_url = "https://fake.test/v1"
+
+    def __init__(self, payload: dict):
+        self.payload = payload
+        self.calls = 0
+
+    def chat(self, **_kwargs):
+        self.calls += 1
+        return type(
+            "Response",
+            (),
+            {
+                "content": json.dumps(self.payload, ensure_ascii=False),
+                "response_id": f"fake-{self.calls}",
+                "raw": {},
+            },
+        )()
+
+
+def prediction(**overrides) -> PredictionTuple:
+    row = {
+        "event_id": "E001",
+        "stakeholder": "住建部门",
+        "opinion": "住建部门回应居民诉求并推进整改",
+        "sentiment": "neutral",
+        "rationale": "住建局回应居民诉求",
+        "evidence_ids": ["ev-001"],
+        "support_label": "supported",
+        "event_chain_stage": "response",
+    }
+    row.update(overrides)
+    return PredictionTuple(**row)
+
+
+def evidence(text: str, **overrides) -> EvidenceRecord:
+    row = {
+        "event_id": "E001",
+        "evidence_id": "ev-001",
+        "source": "official",
+        "text": text,
+    }
+    row.update(overrides)
+    return EvidenceRecord(**row)
+
+
 def test_pipeline_verifier_attaches_decomposed_diagnosis_without_llm():
-    prediction = PredictionTuple(
+    prediction_row = PredictionTuple(
         event_id="E1",
         stakeholder="Residents",
         opinion="complain about safety",
@@ -12,7 +61,7 @@ def test_pipeline_verifier_attaches_decomposed_diagnosis_without_llm():
         evidence_ids=["ev1"],
         support_label="supported",
     )
-    evidence = [
+    evidence_rows = [
         EvidenceRecord(
             event_id="E1",
             evidence_id="ev1",
@@ -21,7 +70,7 @@ def test_pipeline_verifier_attaches_decomposed_diagnosis_without_llm():
         )
     ]
 
-    verified = verify_tuples([prediction], evidence, mode="decomposed")
+    verified = verify_tuples([prediction_row], evidence_rows, mode="decomposed")
 
     assert verified[0].verified is True
     assert verified[0].verification_diagnosis["evidence_same_event"] is True
@@ -29,7 +78,7 @@ def test_pipeline_verifier_attaches_decomposed_diagnosis_without_llm():
 
 
 def test_pipeline_verifier_id_only_skips_llm_and_marks_missing_evidence():
-    prediction = PredictionTuple(
+    prediction_row = PredictionTuple(
         event_id="E1",
         stakeholder="Residents",
         opinion="complain",
@@ -39,8 +88,83 @@ def test_pipeline_verifier_id_only_skips_llm_and_marks_missing_evidence():
         support_label="supported",
     )
 
-    verified = verify_tuples([prediction], [], llm_client=object(), mode="id_only")
+    verified = verify_tuples([prediction_row], [], llm_client=object(), mode="id_only")
 
     assert verified[0].verified is False
     assert verified[0].support_label == "insufficient_evidence"
     assert verified[0].verification_diagnosis["missing_evidence_ids"] == ["missing"]
+
+
+def test_pipeline_verifier_precheck_blocks_unsupported_positive_sentiment_without_llm():
+    verified = verify_tuples(
+        [
+            prediction(
+                stakeholder="住建部门",
+                opinion="住建部门发布整改通告",
+                sentiment="positive",
+                rationale="住建部门发布整改通告",
+            )
+        ],
+        [evidence("住建部门发布通告称将开展整改。")],
+        mode="decomposed",
+    )
+
+    diagnosis = verified[0].verification_diagnosis
+    assert verified[0].verified is False
+    assert diagnosis["sentiment_support"] is False
+    assert "sentiment_not_supported" in diagnosis["issue_flags"]
+
+
+def test_pipeline_verifier_uses_chain_stages_for_temporal_consistency():
+    verified = verify_tuples(
+        [prediction(event_chain_stage="trigger")],
+        [evidence("住建部门回应居民诉求并说明整改安排。")],
+        mode="decomposed",
+        chain_stages_by_event={"E001": {"response"}},
+    )
+
+    diagnosis = verified[0].verification_diagnosis
+    assert verified[0].verified is False
+    assert diagnosis["temporal_stage_consistency"] is False
+    assert "stage_mismatch" in diagnosis["issue_flags"]
+
+
+def test_pipeline_verifier_preserves_llm_nested_contradiction_diagnosis():
+    client = FakeDecomposedVerifierClient(
+        {
+            "score": 0.9,
+            "reason": "LLM found contradiction",
+            "verification_diagnosis": {
+                "contradiction_detected": True,
+                "sentiment_support": True,
+            },
+        }
+    )
+
+    verified = verify_tuples(
+        [prediction()],
+        [evidence("住建部门回应居民诉求并说明整改安排。")],
+        llm_client=client,
+        mode="decomposed",
+    )
+
+    assert client.calls == 1
+    assert verified[0].verification_diagnosis["contradiction_detected"] is True
+    assert verified[0].verified is False
+
+
+def test_pipeline_verifier_uses_candidate_stakeholder_aliases():
+    verified = verify_tuples(
+        [
+            prediction(
+                stakeholder="住房城乡建设部门",
+                stakeholder_aliases=["住建局"],
+                opinion="住建局回应居民诉求",
+                rationale="住建局回应居民诉求",
+            )
+        ],
+        [evidence("住建局回应居民诉求并说明整改安排。")],
+        mode="decomposed",
+    )
+
+    assert verified[0].verification_diagnosis["stakeholder_support"] is True
