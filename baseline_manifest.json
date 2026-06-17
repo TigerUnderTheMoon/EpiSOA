@@ -1,0 +1,11 @@
+﻿{
+    "baseline_file_count":  359,
+    "plan_file":  ".omo/plans/episoa-remediation.md",
+    "description":  "Baseline snapshot before EpiSOA remediation plan execution",
+    "manuscript_baseline_file_count":  44,
+    "manuscript_baseline_dir":  "outputs/manuscript_baseline",
+    "created_at":  "2026-06-17T06:47:54.5266383Z",
+    "git_tag":  "baseline-pre-remediation",
+    "baseline_outputs_dir":  "outputs/baseline_pre_remediation",
+    "git_commit":  "5228383cdb852c2a7d0c27750870c0ec572e85b1"
+}

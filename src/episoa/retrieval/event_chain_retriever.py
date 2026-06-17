@@ -41,7 +41,7 @@ DOMAIN_GENERIC_TOPIC_TERMS = {
     "urban_mobility": {"共享单车", "无人出租车", "交通安全", "停车", "网约车", "外卖骑手"},
     "digital_governance": {"App", "SDK", "个人信息", "用户权益", "高抽成", "平台治理"},
 }
-GENERIC_TOPIC_TERMS = URBAN_RENEWAL_GENERIC_TOPIC_TERMS
+GENERIC_TOPIC_TERMS = set().union(*DOMAIN_GENERIC_TOPIC_TERMS.values())
 EVENT_STOP_TERMS = GENERIC_TOPIC_TERMS | {
     "争议",
     "居民",

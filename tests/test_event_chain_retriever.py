@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 
 from episoa.retrieval.event_chain_retriever import (
+    DOMAIN_GENERIC_TOPIC_TERMS,
     EventChainRetriever,
+    GENERIC_TOPIC_TERMS,
+    URBAN_RENEWAL_GENERIC_TOPIC_TERMS,
     chain_confidence,
     compute_event_relevance_score,
     detect_generic_policy_content,
@@ -65,6 +68,18 @@ def test_generic_topic_terms_are_domain_scoped():
     assert urban["is_generic"] is True
     assert education["is_generic"] is False
     assert education_generic["is_generic"] is True
+
+
+def test_general_topic_terms_covers_all_domains():
+    """GENERIC_TOPIC_TERMS must merge terms from all 6 domains, not just urban_renewal."""
+    assert len(GENERIC_TOPIC_TERMS) > len(URBAN_RENEWAL_GENERIC_TOPIC_TERMS), (
+        f"GENERIC_TOPIC_TERMS ({len(GENERIC_TOPIC_TERMS)}) should have more terms "
+        f"than URBAN_RENEWAL_GENERIC_TOPIC_TERMS alone ({len(URBAN_RENEWAL_GENERIC_TOPIC_TERMS)})"
+    )
+    for domain, terms in DOMAIN_GENERIC_TOPIC_TERMS.items():
+        assert terms.issubset(GENERIC_TOPIC_TERMS), (
+            f"Domain {domain} terms missing from GENERIC_TOPIC_TERMS"
+        )
 
 
 def test_generic_policy_text_does_not_pass_event_relevance():
