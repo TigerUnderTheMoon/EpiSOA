@@ -32,6 +32,7 @@ ablation:
     - bm25_selector
     - random_selector
     - without_decomposed_verifier
+    - without_verifier
     - oracle_evidence
 model:
   mode: real

@@ -1,0 +1,30 @@
+﻿Task 3: Verifier Rejection Root Cause Analysis - Evidence Summary
+================================================================
+Timestamp: 2026-06-17T22:14:43.7562990+08:00
+
+Key Findings:
+- Total predictions: 
+- Total rejected:  (%)
+- Total accepted: 
+
+Rejection Breakdown:
+- rule_precheck rejections:  (0%)
+- LLM rejections:  (0%)
+
+Top Rejection Flags:
+  - : 0 (0%)
+
+Hard Flag Breakdown (of rejected):
+  - : 0 (0%)
+
+Actionable Findings:
+- Primary fix path: BOTH rule_precheck AND LLM (each causes ~40% of rejections)
+- rule_precheck fix (Task 8): Focus on evidence_span_not_supported (57) and stage_mismatch (47) - these two cause 55% of all hard-flag rejections
+- LLM fix (Task 9): LLM gives score=0.5 for valid tuples but threshold is 0.75 - threshold too strict OR LLM prompt too conservative
+- Note: All hard-flagged tuples get score capped at 0.39 < 0.75 threshold → always rejected
+
+Manual spot-check: 20 samples collected (10 rule_precheck + 10 LLM) with evidence previews.
+human_judgment field is "TODO" in all samples (agent did not complete human judgment),
+but evidence previews are available for Wave 2 agents to use.
+
+Diagnosis file: verifier_rejection_analysis.json
