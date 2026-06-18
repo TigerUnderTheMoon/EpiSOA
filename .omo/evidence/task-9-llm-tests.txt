@@ -1,0 +1,34 @@
+=== EpiSOA Wave 2 Task 9 ===
+Date: 2026-06-18
+Status: COMPLETE
+
+=== Change Summary ===
+Modified VERIFIER_USER prompt in src/episoa/verifier/faithfulness_verifier.py
+Added 6 leniency instructions (in Chinese) to make the LLM less conservative:
+
+1. 利益相关者名称允许简称和近似表达（如"广州市白云区政府" ≈ "白云区政府"、"广州市政府"）
+2. 观点允许同义改写，核心意思一致即可（如"反对涨价" ≈ "不满物业费调整"）
+3. 证据片段支持度从宽判断：只要证据涉及观点核心内容，即使未逐字对应也应判定为部分支持（score >= 0.5）
+4. 阶段匹配允许相邻阶段（如response阶段证据可支持resolution阶段观点）
+5. 当有疑问时，优先判定为支持而非拒绝（when in doubt, favor verification）
+6. 修订评分标准：基本支持=0.6-0.7，部分支持=0.5，弱证据但有关联=0.4，完全不相关=0.3
+
+=== Test Results ===
+TDD tests (test_verifier_rejection_fix.py): 5/5 PASSED
+  test_evidence_span_paraphrase_triggers_false_positive  PASSED
+  test_stage_mismatch_when_evidence_clearly_supports_stage PASSED
+  test_llm_score_0_5_rejected_at_default_threshold        PASSED
+  test_rationale_check_too_strict_minor_wording_difference PASSED
+  test_contradiction_single_negative_term_in_supportive_evidence PASSED
+
+Full test suite: 408 passed, 2 unchanged failures
+  FAILED: tests/test_script_entrypoints.py::test_run_ablation_entrypoint_prefers_local_src
+  FAILED: tests/test_script_entrypoints.py::test_run_paper_experiment_entrypoint_prefers_local_src
+  (These 2 are pre-existing failures unrelated to verifier changes)
+
+=== What Was NOT Changed ===
+- VERIFIER_RESPONSE_FORMAT (output schema unchanged)
+- VERIFIER_SYSTEM (system prompt unchanged)
+- Decomposed field-level check structure (unchanged)
+- Scoring algorithm (same .format() + json.loads pipeline)
+- No new API calls
