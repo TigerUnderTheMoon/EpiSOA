@@ -26,7 +26,7 @@ from episoa.attribution.schema_attributor import (
     assert_no_total_api_failure,
     run_schema_attribution,
 )
-from episoa.collector.cfsm_collector import collect_evidence
+from episoa.collector.cfsm_collector import filter_evidence_by_events
 from episoa.config import api_config_status, load_config, print_api_config_status, resolve_api_config
 from episoa.data.loader import read_jsonl, read_typed_jsonl, write_jsonl
 from episoa.data.schema import EventRecord, EvidenceRecord, GoldEventChain, GoldTuple, PredictionTuple
@@ -487,7 +487,7 @@ def _run_core_pipeline(
         phase_timings.append({"phase": name, "elapsed_seconds": round(time.perf_counter() - started, 4)})
         return value
 
-    collected = collect_evidence(events, evidence)
+    collected = filter_evidence_by_events(events, evidence)
 
     if use_graph:
         graph = _load_or_build_graph(

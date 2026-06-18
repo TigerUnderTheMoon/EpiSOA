@@ -1,0 +1,51 @@
+Wave 2 Task 13 - Config Consistency Alignment
+==============================================
+Date: 2026-06-17
+Files Modified: configs/paper.yaml, configs/ablation.yaml
+
+Changes Made:
+-------------
+
+configs/paper.yaml:
+  1. Removed `api_key: ""` from `model:` section (line 33 → removed)
+     - Now only `api_key_env: "OPENAI_API_KEY"` remains
+  2. Removed `api_key: ""` from `search:` section (line 43 → removed)
+     - Now only `api_key_env: SEARCH_API_KEY` remains
+  3. Added `mode: decomposed` under `verifier:` section
+     - verifier section now has both mode and threshold
+
+configs/ablation.yaml:
+  1. Removed `api_key: ""` from `model:` section (line 45 → removed)
+     - Now only `api_key_env: "OPENAI_API_KEY"` remains
+  2. No other changes needed:
+     - embedding_model: mock-embedding ✓ (already present)
+     - reranker_model: mock-reranking ✓ (already present)
+     - verifier.mode: decomposed ✓ (already present)
+
+Fields verified identical in both files:
+-----------------------------------------
+  model.llm_model:      "gpt-5.5" (unchanged, guardrail G5)
+  model.embedding_model: mock-embedding
+  model.reranker_model: mock-reranker
+  model.temperature:     0.1
+  model.max_tokens:      8000
+  verifier.mode:         decomposed
+  verifier.threshold:    0.75
+
+Validation Results:
+-------------------
+- python -m episoa.cli paper-status: PASS
+  - data_ready: true
+  - events_ready: true
+  - model api_key_source: env:OPENAI_API_KEY (resolved from env var)
+
+- python -m pytest tests/ -q --tb=no: 399 passed, 5 failed
+  - All 5 failures are pre-existing (FakeLLMClient call counts, fake package import tests)
+  - None related to config changes
+
+API Config Resolution (config.py:110-118):
+  - _resolve_value() checks direct YAML value first
+  - Empty string `""` → fails strip() check → falls through to env var
+  - Placeholder values starting with "your-" are rejected
+  - Removing `api_key: ""` eliminates confusion and aligns with the
+    "YAML-first precedence" documented behavior

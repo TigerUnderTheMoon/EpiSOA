@@ -5,11 +5,10 @@ from __future__ import annotations
 from episoa.data.schema import EventRecord, EvidenceRecord
 
 
-def collect_evidence(events: list[EventRecord], evidence: list[EvidenceRecord]) -> list[EvidenceRecord]:
-    """Return evidence linked to known events.
+def filter_evidence_by_events(events: list[EventRecord], evidence: list[EvidenceRecord]) -> list[EvidenceRecord]:
+    """Filter evidence records by event IDs.
 
-    The paper repository stores curated local evidence. This stage enforces the
-    C-FSM collection boundary by filtering evidence to the configured event set.
+    Note: actual collection logic is in scripts/collect_evidence.py.
     """
     event_ids = {event.event_id for event in events}
     return [item for item in evidence if item.event_id in event_ids]

@@ -42,7 +42,6 @@ model:
   model_name: "gpt-5.5"
   embedding_model: mock-embedding
   reranker_model: mock-reranker
-  api_key: ""
   api_key_env: "OPENAI_API_KEY"
   base_url: ""
   base_url_env: "OPENAI_BASE_URL"

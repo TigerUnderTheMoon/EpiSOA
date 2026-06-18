@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import csv
 import hashlib
 import json
+import logging
 import re
 import sys
 import threading
@@ -20,6 +21,7 @@ from episoa.data.loader import read_jsonl, write_jsonl
 from episoa.llm.client import json_schema_response_format
 from episoa.retrieval.evidence_selector import SELECTOR_MODES, select_evidence_for_prompt
 
+logger = logging.getLogger(__name__)
 
 PROMPT_VERSION = "schema_attribution_v3_stakeholder_canonical_json"
 LEGACY_METHOD_VERSION = "legacy"  # pre-soe_v3 single-pass attribution
@@ -706,6 +708,7 @@ class SchemaAttributor:
         use_stage_attribution: bool = False,
         use_event_level_safety_net: bool = False,
         use_hybrid_refinement: bool = False,
+        _fallback_depth: int = 0,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         if use_stage_attribution:
             return self.attribute_event_two_pass(
@@ -720,6 +723,7 @@ class SchemaAttributor:
                 enforce_candidate_constraints=enforce_candidate_constraints,
                 use_event_level_safety_net=use_event_level_safety_net,
                 use_hybrid_refinement=use_hybrid_refinement,
+                _fallback_depth=_fallback_depth,
             )
         system_prompt, user_prompt = self.build_prompt(
             event=event,
@@ -921,6 +925,7 @@ class SchemaAttributor:
         enforce_candidate_constraints: bool = False,
         use_event_level_safety_net: bool = False,
         use_hybrid_refinement: bool = False,
+        _fallback_depth: int = 0,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         event_id = str(event.get("event_id", ""))
         selected_eids = [str(item.get("evidence_id", "")) for item in evidence_items if item.get("evidence_id")]
@@ -1020,6 +1025,7 @@ class SchemaAttributor:
                 prior_api_calls=int(request_summary["api_calls_made"]),
                 fallback_reason=stage_parsed.parse_error or "stage_extract_failed",
                 stage_candidates=[],
+                depth=_fallback_depth,
             )
 
         stage_tuples, stage_canonical_diagnostics = canonicalize_stage_candidate_rows(
@@ -1052,6 +1058,7 @@ class SchemaAttributor:
                 prior_api_calls=int(request_summary["api_calls_made"]),
                 fallback_reason="empty_stage_candidates",
                 stage_candidates=[],
+                depth=_fallback_depth,
             )
 
         merge_system, merge_user = self.build_canonical_merge_prompt(
@@ -1110,6 +1117,7 @@ class SchemaAttributor:
                 prior_api_calls=int(request_summary["api_calls_made"]),
                 fallback_reason=merge_parsed.parse_error or "canonical_merge_failed",
                 stage_candidates=stage_parsed.tuples,
+                depth=_fallback_depth,
             )
 
         merge_tuples, merge_canonical_diagnostics = canonicalize_tuple_rows(
@@ -1302,7 +1310,14 @@ class SchemaAttributor:
         prior_api_calls: int,
         fallback_reason: str,
         stage_candidates: list[dict[str, Any]],
+        depth: int = 0,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        if depth > 2:
+            logger.error(
+                "Fallback recursion depth exceeded (%d > 2) for event, returning empty",
+                depth,
+            )
+            return [], {}
         legacy_tuples, legacy_record = self.attribute_event(
             event=event,
             chain=chain,
@@ -1314,6 +1329,7 @@ class SchemaAttributor:
             skip_chain_ranking=skip_chain_ranking,
             enforce_candidate_constraints=enforce_candidate_constraints,
             use_stage_attribution=False,
+            _fallback_depth=depth + 1,
         )
         summary = legacy_record.setdefault("request_summary", {})
         summary["fallback_mode"] = "legacy_single_pass"

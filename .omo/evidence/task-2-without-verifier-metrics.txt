@@ -1,0 +1,118 @@
+EpiSOA Wave 1 Task 2 — without_verifier ablation setting
+=========================================================
+Date: 2026-06-17
+Analyst: Sisyphus-Junior
+
+STATUS: PARTIAL COMPLETION (API infrastructure issue)
+
+DELIVERABLES:
+1. [DONE] configs/ablation.yaml — added without_verifier to settings list
+2. [DONE] src/episoa/pipeline.py — confirmed without_verifier is defined in ABLATION_SETTINGS
+3. [FAILED] Run ablation — API endpoint unreachable (HTTP 522)
+4. [FAILED] Metrics comparison — no run output available
+
+========================================================================
+SECTION 1: CONFIG CHANGE (configs/ablation.yaml)
+========================================================================
+File: configs/ablation.yaml (line 35)
+Added: without_verifier to the settings list (lines 25-36).
+
+Current settings ordering:
+  - full_soe
+  - full_soe_high_recall
+  - direct_llm
+  - without_soe_graph
+  - without_chain_aware_selection
+  - quality_topk_selector
+  - bm25_selector
+  - random_selector
+  - without_decomposed_verifier
+  - without_verifier          <-- ADDED (alphabetical: "without_de" < "without_v")
+  - oracle_evidence
+
+========================================================================
+SECTION 2: ABLATION_SETTINGS VERIFICATION (src/episoa/pipeline.py)
+========================================================================
+without_verifier definition (pipeline.py:1265):
+  {
+    "use_graph": True,
+    "use_event_chain": True,
+    "use_verifier": False,        <-- KEY: completely disables verification
+    "hide_chain_in_prompt": False,
+    "skip_chain_ranking": False,
+    "use_soe_graph": True,
+    "use_stage_attribution": True,
+    "selector_mode": "coverage_optimized",
+    "verifier_mode": "id_only",   <-- cosmetic (irrelevant when use_verifier=False)
+    "method_version": "soe_v3",
+    "max_tuples_per_event": 8
+  }
+
+Comparison with without_decomposed_verifier (pipeline.py:1262):
+  {
+    "use_verifier": True,             <-- still runs id_only verification
+    "verifier_mode": "id_only",       <-- active (simpler verifier)
+    "use_verifier_quality_gate": False,
+    ...other fields identical
+  }
+
+Attribution reuse check (_attribution_reuse_source, pipeline.py:932-935):
+  - Only without_decomposed_verifier -> full_soe is hardcoded
+  - without_verifier is NOT in this function
+  - Fingerprint-based dedup (line 1489) may cause reuse when running
+    after other settings with same attribution inputs — this is correct
+    behavior (same graph/chains/selector = reuse attribution, then
+    skip verification in the verifier phase)
+
+========================================================================
+SECTION 3: API FAILURE DETAILS
+========================================================================
+Command: python scripts/run_ablation.py --config configs/ablation.yaml
+         --settings without_verifier --force
+Base URL: https://api.asxs.top/v1 (from OPENAI_BASE_URL env var)
+Error:    HTTP 522 — Server error (proxy/gateway timeout)
+API key:  Present (35 chars) but endpoint is down
+
+All 40 events in progress.jsonl show:
+  "status": "api_failure",
+  "error": "LLM API call failed after retries: Server error '522 <none>'
+            for url 'https://api.asxs.top/v1/chat/completions'"
+
+Attempted direct OpenAI API:
+  https://api.openai.com/v1 — rejected with "Incorrect API key provided"
+  (key is for the asxs.top proxy, not OpenAI directly)
+
+CONCLUSION: The API endpoint is down. Cannot run any LLM-dependent pipeline.
+
+========================================================================
+SECTION 4: BASELINE METRICS (for future comparison)
+========================================================================
+Source: outputs/baseline_pre_remediation/ablation_without_decomposed_verifier/metrics.json
+
+Metric                          without_decomposed_verifier
+-------                          ----------------------------
+Num-Tuples                      217
+Num-Tuples-All                  247
+Num-Gold                        174
+Tuple-F1-semantic@0.3           0.6803
+Tuple-F1-exact                  0.0
+Tuple-Precision-char@0.5        0.1475
+Tuple-Recall-char@0.5           0.1839
+Stakeholder-Recall-char@0.5     0.3678
+Opinion-Recall-char@0.5         0.0920
+Sentiment-Acc                   0.6044
+
+EXPECTED without_verifier DIFFERENCE:
+  - Num-Tuples should be HIGHER than without_decomposed_verifier (217)
+    because id_only verification is skipped entirely, not even simple
+    checks are applied
+  - All metrics should differ from without_decomposed_verifier since
+    no tuples are removed by verification
+
+========================================================================
+SECTION 5: GIT STATUS
+========================================================================
+Modified: configs/ablation.yaml (only change: + without_verifier in settings)
+
+This change is correct and should be committed. The pipeline.py
+ABLATION_SETTINGS dict already had without_verifier properly defined.

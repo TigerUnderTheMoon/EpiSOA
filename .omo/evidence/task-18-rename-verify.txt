@@ -1,0 +1,25 @@
+Wave 2 Task 18: Rename collect_evidence -> filter_evidence_by_events
+==============================================================
+
+Date: 2026-06-17
+
+Changes made:
+1. src/episoa/collector/cfsm_collector.py:
+   - Function `collect_evidence` renamed to `filter_evidence_by_events`
+   - Docstring updated to note actual collection logic is in scripts/collect_evidence.py
+
+2. src/episoa/pipeline.py:
+   - Line 29 import: `collect_evidence` -> `filter_evidence_by_events`
+   - Line 490 call: `collect_evidence(events, evidence)` -> `filter_evidence_by_events(events, evidence)`
+
+NOT changed (script references, not function calls):
+   - src/episoa/pipeline.py:1734 (string "python scripts/collect_evidence.py")
+   - src/episoa/data/validator.py:103 (string "run scripts/collect_evidence.py")
+   - scripts/collect_evidence.py (the actual collection script)
+
+Verification results:
+- Old name `collect_evidence` no longer importable from cfsm_collector -> OK
+- New name `filter_evidence_by_events` importable from cfsm_collector -> OK
+- Docstring references scripts/collect_evidence.py -> OK
+- Pipeline exports correct function -> OK
+- All 394 originally-passing tests still pass (10 pre-existing failures unrelated)

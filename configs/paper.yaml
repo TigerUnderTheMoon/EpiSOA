@@ -30,7 +30,6 @@ model:
   model_name: "gpt-5.5"
   embedding_model: mock-embedding
   reranker_model: mock-reranker
-  api_key: ""
   api_key_env: "OPENAI_API_KEY"
   base_url: ""
   base_url_env: "OPENAI_BASE_URL"
@@ -40,7 +39,6 @@ model:
   max_retries: 2
 search:
   provider: custom
-  api_key: ""
   api_key_env: SEARCH_API_KEY
   base_url: ""
   base_url_env: SEARCH_BASE_URL
@@ -60,4 +58,5 @@ collector:
 retrieval:
   top_k: 5
 verifier:
+  mode: decomposed
   threshold: 0.75

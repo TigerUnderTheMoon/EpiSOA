@@ -1055,6 +1055,32 @@ def canonical_tuple(
     }
 
 
+def test_fallback_recursion_guard():
+    """Test that recursion guard prevents infinite loop after depth > 2."""
+    attributor = SchemaAttributor(llm_client=None, model_name="fake")
+    # Calling _fallback_to_legacy_single_pass with depth=3 (exceeds max_depth=2)
+    # should return empty without calling attribute_event recursively.
+    tuples, record = attributor._fallback_to_legacy_single_pass(
+        event={"event_id": "E999"},
+        chain={},
+        evidence_items=[],
+        stakeholder_candidates=[],
+        selection_metadata=None,
+        dry_run=True,
+        hide_chain_in_prompt=False,
+        skip_chain_ranking=False,
+        enforce_candidate_constraints=False,
+        use_event_level_safety_net=False,
+        use_hybrid_refinement=False,
+        prior_api_calls=0,
+        fallback_reason="test_depth_guard",
+        stage_candidates=[],
+        depth=3,
+    )
+    assert tuples == [], f"Expected empty list, got {tuples}"
+    assert record == {}, f"Expected empty dict, got {record}"
+
+
 def event_row() -> dict:
     return {
         "event_id": "E012",
