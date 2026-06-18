@@ -1,0 +1,31 @@
+=== Task 22: Title & Abstract Rewrite Evidence ===
+
+File updated: outputs/manuscript/episoa_full_draft.docx
+
+1. TITLE CHANGED:
+   Old (34 CN chars): EpiSOA：一种面向公共事件的证据链驱动利益相关者观点归因方法研究
+   New (18 CN chars): 公共事件利益相关者观点证据链归因方法
+
+2. CHINESE ABSTRACT: 5 structural labels present
+   [目的] Public event stakeholder opinion attribution task definition
+   [方法] EpiSOA pipeline: event registry, C-FSM collection, normalization,
+          LLM preannotation + 3-human adjudication, event-chain retrieval,
+          coverage-optimized selection, stakeholder-canonical attribution,
+          decomposed verifier
+   [结果] full_soe F1@0.3=0.391 (P=0.610, R=0.287, 82 tuples);
+          without_verifier upper bound F1@0.3=0.637 (209 tuples);
+          human_gold_v2: 50 events, 174 gold tuples;
+          IAA: 3-expert per-item review, no content-level kappa
+   [局限] exact=0.000, Chinese-only, 50 events, verifier P-R trade-off,
+          rule-based retrieval
+   [结论] Auditable evidence-chain-driven knowledge discovery framework
+
+3. ENGLISH ABSTRACT: 5 structural labels present
+   [Objective][Methods][Results][Limitations][Conclusions]
+
+4. VERIFICATION RESULTS:
+   - Title Chinese chars: 18 (assertion: <= 20) PASS
+   - All 5 CN labels: [目的][方法][结果][局限][结论] PASS
+   - All 5 EN labels: [Objective][Methods][Results][Limitations][Conclusions] PASS
+   - Metrics source: ablation_full_soe/metrics.json and ablation_without_verifier/metrics.json
+   - Introduction/Related Work sections: UNCHANGED

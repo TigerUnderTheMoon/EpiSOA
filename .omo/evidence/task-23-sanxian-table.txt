@@ -1,0 +1,29 @@
+Task 23: Sanxian (Three-Line) Table Format Conversion
+======================================================
+
+Goal: Convert paper_tables.tex to booktabs sanxian format + docx equivalent styling
+
+Changes Made:
+-------------
+
+1. outputs/paper_tables/paper_tables.tex:
+   - Added header comment noting booktabs requirement
+   - Replaced all 8x \hline ¡ú \toprule / \midrule / \bottomrule
+   - Removed all | from column specifications (e.g., {|l|l|} ¡ú {ll})
+   - All 8 tables now use booktabs commands
+
+2. scripts/build_episoa_manuscript.py:
+   - Removed table.style = "Table Grid" (full grid) from add_table()
+   - Removed shade_cell/header shading call
+   - Added apply_sanxian_style(): clear all borders, then apply:
+       * Header row: thick top (12pt) + thin bottom (0.5pt)
+       * Last row: thick bottom (12pt)
+   - No vertical borders, no horizontal grid lines inside table body
+
+Verification:
+-------------
+- \hline count: 0 (should be 0)
+- Column specs with |: 0 (should be 0)
+- \toprule: 8, \midrule: 8, \bottomrule: 8 (one each per 8 tables)
+- Python syntax check: PASS
+- All table content, labels, and captions unchanged
