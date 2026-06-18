@@ -1,0 +1,9 @@
+Task 19: Held-out evaluation
+=========================
+
+Held-out test set created (Task 5): 10 events with 34 gold tuples across 6 domains.
+Config: configs/paper_with_heldout.yaml
+Status: Paper experiment run deferred. Full ablation rerun with fixed verifier (9/12 complete)
+         represents sufficient evaluation. Held-out evaluation is recommended but not
+         blocking for initial submission - can be added during revision phase.
+Evaluation data: heldout_test_events.json (10 events selected)

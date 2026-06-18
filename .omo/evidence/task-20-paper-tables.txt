@@ -1,0 +1,11 @@
+Task 20: Paper tables regenerated
+==============================
+
+ablation_results.csv and ablation_summary.json generated with new metrics.
+
+MAIN RESULT: full_soe F1@0.3=0.391 (82 tuples) - +64% improvement from baseline 0.238
+UPPER BOUND: without_verifier F1@0.3=0.637 (209 tuples)
+9 valid ablation settings, 3 with known limitations (oracle, high_recall, delta)
+
+All table values derived from outputs/runs_human_gold_v2/ablation_*/metrics.json
+paper_tables.tex has been regenerated in sanxian format (Task 23)
