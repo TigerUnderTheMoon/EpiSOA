@@ -30,13 +30,13 @@ HARD_PRECHECK_FLAGS = {
     "stakeholder_not_supported",
     "sentiment_not_supported",
     "rationale_not_supported",
-    "evidence_span_not_supported",
     "stage_mismatch",
     "contradiction_detected",
 }
 SOFT_PRECHECK_FLAGS = {
     "weak_evidence",
     "opinion_overgeneralized",
+    "evidence_span_not_supported",
     "media_comment_should_be_neutral",
     "official_action_should_be_neutral",
 }

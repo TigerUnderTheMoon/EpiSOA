@@ -6,6 +6,7 @@ from episoa.data.schema import GoldTuple, PredictionTuple
 from episoa.evaluation.metrics import (
     filter_predictions_to_gold_events,
     match_tuples,
+    normalize_tuple_for_matching,
     opinion_recall,
     semantic_tuple_f1,
     soft_tuple_f1,
@@ -31,6 +32,8 @@ def evaluate_main(
     two_stage_025 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.25)
     two_stage_03 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.3)
     two_stage_05 = two_stage_tuple_f1(gold, scored_predictions, normalize=normalize_stakeholders, matcher="semantic", threshold=0.5)
+    recall_gold = normalize_tuple_for_matching(gold) if normalize_stakeholders else gold
+    recall_predictions = normalize_tuple_for_matching(scored_predictions) if normalize_stakeholders else scored_predictions
     metrics: dict[str, float | int | str | None] = {
         "Metric-Scope": "gold_event_scope",
         "Tuple-F1-soft": soft["f1"],
@@ -82,32 +85,38 @@ def evaluate_main(
 
     # Stakeholder and opinion recall with semantic matching at each threshold
     sh_result_sem_025 = match_tuples(
-        gold, scored_predictions,
+        recall_gold,
+        recall_predictions,
         matcher="semantic", threshold=0.25,
         field_weights={"stakeholder": 1.0},
     )
     op_result_sem_025 = match_tuples(
-        gold, scored_predictions,
+        recall_gold,
+        recall_predictions,
         matcher="semantic", threshold=0.25,
         field_weights={"opinion": 1.0},
     )
     sh_result_sem_03 = match_tuples(
-        gold, scored_predictions,
+        recall_gold,
+        recall_predictions,
         matcher="semantic", threshold=0.3,
         field_weights={"stakeholder": 1.0},
     )
     op_result_sem_03 = match_tuples(
-        gold, scored_predictions,
+        recall_gold,
+        recall_predictions,
         matcher="semantic", threshold=0.3,
         field_weights={"opinion": 1.0},
     )
     sh_result_sem_05 = match_tuples(
-        gold, scored_predictions,
+        recall_gold,
+        recall_predictions,
         matcher="semantic", threshold=0.5,
         field_weights={"stakeholder": 1.0},
     )
     op_result_sem_05 = match_tuples(
-        gold, scored_predictions,
+        recall_gold,
+        recall_predictions,
         matcher="semantic", threshold=0.5,
         field_weights={"opinion": 1.0},
     )

@@ -1,0 +1,26 @@
+Task 24: Journal Compliance Declarations - Evidence Record
+===========================================================
+Date: 2026-06-18
+Target: outputs/manuscript/episoa_full_draft.docx
+
+STATUS: COMPLETED
+
+Sections Appended (after references, paragraphs 200-211):
+--------------------------------------------------------------------
+1. 作者声明 (Heading 1 header)
+2. 作者贡献声明 - CRediT format (研究概念与设计, 研究方法论, 
+   软件与工具开发, 实验执行与数据采集, 数据分析与结果验证, 
+   原始论文撰写, 论文审阅与编辑, 研究监督与管理)
+3. 利益冲突声明 - No known conflicts
+4. AI使用声明 - GPT-5.5 series via OpenAI-compatible API, temp=0,
+   decomposed field-level verifier audit, human review of all output
+5. 数据可用性声明 - ScienceDB link: https://www.scidb.cn/surl/dakd
+6. 中图分类号: TP391
+
+Files Modified:
+- episoa_full_draft.docx (added 11 paragraphs after paragraph 199)
+- Backup: episoa_full_draft.docx.bak (created before modification)
+
+Verification:
+- All 5 declaration types confirmed present in document
+- No fake author names, no funding information fabricated

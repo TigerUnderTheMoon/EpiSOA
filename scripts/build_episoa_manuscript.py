@@ -41,6 +41,13 @@ QA_JSON = OUT_DIR / "episoa_manuscript_qa.json"
 SIGNIFICANCE_JSON = OUT_DIR / "significance_report.json"
 SUPPORTING_DATA_DIR = OUT_DIR / "submission_supporting_data"
 SUBMISSION_ZIP = OUT_DIR / "episoa_submission_upload_package.zip"
+LEGACY_AUXILIARY_OUTPUTS = (
+    "episoa_full_draft_text.txt",
+    "revised_text.txt",
+    "revised_v2_text.txt",
+    "revise_manuscript.py",
+    "revise_manuscript_v2.py",
+)
 JOURNAL_POLICY_SOURCES = [
     "https://manu44.magtech.com.cn/Jwk_infotech_wk3/CN/column/column5.shtml",
     "https://manu44.magtech.com.cn/Jwk_infotech_wk3/CN/column/column6.shtml",
@@ -64,6 +71,16 @@ TITLE_EN = "EpiSOA: An Evidence-Chain-Driven Stakeholder Opinion Attribution Met
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def remove_legacy_auxiliary_outputs(out_dir: Path = OUT_DIR) -> list[Path]:
+    removed: list[Path] = []
+    for name in LEGACY_AUXILIARY_OUTPUTS:
+        path = out_dir / name
+        if path.exists():
+            path.unlink()
+            removed.append(path)
+    return removed
 
 
 def sha256_file(path: Path) -> str:
@@ -272,7 +289,7 @@ def build_chinese_abstract(m: dict[str, object], direct: dict[str, object] | Non
         "[目的]针对公共事件证据分散、主体诉求难追溯问题，提出证据链驱动归因框架。"
         "[方法]整合事件注册、C-FSM采集、人工gold、事件链检索、覆盖选择、主体规范化归因和分解式验证。"
         f"[结果]human_gold_v2上语义F1={fmt(m['Tuple-F1-semantic'])}，P={fmt(m['Tuple-Precision-semantic'])}，R={fmt(m['Tuple-Recall-semantic'])}，ESR={fmt(m['ESR'], 1)}。"
-        f"[局限]strict-char={fmt(m['Tuple-F1-soft'])}，semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}；{direct_limit}。"
+        f"[局限]char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}，exact={fmt(m.get('Tuple-F1-exact', 0))}；{direct_limit}。"
         "[结论]EpiSOA适用于可审计公共事件知识发现。"
     )
 
@@ -880,17 +897,61 @@ def add_caption(doc: Document, text: str):
     set_font(r, size=9, bold=True)
 
 
+def _set_cell_border(cell, *, top: int | None = None, bottom: int | None = None, size: int = 4):
+    """Set cell borders at the OxmlElement level. Only top/bottom are set for sanxian style."""
+    tc_pr = cell._tc.get_or_add_tcPr()
+    tc_borders = tc_pr.find(qn("w:tcBorders"))
+    if tc_borders is None:
+        tc_borders = OxmlElement("w:tcBorders")
+        tc_pr.append(tc_borders)
+    for edge, val in [("w:top", top), ("w:bottom", bottom)]:
+        existing = tc_borders.find(qn(edge))
+        if existing is not None:
+            tc_borders.remove(existing)
+        if val is not None:
+            elem = OxmlElement(edge)
+            elem.set(qn("w:val"), "single")
+            elem.set(qn("w:sz"), str(val))  # 1/8 pt units
+            elem.set(qn("w:space"), "0")
+            elem.set(qn("w:color"), "000000")
+            tc_borders.append(elem)
+    for side in ("w:left", "w:right"):
+        existing = tc_borders.find(qn(side))
+        if existing is not None:
+            tc_borders.remove(existing)
+
+
+def _clear_all_borders(table):
+    """Remove all cell borders from every cell in the table."""
+    for row in table.rows:
+        for cell in row.cells:
+            tc_pr = cell._tc.get_or_add_tcPr()
+            tc_borders = tc_pr.find(qn("w:tcBorders"))
+            if tc_borders is not None:
+                tc_pr.remove(tc_borders)
+
+
+def apply_sanxian_style(table):
+    """Apply sanxian (three-line) table borders: thick top, thin mid, thick bottom."""
+    _clear_all_borders(table)
+    num_rows = len(table.rows)
+    if num_rows == 0:
+        return
+    # Header row: thick top (12pt in 1/8pt units = 12*8=96) + thin bottom (4pt = 32)
+    for cell in table.rows[0].cells:
+        _set_cell_border(cell, top=96, bottom=32)
+    # Last row: thick bottom
+    if num_rows > 1:
+        for cell in table.rows[num_rows - 1].cells:
+            _set_cell_border(cell, bottom=96)
+
+
 def add_table(doc: Document, caption: str, headers: list[str], rows: list[list[str]], font_size: float = 9):
     add_caption(doc, caption)
     table = doc.add_table(rows=1, cols=len(headers))
-    try:
-        table.style = "Table Grid"
-    except KeyError:
-        pass
     table.autofit = True
     for idx, header in enumerate(headers):
         set_cell_text(table.rows[0].cells[idx], header, bold=True, center=True, font_size=font_size)
-        shade_cell(table.rows[0].cells[idx])
     for row in rows:
         cells = table.add_row().cells
         for idx, value in enumerate(row):
@@ -900,6 +961,7 @@ def add_table(doc: Document, caption: str, headers: list[str], rows: list[list[s
                 center=(idx == 0 or re.match(r"^-?\d+(\.\d+)?$", value or "") is not None),
                 font_size=font_size,
             )
+    apply_sanxian_style(table)
     add_p(doc, "", first_line=False, size=1)
     return table
 
@@ -1032,14 +1094,14 @@ def outline_markdown(
 
 ### 4.1 实验设计
 1. 主实验：采用`soe_v3 + coverage_optimized + decomposed verifier + quality gate/safety/refinement`正式语义。
-2. 指标：semantic tuple P/R/F1为主，strict-char/soft F1、ESR、UTR、Sentiment-Acc为辅助。
+2. 指标：normalized semantic@0.5 tuple P/R/F1为主，char@0.5/soft alias、exact F1、ESR、UTR、Sentiment-Acc为辅助。
 3. 消融：full_soe、without_decomposed_verifier、without_chain_aware_selection、quality_topk_selector、bm25_selector、random_selector、oracle_evidence、direct_llm等。
-4. 解释规则：diagnostic-only输出不进入表格；same-fingerprint alias只记录复用来源，不作为独立胜负证据。
+4. 解释规则：diagnostic-only输出不进入表格；same-fingerprint reuse只记录复用来源，without_soe_graph作为no-graph control单独比较。
 
 ### 4.2 主实验结果
 1. 主实验：Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}，Precision={fmt(m['Tuple-Precision-semantic'])}，Recall={fmt(m['Tuple-Recall-semantic'])}，ESR={fmt(m['ESR'], 1)}。
-2. 消融：full_soe在主口径最好；without_decomposed_verifier下降；selector替换导致证据覆盖和观点支持变弱。
-3. 风险说明：strict-char={fmt(m['Tuple-F1-soft'])}，semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}，说明字符串级精确抽取和高阈值语义匹配仍是局限。
+2. 消融：表6按正式artifacts报告full_soe、without_soe_graph、without_decomposed_verifier和selector对照在semantic@0.5主口径下的差异，不预设任何设置必然最好。
+3. 风险说明：char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}，exact={fmt(m.get('Tuple-F1-exact', 0))}，说明字符串级精确抽取和高阈值语义匹配仍是局限。
 4. direct_llm：{direct_clause}。
 
 ### 4.3 案例分析与讨论
@@ -1133,7 +1195,7 @@ def full_sections(
                 "实验目标包括三个方面：第一，验证EpiSOA在正式human_gold_v2上的利益相关者观点归因能力；第二，分析事件链、覆盖优化证据选择和分解式验证对结果的影响；第三，明确系统当前适用边界，特别是严格字符级匹配、direct LLM输出稳定性和高阈值语义匹配方面的不足。",
                 "主实验采用正式配置：soe_v3方法版本、coverage_optimized证据选择、stakeholder-canonical schema attribution、decomposed verifier、quality gate、safety和refinement语义保持不变。评价范围为gold_event_scope，即在human gold覆盖的事件范围内评估预测tuple。主指标为normalized Tuple-F1-semantic@0.5、Tuple-Precision-semantic@0.5和Tuple-Recall-semantic@0.5；辅助指标包括Tuple-F1-semantic@0.25、Tuple-F1-semantic@0.3、Tuple-F1-char@0.5、Tuple-F1-exact、Stakeholder-Recall、Opinion-Recall、Sentiment-Acc、ESR和UTR。",
                 "消融设置覆盖full_soe、full_soe_high_recall、without_decomposed_verifier、without_soe_graph、without_chain_aware_selection、quality_topk_selector、bm25_selector、random_selector、oracle_evidence和direct_llm等。需要特别说明的是，without_soe_graph是真实no-graph control；quality_topk_selector与without_chain_aware_selection可能存在same-fingerprint复用，因此只用于说明配置等价和复用机制，不作为独立胜负证据。oracle_evidence使用gold-like证据选择，不代表可部署系统能力，也不用于主结论。",
-                "结果一致性由scripts/check_result_targets.py进行最终检查。当前正式检查在outputs/runs_human_gold_v2上通过，status为passed，issues为空，并在最佳比较中忽略oracle_evidence和without_soe_graph。该检查保证本文表格只来自正式产物，不使用diagnostic-only输出或历史损坏JSONL缓存。",
+                "结果一致性由scripts/check_result_targets.py和scripts/build_main_vs_ablation_comparison.py进行检查。without_soe_graph按真实no-graph control参与比较，oracle_evidence只作为upper bound；same-fingerprint reuse只记录复用来源，不作为独立胜负证据。该检查保证本文表格只来自正式产物，不使用diagnostic-only输出或历史损坏JSONL缓存。",
                 f"统计显著性检验以事件为成对样本单位，使用{significance['method']}。表4中的{n_text}来自baseline与variant的gold_event_scope成对事件交集；{excluded_count}个heldout_no_gold事件未进入该检验，bootstrap只用于估计成对均值差的不确定性。该检验只用于增强实验说明力，不改变本文的保守定位：置信区间和p值应与效应方向、错误分析和数据边界共同解释，而不作为大规模SOTA结论。",
             ],
         ),
@@ -1143,7 +1205,7 @@ def full_sections(
             [
                 f"主实验结果见表5。EpiSOA在gold_event_scope上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}，Tuple-Precision-semantic={fmt(m['Tuple-Precision-semantic'])}，Tuple-Recall-semantic={fmt(m['Tuple-Recall-semantic'])}。这说明在较宽松的语义等价口径下，系统能够较稳定地识别证据支持的利益相关者观点结构。ESR={fmt(m['ESR'], 1)}、UTR={fmt(m['UTR'], 1)}表明正式预测tuple均保留证据引用，未出现无证据tuple，这与本文强调的证据链驱动和可审计定位一致。",
                 f"同时，严格指标揭示了重要局限。Tuple-F1-char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}, Tuple-F1-exact={fmt(m.get('Tuple-F1-exact', 0))}, Tuple-F1-semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}, Stakeholder-Recall={fmt(m['Stakeholder-Recall'])}, Opinion-Recall={fmt(m['Opinion-Recall'])}。这些数值说明系统在字符串级边界、主体命名粒度和观点表述粒度上仍与human gold存在差异。本文因此不将EpiSOA表述为精确抽取SOTA，而将其定位为证据链驱动的知识发现与审计型观点归因框架。",
-                "消融结果见表6。full_soe在semantic@0.5主口径上保持最佳或接近最佳，without_decomposed_verifier下降，说明分解式验证和质量门控有助于过滤部分弱支持或过度推断tuple。替换覆盖感知选择器后，bm25_selector、random_selector和without_chain_aware_selection在主口径上整体下降，表明事件链阶段、来源族和利益相关者覆盖对于公共事件观点归因具有实际作用。",
+                "消融结果见表6。表6按semantic@0.5主口径报告full_soe、without_soe_graph、without_decomposed_verifier和selector对照；若某个对照达到或超过full_soe，该结果应作为边界条件报告，而不是被旧@0.25口径解释为full_soe取胜。该比较用于判断SOE graph、分解式验证、质量门控和覆盖感知选择的实际贡献。",
                 direct_llm_result_paragraph(direct),
                 "从错误类型看，主要瓶颈并非单一模型能力不足，而是公共事件观点归因本身的粒度对齐问题。human gold可能把一个主体拆分为更精细组织或群体，模型则倾向输出概括主体；gold中的观点可能强调具体诉求、处置结果或争议焦点，模型则输出较宽泛的态度摘要。tuple_match_diagnostics显示的高频失败类型包括stakeholder_mismatch和opinion_mismatch，metric_threshold_sensitivity也显示char@0.5与semantic@0.5显著低于semantic@0.25。未来需要进一步改进stakeholder normalization、opinion canonicalization和多证据span对齐，才能提升严格匹配与高阈值语义指标。",
             ],
@@ -1164,7 +1226,7 @@ def full_sections(
             "5 结语",
             [
                 "本文提出面向公共事件的证据链驱动利益相关者观点归因任务与EpiSOA框架。该框架从正式事件注册出发，经C-FSM证据采集、证据规范化、LLM silver预标注、人工adjudication和human_gold_v2构建，进一步通过事件链检索、覆盖优化证据选择、stakeholder-canonical schema attribution和decomposed faithfulness verifier输出可审计SOA tuple。",
-                f"正式实验表明，EpiSOA在human_gold_v2上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}、Precision={fmt(m['Tuple-Precision-semantic'])}、Recall={fmt(m['Tuple-Recall-semantic'])}，full_soe在消融主口径中表现最好。与此同时，char@0.5和semantic@0.5指标较低，{direct_llm_limitation_clause(direct)}，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
+                f"正式实验表明，EpiSOA在human_gold_v2上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}、Precision={fmt(m['Tuple-Precision-semantic'])}、Recall={fmt(m['Tuple-Recall-semantic'])}；消融胜负以表6和comparison summary的semantic@0.5结果为准，不再使用旧@0.25口径。与此同时，char@0.5和semantic@0.5指标较低，{direct_llm_limitation_clause(direct)}，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
                 "未来工作将从三个方向展开：一是扩大human gold数据规模，补充更多事件类型和跨地区案例；二是加强利益相关者规范化、观点canonicalization和证据span标注，提高严格匹配与高阈值语义指标；三是将verifier诊断转化为主动学习和人机协同标注信号，使EpiSOA在公共事件知识库构建和信息管理决策支持中具有更稳定的应用价值。",
                 "AI使用声明：本文研究对象包含大语言模型辅助的信息抽取与验证流程；论文写作阶段可使用AI工具进行语言润色、格式检查和代码调试辅助。所有实验设计、数据筛选、结果解释和最终文字由作者负责核验，AI生成内容不作为未经核验的事实来源。",
                 "支撑数据与数据可用性声明：本文使用的数据来自公开可访问网页、公开新闻、官方信息、政民互动平台、论坛和公开社交内容引用。由于原始网页版权、平台条款和隐私边界限制，公开发布时优先提供事件注册、证据ID、规范化元数据、标注schema、统计表、评估脚本和可复现实验配置；原始全文证据按期刊和伦理要求提供可审计访问方式或脱敏摘录。",
@@ -1833,6 +1895,7 @@ def build_anonymous_manuscript(
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    remove_legacy_auxiliary_outputs(OUT_DIR)
     m = metrics()
     stats = data_stats()
     ab = ablation_summary()
