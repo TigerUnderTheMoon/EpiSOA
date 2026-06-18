@@ -15,9 +15,12 @@ from typing import Any
 from episoa.data.schema import EvidenceRecord, PredictionTuple
 from episoa.verification.faithfulness_verifier import (
     VERIFIER_RESPONSE_FORMAT as DECOMPOSED_VERIFIER_RESPONSE_FORMAT,
+    evidence_span_support,
+    loose_contains,
     normalize_issue_flags as normalize_verifier_issue_flags,
     normalize_verification_diagnosis as normalize_script_verification_diagnosis,
     rule_precheck,
+    support_level,
 )
 
 
@@ -311,44 +314,12 @@ def _apply_hard_flag_score_cap(score: float, issue_flags: list[str]) -> float:
     return float(score)
 
 
-def support_level(overlap: float, score: float) -> str:
-    if score >= 0.75 or overlap >= 0.18:
-        return "supported"
-    if score >= 0.4 or overlap >= 0.06:
-        return "partial"
-    return "unsupported"
-
-
 def char_overlap(left: str, right: str) -> float:
     left_chars = set(str(left or ""))
     right_chars = set(str(right or ""))
     if not left_chars or not right_chars:
         return 0.0
     return len(left_chars & right_chars) / len(left_chars | right_chars)
-
-
-def loose_contains(text: str, needle: str) -> bool:
-    needle = str(needle or "")
-    text = str(text or "")
-    if not needle:
-        return True
-    if needle in text:
-        return True
-    tokens = [needle[idx:idx + 2] for idx in range(0, max(1, len(needle) - 1), 2)]
-    return bool(tokens and any(token and token in text for token in tokens))
-
-
-def evidence_span_support(prediction: PredictionTuple, evidence_text: str) -> bool:
-    spans = prediction.evidence_spans or []
-    if not spans:
-        return True
-    for span in spans:
-        if not isinstance(span, dict):
-            return False
-        text = str(span.get("text") or "").strip()
-        if text and text not in evidence_text:
-            return False
-    return True
 
 
 VERIFIER_SYSTEM = """你是严格的中文公共事件证据支撑度判定专家。判断证据是否直接支撑利益相关方的具体观点。

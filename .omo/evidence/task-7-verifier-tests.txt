@@ -1,0 +1,19 @@
+﻿Task 7: Deduplicate verifier utility functions
+================================================
+
+Changes made:
+1. src/episoa/verification/faithfulness_verifier.py:
+   - support_level(): added overlap parameter (copied from verifier/ version)
+   - loose_contains(): replaced with verifier/ version (null-safety + 2-char sliding window)
+   - evidence_span_support(): added new function (takes PredictionTuple, same logic)
+   - Updated call site normalize_verification_diagnosis to pass overlap=0.0
+
+2. src/episoa/verifier/faithfulness_verifier.py:
+   - Removed local definitions of loose_contains, support_level, evidence_span_support
+   - Added imports from episoa.verification.faithfulness_verifier
+
+Verification results:
+- python -c import check: All imports OK
+- tests/test_pipeline_verifier.py + tests/test_verification_verifier.py: 64/64 passed
+- tests/ full suite: 403 passed, 7 failed (all 7 pre-existing)
+- git stash confirmed 7 failures are pre-existing

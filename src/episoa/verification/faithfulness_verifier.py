@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from episoa.data.loader import write_jsonl
+from episoa.data.schema import PredictionTuple
 from episoa.llm.client import json_schema_response_format
 
 
@@ -525,7 +526,7 @@ def normalize_verification_diagnosis(payload: dict[str, Any], *, flags: list[str
         elif field in payload:
             diagnosis[field] = normalize_diagnosis_value(payload.get(field))
     diagnosis.setdefault("stakeholder_support", "stakeholder_not_supported" not in flags)
-    diagnosis.setdefault("opinion_support", "partial" if "opinion_overgeneralized" in flags else support_level(score))
+    diagnosis.setdefault("opinion_support", "partial" if "opinion_overgeneralized" in flags else support_level(score, 0.0))
     diagnosis.setdefault("sentiment_support", "sentiment_not_supported" not in flags)
     diagnosis.setdefault("rationale_support", "rationale_not_supported" not in flags)
     diagnosis.setdefault("evidence_span_support", "evidence_span_not_supported" not in flags)
@@ -550,10 +551,10 @@ def normalize_diagnosis_value(value: Any) -> Any:
     return text if text else "unclear"
 
 
-def support_level(score: float) -> str:
-    if score >= 0.75:
+def support_level(score: float, overlap: float = 0.0) -> str:
+    if score >= 0.75 or overlap >= 0.18:
         return "supported"
-    if score >= 0.4:
+    if score >= 0.4 or overlap >= 0.06:
         return "partial"
     return "unsupported"
 
@@ -564,6 +565,20 @@ def evidence_spans_supported_by_evidence(value: Any, evidence_text: str) -> bool
     if not isinstance(value, list):
         return False
     for span in value:
+        if not isinstance(span, dict):
+            return False
+        text = str(span.get("text") or "").strip()
+        if text and text not in evidence_text:
+            return False
+    return True
+
+
+def evidence_span_support(prediction: PredictionTuple, evidence_text: str) -> bool:
+    """Check whether all evidence spans in a prediction tuple appear in the evidence text."""
+    spans = prediction.evidence_spans or []
+    if not spans:
+        return True
+    for span in spans:
         if not isinstance(span, dict):
             return False
         text = str(span.get("text") or "").strip()
@@ -885,13 +900,14 @@ def meaningful_tokens(text: str) -> list[str]:
 
 
 def loose_contains(text: str, needle: str) -> bool:
+    needle = str(needle or "")
+    text = str(text or "")
     if not needle:
         return True
     if needle in text:
         return True
-    if len(needle) >= 4 and needle[:4] in text:
-        return True
-    return any(token in text for token in meaningful_tokens(needle)[:2])
+    tokens = [needle[idx:idx + 2] for idx in range(0, max(1, len(needle) - 1), 2)]
+    return bool(tokens and any(token and token in text for token in tokens))
 
 
 def contains_any(text: str, terms: list[str]) -> bool:
