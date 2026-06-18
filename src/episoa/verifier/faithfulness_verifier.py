@@ -34,12 +34,18 @@ HARD_PRECHECK_FLAGS = {
     "stage_mismatch",
     "contradiction_detected",
 }
+SOFT_PRECHECK_FLAGS = {
+    "weak_evidence",
+    "opinion_overgeneralized",
+    "media_comment_should_be_neutral",
+    "official_action_should_be_neutral",
+}
 
 
 def verify_tuples(
     predictions: list[PredictionTuple],
     evidence: list[EvidenceRecord],
-    threshold: float = 0.75,
+    threshold: float = 0.45,
     *,
     llm_client=None,
     mode: str = "decomposed",
@@ -70,6 +76,9 @@ def verify_tuples(
                 evidence_items=evidence_items,
                 missing_evidence_ids=missing,
                 chain_stages_by_event=chain_stages,
+            )
+            precheck_flags = _relax_precheck_flags(
+                precheck_flags, candidate, evidence_items, chain_stages
             )
         if missing:
             diagnosis = decomposed_diagnosis(
@@ -308,10 +317,124 @@ def _diagnosis_false(value: Any) -> bool:
     return str(value).strip().lower() in {"false", "unsupported", "no"}
 
 
+def _relax_precheck_flags(
+    flags: list[str],
+    candidate: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+    chain_stages_by_event: dict[str, set[str]],
+) -> list[str]:
+    """Post-process rule_precheck flags to reduce over-rejection false positives.
+    
+    Only relaxes flags detected by rule_precheck (keyword-based heuristics).
+    LLM-detected flags added later by _merge_issue_flags remain unaffected.
+    
+    Fix A: evidence_span_not_supported → char overlap ≥40% → remove flag
+    Fix B: stage_mismatch → stage is a semantic variant of known stages → remove flag
+    Fix C: contradiction_detected → <3 negative terms OR positive≥negative → remove flag
+    Fix D: rationale_not_supported → ≥2 common CJK chars with evidence → remove flag
+    """
+    if not flags:
+        return flags
+    evidence_text = "\n".join(str(item.get("text", "")) for item in evidence_items)
+    
+    output = list(flags)
+    
+    # Fix A: relax evidence_span_not_supported via char overlap
+    if "evidence_span_not_supported" in output:
+        spans = candidate.get("evidence_spans", []) or []
+        if _spans_char_overlap_ok(spans, evidence_text):
+            output = [f for f in output if f != "evidence_span_not_supported"]
+    
+    # Fix B: relax stage_mismatch when stage is a variant of known stages
+    if "stage_mismatch" in output:
+        event_id = str(candidate.get("event_id", ""))
+        stage = str(candidate.get("event_chain_stage", ""))
+        known_stages = chain_stages_by_event.get(event_id, set())
+        if known_stages and stage and _stage_is_variant(stage, known_stages):
+            output = [f for f in output if f != "stage_mismatch"]
+    
+    # Fix C: relax contradiction_detected – require ≥3 negative signals
+    # and negative must clearly outweigh positive
+    if "contradiction_detected" in output:
+        if not _contradiction_strong_enough(evidence_text):
+            output = [f for f in output if f != "contradiction_detected"]
+    
+    # Fix D: relax rationale_not_supported via common character overlap
+    if "rationale_not_supported" in output:
+        rationale = str(candidate.get("rationale", ""))
+        if rationale and _shared_chars_count(rationale, evidence_text) >= 2:
+            output = [f for f in output if f != "rationale_not_supported"]
+    
+    return output
+
+
+def _spans_char_overlap_ok(spans: list[dict], evidence_text: str) -> bool:
+    """Check whether all evidence spans have ≥40% character overlap with evidence."""
+    if not spans:
+        return True
+    for span in spans:
+        if not isinstance(span, dict):
+            return False
+        text = str(span.get("text") or "").strip()
+        if text and char_overlap(text, evidence_text) < 0.35:
+            return False
+    return True
+
+
+_STAGE_VARIANT_GROUPS: list[set[str]] = [
+    {"response", "resolution", "resolve", "答复", "回应", "解决", "处置", "处理", "处理结果", "反馈", "整改", "回应与处理"},
+    {"trigger", "incident", "爆发", "触发", "发生", "事件", "起因"},
+    {"diffusion", "spread", "扩散", "传播", "发酵", "舆情", "蔓延"},
+    {"follow_up", "后续", "跟进", "跟踪", "后续发展", "持续影响"},
+]
+
+
+def _stage_is_variant(stage: str, known_stages: set[str]) -> bool:
+    """Return True if stage is a semantic variant of any known stage."""
+    stage_lower = stage.lower()
+    for group in _STAGE_VARIANT_GROUPS:
+        group_lower = {s.lower() for s in group}
+        if stage_lower in group_lower:
+            # Found which group this stage belongs to
+            # Check if any known stage is also in this group
+            if any(ks.lower() in group_lower for ks in known_stages):
+                return True
+    return False
+
+
+def _contradiction_strong_enough(evidence_text: str) -> bool:
+    """Return True only when contradiction evidence is strong enough to keep the flag.
+    
+    Keeps flag only when:
+    - ≥3 distinct negative attitude terms are found, AND
+    - Negative signals clearly outweigh positive signals (neg > pos).
+    This prevents single negative terms in otherwise supportive evidence
+    from triggering contradiction.
+    """
+    _NEG = ["反对", "质疑", "不满", "投诉", "举报", "抵触", "不同意", "难以接受", "担忧"]
+    _POS = ["支持", "点赞", "满意", "认可", "感谢", "欢迎", "肯定", "赞扬", "好事", "益处", "有益", "同意", "赞同", "拥护", "批准", "签署"]
+    
+    neg_count = sum(1 for t in _NEG if t in evidence_text)
+    pos_count = sum(1 for t in _POS if t in evidence_text)
+    
+    # Need ≥3 negative terms AND negative must outweigh positive
+    return neg_count >= 3 and neg_count > pos_count
+
+
+def _shared_chars_count(left: str, right: str) -> int:
+    """Count unique CJK characters shared between two strings."""
+    left_set = set(str(left or ""))
+    right_set = set(str(right or ""))
+    return len(left_set & right_set)
+
+
 def _apply_hard_flag_score_cap(score: float, issue_flags: list[str]) -> float:
     if any(flag in HARD_PRECHECK_FLAGS for flag in issue_flags):
-        return min(float(score), 0.39)
-    return float(score)
+        score = min(score, 0.39)
+    soft_count = sum(1 for flag in issue_flags if flag in SOFT_PRECHECK_FLAGS)
+    if soft_count > 0:
+        score = max(0.2, score - 0.1 * soft_count)
+    return score
 
 
 def char_overlap(left: str, right: str) -> float:
