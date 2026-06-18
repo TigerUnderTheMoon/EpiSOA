@@ -1,0 +1,33 @@
+=== EpiSOA Wave 3 Task 16 — Verifier Integration Tests ===
+Date: 2026-06-18
+Status: COMPLETE
+
+=== Test File ===
+Created: tests/test_verifier_integration.py
+
+=== Test Results ===
+$ python -m pytest -m integration -v --tb=short
+19 passed, 410 deselected in 1.43s
+
+$ python -m pytest tests/ -q --tb=no
+408 passed, 2 failed, 19 deselected in 21.86s
+(2 failures are pre-existing in test_script_entrypoints.py — fakepkg test infrastructure, unrelated to verifier)
+
+=== Test Coverage ===
+6 integration tests, all using @pytest.mark.integration:
+
+1. test_empty_predictions_returns_empty — verify_tuples([], evidence) → []
+2. test_all_predictions_verified_with_mock_llm — 3 predictions, FakeLLMClient(0.85), all verified=True
+3. test_mixed_verification_mock_llm — high score/high score miss/missing evidence → mix of verified/unverified
+4. test_quality_gate_filters_low_score — threshold=0.80, LLM score=0.50 → all verified=False
+5. test_threshold_sweep — thresholds 0.3/0.5/0.7 with same score=0.55 → expected [T, T, F]
+6. test_chinese_entity_name_variation_accepted — 广州市白云区政府 in evidence vs 广州市政府 in tuple → accepted
+
+=== Design Notes ===
+- All tests use mock LLM (FakeLLMClient) — no real API calls
+- Chinese-language fixtures extracted from real evidence_v3_repaired_plus_low37.jsonl:
+  EVIDENCE_E001_SANYUANLI (三元里村旧改), EVIDENCE_E006_MEIXIN (美心翡翠明庭物业费涨价),
+  EVIDENCE_E032_SAFETY (国务院安委办五一提示), EVIDENCE_BAIYUN_DISTRICT (白云区征收方案)
+- Tests verify_scores, labels, diagnosis dicts, issue flags, and LLM call counts
+- No modifications to verify_tuples() or existing test files
+- First use of @pytest.mark.integration in the codebase; marker already configured in pyproject.toml

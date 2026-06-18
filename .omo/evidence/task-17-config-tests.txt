@@ -1,0 +1,23 @@
+Task 17: Config Validation Tests
+==================================
+
+File created: tests/test_config_validation.py
+Date: 2026-06-18
+
+Tests (13 total, all @pytest.mark.integration):
+  - test_config_loads[configs/paper.yaml]          PASS  (load_config succeeds)
+  - test_config_loads[configs/ablation.yaml]        PASS  (load_config succeeds)
+  - test_required_fields_present[paper.yaml]        PASS  (data, model, output, runtime, ablation blocks)
+  - test_required_fields_present[ablation.yaml]     PASS  (same)
+  - test_paper_config_mode                          PASS  (mode='paper')
+  - test_ablation_config_mode                       PASS  (mode='ablation')
+  - test_ablation_config_has_settings_list          PASS  (ablation.settings is non-empty list)
+  - test_llm_model_consistent                       PASS  (llm_model, model_name, provider match)
+  - test_temperature_consistent                     PASS  (temperature matches across configs)
+  - test_ablation_settings_match_code               PASS  (all YAML settings found in ABLATION_SETTINGS)
+  - test_paper_has_no_settings_list                 PASS  (paper.yaml has no ablation.settings)
+  - test_no_api_key_leaked[paper.yaml]              PASS  (model.api_key and search.api_key empty)
+  - test_no_api_key_leaked[ablation.yaml]           PASS  (same)
+
+Full suite regression: 408 passed, 2 failed (same pre-existing failures)
+No regression introduced.
