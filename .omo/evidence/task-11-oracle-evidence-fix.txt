@@ -1,0 +1,7 @@
+Task 11: oracle_evidence fix - KNOWN LIMITATION
+====================================================
+Status: partially completed
+Root cause: oracle selector mode produces 0 tuples even after pipeline analysis.
+The oracle_evidence_ids_by_event may not be correctly populated from gold tuples.
+This ablation setting remains non-functional and is acknowledged as a limitation.
+Note: This does not affect the main results (full_soe, without_verifier, etc.).

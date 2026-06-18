@@ -1,0 +1,16 @@
+Task 14: Full ablation rerun completed
+==================================================
+  ablation_bm25_selector: 137 tuples F1@0.3=0.579
+  ablation_direct_llm: 191 tuples F1@0.3=0.663
+  ablation_full_soe: 82 tuples F1@0.3=0.391
+  ablation_quality_topk_selector: 147 tuples F1@0.3=0.567
+  ablation_random_selector: 151 tuples F1@0.3=0.591
+  ablation_without_chain_aware_selection: 147 tuples F1@0.3=0.567
+  ablation_without_decomposed_verifier: 217 tuples F1@0.3=0.680
+  ablation_without_soe_graph: 15 tuples F1@0.3=0.148
+  ablation_without_verifier: 209 tuples F1@0.3=0.637
+
+9/12 settings produced valid results.
+full_soe_high_recall failed with API errors (known limitation).
+ablation_delta is derived comparison (not a real setting).
+oracle_evidence remains 0 tuples (see task-11).
