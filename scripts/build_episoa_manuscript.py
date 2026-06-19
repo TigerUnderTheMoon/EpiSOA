@@ -1639,7 +1639,7 @@ def _submission_readiness_report() -> dict[str, object]:
     }
 
 
-def build_supporting_data_package(output_dir: Path = SUPPORTING_DATA_DIR) -> dict[str, object]:
+def build_supporting_data_package(output_dir: Path = SUPPORTING_DATA_DIR, runs_dir: str | Path = "") -> dict[str, object]:
     output_dir.mkdir(parents=True, exist_ok=True)
     target_names = [
         "README.md",
@@ -1688,14 +1688,14 @@ def build_supporting_data_package(output_dir: Path = SUPPORTING_DATA_DIR) -> dic
     _write_csv(output_dir / "event_registry_metadata.csv", event_fields, _event_registry_rows())
     _write_csv(output_dir / "evidence_metadata.csv", evidence_fields, _evidence_metadata_rows())
 
-    runs_dir = ROOT / "outputs/runs_human_gold_v2"
-    significance = load_json(SIGNIFICANCE_JSON) if SIGNIFICANCE_JSON.exists() else compute_significance_report(runs_dir)
+    formal_runs_dir = _formal_runs_dir(runs_dir)
+    significance = load_json(SIGNIFICANCE_JSON) if SIGNIFICANCE_JSON.exists() else compute_significance_report(formal_runs_dir)
     formal_results = {
         "formal_result_source": "outputs/runs_human_gold_v2",
         "dataset_statistics": data_stats(),
-        "main_metrics": metrics(),
-        "ablation_summary": ablation_summary(runs_dir),
-        "direct_llm_failure": load_direct_llm_failure(runs_dir),
+        "main_metrics": metrics(formal_runs_dir),
+        "ablation_summary": ablation_summary(formal_runs_dir),
+        "direct_llm_failure": load_direct_llm_failure(formal_runs_dir),
         "significance": significance,
         "stale_outputs_paper_tables_used": False,
         "diagnostic_only_used_for_claims": False,

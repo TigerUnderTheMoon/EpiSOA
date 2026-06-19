@@ -290,8 +290,22 @@ def test_title_block_does_not_render_fake_doi_placeholder():
 
 def test_supporting_data_package_contains_manifest_and_omits_raw_fulltext(tmp_path):
     builder = importlib.import_module("scripts.build_episoa_manuscript")
+    runs_dir = tmp_path / "runs"
+    main_dir = runs_dir / "pubevent-soa-lite-human-gold-v2-paper"
+    main_dir.mkdir(parents=True)
+    (main_dir / "metrics.json").write_text(
+        json.dumps(
+            {
+                "Metric-Scope": "gold_event_scope",
+                "Tuple-F1-semantic": 0.2468,
+                "Tuple-Precision-semantic": 0.3,
+                "Tuple-Recall-semantic": 0.21,
+            }
+        ),
+        encoding="utf-8",
+    )
 
-    report = builder.build_supporting_data_package(tmp_path)
+    report = builder.build_supporting_data_package(tmp_path, runs_dir=runs_dir)
 
     required_files = {
         "README.md",
@@ -311,6 +325,8 @@ def test_supporting_data_package_contains_manifest_and_omits_raw_fulltext(tmp_pa
     assert report["readiness"]["non_personal_submission_surface_pass"] is True
     assert report["readiness"]["author_metadata_required_from_authors"] is True
     assert report["readiness"]["supporting_data_inventory_in_manuscript"] is True
+    formal_summary = json.loads((tmp_path / "formal_results_summary.json").read_text(encoding="utf-8"))
+    assert formal_summary["main_metrics"]["Tuple-F1-semantic"] == 0.2468
 
     with (tmp_path / "evidence_metadata.csv").open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
