@@ -1,598 +1,340 @@
 {
+  "analysis_metadata": {
+    "timestamp": "2026-06-17",
+    "source_diagnostics": "outputs/baseline_pre_remediation/ablation_full_soe/verifier_diagnostics_all.jsonl",
+    "source_predictions": "outputs/baseline_pre_remediation/ablation_full_soe/predictions.jsonl",
+    "source_evidence": "data/pubevent_soa_lite/evidence_v3_repaired_plus_low37.jsonl",
+    "verifier_source_files": [
+      "src/episoa/verifier/faithfulness_verifier.py",
+      "src/episoa/verification/faithfulness_verifier.py"
+    ]
+  },
+
   "total_predictions": 247,
   "total_rejected": 189,
   "total_accepted": 58,
+  "rejection_rate": 0.765,
+  "accepted_rate": 0.235,
+
   "rule_precheck_rejections": 97,
-  "llm_rejections": 92,
   "rule_precheck_rejection_rate": 0.3927,
+  "rule_precheck_pct_of_rejected": 0.513,
+
+  "llm_rejections": 92,
   "llm_rejection_rate": 0.3725,
+  "llm_pct_of_rejected": 0.487,
+
+  "evidence_integrity": {
+    "all_evidence_matches_event": true,
+    "rejected_with_evidence_mismatch": 0,
+    "note": "All 189 rejected entries have evidence_ids that correctly match the tuple's event_id. No data pipeline evidence assignment bug."
+  },
+
   "top_rejection_flags": [
-    {
-      "flag": "evidence_span_not_supported",
-      "count": 57,
-      "pct": 0.2308
-    },
-    {
-      "flag": "stage_mismatch",
-      "count": 47,
-      "pct": 0.1903
-    },
-    {
-      "flag": "contradiction_detected",
-      "count": 15,
-      "pct": 0.0607
-    },
-    {
-      "flag": "stakeholder_not_supported",
-      "count": 4,
-      "pct": 0.0162
-    },
-    {
-      "flag": "opinion_overgeneralized",
-      "count": 2,
-      "pct": 0.0081
-    }
+    {"flag": "evidence_span_not_supported",  "count": 57, "pct": 0.3016, "type": "hard_precheck", "category": "rule_precheck"},
+    {"flag": "stage_mismatch",                "count": 47, "pct": 0.2487, "type": "hard_precheck", "category": "rule_precheck"},
+    {"flag": "contradiction_detected",        "count": 15, "pct": 0.0794, "type": "hard_precheck", "category": "rule_precheck"},
+    {"flag": "stakeholder_not_supported",     "count": 4,  "pct": 0.0212, "type": "hard_precheck", "category": "rule_precheck"},
+    {"flag": "opinion_overgeneralized",       "count": 2,  "pct": 0.0106, "type": "soft_precheck", "category": "rule_precheck"},
+    {"flag": "no_issue",                      "count": 92, "pct": 0.4868, "type": "llm_only", "category": "llm", "note": "All LLM-rejected entries have no_issue from precheck but score=0.5 < 0.75"}
   ],
+
   "hard_flag_breakdown": [
-    {
-      "flag": "evidence_span_not_supported",
-      "count": 57,
-      "pct_of_rejected": 0.3016
-    },
-    {
-      "flag": "stage_mismatch",
-      "count": 47,
-      "pct_of_rejected": 0.2487
-    },
-    {
-      "flag": "contradiction_detected",
-      "count": 15,
-      "pct_of_rejected": 0.0794
-    },
-    {
-      "flag": "stakeholder_not_supported",
-      "count": 4,
-      "pct_of_rejected": 0.0212
-    }
+    {"flag": "evidence_span_not_supported",  "count": 57, "pct_of_rejected": 0.3016},
+    {"flag": "stage_mismatch",                "count": 47, "pct_of_rejected": 0.2487},
+    {"flag": "contradiction_detected",        "count": 15, "pct_of_rejected": 0.0794},
+    {"flag": "stakeholder_not_supported",     "count": 4,  "pct_of_rejected": 0.0212}
   ],
+
+  "rule_precheck_breakdown_by_flag_count": {
+    "single_flag_evidence_span_not_supported": 36,
+    "single_flag_stage_mismatch": 25,
+    "single_flag_contradiction_detected": 10,
+    "single_flag_stakeholder_not_supported": 2,
+    "multiple_hard_flags": 24
+  },
+
+  "llm_rejection_breakdown": {
+    "total": 92,
+    "score_exactly_0_5": 92,
+    "score_exactly_0_0": 0,
+    "llm_verifier_error_count": 88,
+    "llm_verifier_error_pct": 0.957,
+    "root_cause": "LLM verifier API calls fail with errors on nearly all calls (88/92). The verifier code defaults to score=0.5 on error (faithfulness_verifier.py line 427). Since 0.5 < 0.75 threshold, ALL these entries are rejected regardless of actual evidence support.",
+    "non_error_llm_samples": 4,
+    "note": "The 4 non-error LLM rejections (4/92) may represent actual LLM judgments, but the overwhelming majority are API errors, not genuine evidence assessment."
+  },
+
   "manual_spot_check": {
+    "methodology": "20 samples randomly selected (seed=42): 10 rule_precheck, 10 LLM. For each, read full evidence text for all evidence_ids. Judge whether rejection was correct (evidence does NOT support tuple) or incorrect (evidence DOES support tuple but verifier rejected it).",
+    "summary": {
+      "total_samples": 20,
+      "correct_rejections": 1,
+      "incorrect_rejections": 19,
+      "incorrect_rate": 0.95,
+      "verdict": "The verifier is overwhelmingly rejecting VALID tuples that have clear, direct evidence support. The 76.5% rejection rate is nearly entirely FALSE POSITIVES."
+    },
     "rule_precheck_samples": [
       {
-        "event_id": "E042",
+        "tuple_id": "E042-刘建国代表",
         "stakeholder": "刘建国代表",
         "opinion": "刘建国代表提出《关于加强外卖骑手骑行安全管理的建议》，推动相关部门研究办理外卖骑手骑行安全管理问题。",
         "sentiment": "positive",
-        "rationale": "证据显示仁和水厂监测到嗅味指标异常后采取应急处置，使供水水质得到控制。",
-        "evidence_ids": [
-          "ev-00842",
-          "ev-00843",
-          "ev-01920",
-          "ev-00837",
-          "ev-01921",
-          "ev-00841",
-          "ev-00844",
-          "ev-00836",
-          "ev-01918",
-          "ev-01925",
-          "ev-00840",
-          "ev-01929",
-          "ev-00838",
-          "ev-00839",
-          "ev-01916",
-          "ev-01922"
-        ],
-        "evidence_preview": [
-          "[ev-00842] 华声在线\n湖南在线\n|\n新闻\n专题\n评论\n投诉\n论坛\n|\n图片\n视频\n文旅\n|\n经济\n房产\n集团报刊\n7月16日上午，杭州市余杭区仁和街道及良渚街道部分区域出现自来水气味异常。\n对此，余杭区人民政府今天发布情况通报：7月16日8时，仁和水厂发现水质嗅味指标异常，经采样分析确认后随即启动供水突发事件应急预案，切换水源，供水水质得到有效控制，出厂水质安全。情况发生后，立即启动调查程序，并成立由国家、省级专家等组成的调查组，已初步查明导致异味的为特定自然气候条件下藻类厌氧降解产生的硫醚类物质，具体原因正在进一步溯源调查中，有关结果将及时公布。目前网上谣言较多，关于“粪水”的网络谣言，警方已依法查处，",
-          "[ev-00843] 7月16日上午，杭州市余杭区仁和街道及良渚街道部分区域出现自来水气味异常。\n对此，余杭区人民政府今天发布情况通报：7月16日8时，仁和水厂发现水质嗅味指标异常，经采样分析确认后随即启动供水突发事件应急预案，切换水源，供水水质得到有效控制，出厂水质安全。情况发生后，立即启动调查程序，并成立由国家、省级专家等组成的调查组，已初步查明导致异味的为特定自然气候条件下藻类厌氧降解产生的硫醚类物质，具体原因正在进一步溯源调查中，有关结果将及时公布。目前网上谣言较多，关于“粪水”的网络谣言，警方已依法查处，请大家不信谣、不传谣。\n对此事给广大居民群众生活带来的影响和不便，我们深表歉意，并将进一步加强管理、确",
-          "[ev-01920] 用微信扫码二维码\n分享至好友和朋友圈\n2025.07.19\n本文字数：646，阅读时长大约2分钟\n据央视新闻，7月16日上午，杭州市余杭区仁和街道及良渚街道部分区域出现自来水气味异常。\n对此，余杭区人民政府今天发布情况通报：7月16日8时，仁和水厂发现水质嗅味指标异常，经采样分析确认后随即启动供水突发事件应急预案，切换水源，供水水质得到有效控制，出厂水质安全。情况发生后，立即启动调查程序，并成立由国家、省级专家等组成的调查组，已初步查明导致异味的为特定自然气候条件下藻类厌氧降解产生的硫醚类物质，具体原因正在进一步溯源调查中，有关结果将及时公布。目前网上谣言较多，关于“粪水”的网络谣言，警方已依"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "evidence_span_not_supported"
-        ],
-        "hard_flags": [
-          "evidence_span_not_supported"
-        ],
+        "evidence_ids": ["ev-01045"],
         "rejected_for": "evidence_span_not_supported",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - evidence is official government response document explicitly addressed to 刘建国代表, confirming receipt of suggestion about 外卖骑手安全管理",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence is a government reply document directly addressing the stakeholder's suggestion. The span text partially matches (first 30 chars). The evidence_span_not_supported flag is a FALSE POSITIVE caused by literal text matching issue between evidence_span text and stored evidence text (truncation/formatting differences)."
       },
       {
-        "event_id": "E011",
+        "tuple_id": "E011-居民/公众_泛指",
         "stakeholder": "居民/公众_泛指",
         "opinion": "居民/公众_泛指认可联合调查组还原真相，但要求继续调查涉事餐饮企业资质取得及是否存在利益输送等问题。",
-        "sentiment": "neutral",
-        "rationale": "官方通告显示黄埔区政府基于超过90%权属人同意并签约以及城市更新政策，对剩余地块改造事项作出通告。",
-        "evidence_ids": [
-          "ev-00080",
-          "ev-00086",
-          "ev-00087"
-        ],
-        "evidence_preview": [
-          "[ev-00080] 广州市黄埔区人民政府关于横沙旧村改造项目\n剩余地块（除一、二期以外的地块）\n改造的通告\n横沙旧村改造项目剩余地块（除一、二期以外的地块）改造范围内房屋权属人同意《横沙“城中村”拆迁安置补偿方案》且签订补偿安置协议的已超过90%，依据广州市人民政府城市更新相关政策，现将有关事项通告如下：\n一、横沙旧村项目改造范围地块位于黄埔区丰乐北路两侧，护林路以南，大沙东路以北，港湾北路两侧（横沙旧村改造范围内），包括：2A、2B、2C、2D、3A-2、3B-2、4A、4D、3C、3D、3E、3F地块（复建区）；2A、2B、3A、3B、3E、3F、4B、4C、4D、5地块（融资区），改造范围面积约49.78公",
-          "[ev-00086] ------\n穗埔府规〔2020〕18号\n广州市黄埔区人民政府关于横沙旧村改造项目剩余地块（除一、二期以外的地块）改造的通告\n横沙旧村改造项目剩余地块（除一、二期以外的地块）改造范围内房屋权属人同意《横沙“城中村”拆迁安置补偿方案》且签订补偿安置协议的已超过90%，依据广州市人民政府城市更新相关政策，现将有关事项通告如下：\n一、横沙旧村项目改造范围地块位于黄埔区丰乐北路两侧，护林路以南，大沙东路以北，港湾北路两侧（横沙旧村改造范围内），包括：2A、2B、2C、2D、3A-2、3B-2、4A、4D、3C、3D、3E、3F地块（复建区）；2A、2B、3A、3B、3E、3F、4B、4C、4D、5地块",
-          "[ev-00087] ------\n穗埔府规〔2020〕18号\n广州市黄埔区人民政府关于横沙旧村改造项目剩余地块（除一、二期以外的地块）改造的通告\n横沙旧村改造项目剩余地块（除一、二期以外的地块）改造范围内房屋权属人同意《横沙“城中村”拆迁安置补偿方案》且签订补偿安置协议的已超过90%，依据广州市人民政府城市更新相关政策，现将有关事项通告如下：\n一、横沙旧村项目改造范围地块位于黄埔区丰乐北路两侧，护林路以南，大沙东路以北，港湾北路两侧（横沙旧村改造范围内），包括：2A、2B、2C、2D、3A-2、3B-2、4A、4D、3C、3D、3E、3F地块（复建区）；2A、2B、3A、3B、3E、3F、4B、4C、4D、5地块"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "stakeholder_not_supported",
-          "evidence_span_not_supported",
-          "opinion_overgeneralized"
-        ],
-        "hard_flags": [
-          "stakeholder_not_supported",
-          "evidence_span_not_supported"
-        ],
+        "sentiment": "mixed",
+        "evidence_ids": ["ev-01579"],
         "rejected_for": "stakeholder_not_supported + evidence_span_not_supported",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - evidence is a public social media comment explicitly stating approval of investigation results AND demanding further investigation into catering company qualifications and potential利益输送",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "The evidence is a citizen/公众 comment that exactly matches both parts of the opinion (认可调查 + 要求继续调查). stakeholder_not_supported triggered because the generic stakeholder label '居民/公众_泛指' doesn't appear literally, but the evidence IS from a member of the public. evidence_span_not_supported partly because one span has NO_MATCH. Both flags are FALSE POSITIVES."
       },
       {
-        "event_id": "E002",
+        "tuple_id": "E002-浦东新区人民政府",
         "stakeholder": "浦东新区人民政府",
-        "opinion": "浦东新区人民政府原则同意唐镇小湾村暮二村等地块“城中村”改造项目实施方案，并要求抓紧组织实施。",
+        "opinion": "浦东新区人民政府原则同意唐镇小湾村暮二村等地块城中村改造项目实施方案，并要求抓紧组织实施。",
         "sentiment": "positive",
-        "rationale": "证据显示村民热切期盼改造，动迁居民兴高采烈选房，九号地块和整体项目均实现100%签约，张金兴表示选到合适房子、家人满意。",
-        "evidence_ids": [
-          "ev-00041",
-          "ev-00042",
-          "ev-00044"
-        ],
-        "evidence_preview": [
-          "[ev-00041] 近日，随着最后一户签约完成，唐镇小湾村、暮二村等地块“城中村”改造项目（以下简称“小湾村项目”）848产（1000多户）居民100%签约实现清盘，村民们住上新房的愿望，以不落下一户的方式全部得以实现。\n村民们的热切期盼、各级政府的高度重视、相关部门的积极配合，形成了一股强大的合力。从2023年8月10日获市政府认定批复，到2024年1月3日征收签约结束，146天的时间，再次刷新了浦东新区“城中村”改造千户级项目的征收推进速度和推进效率。\n期盼：搭上改造快车道\n小湾村位于唐镇东北部，老护塘北部中段，因傍老护塘较小的湾处而得名。自古以来建有许多桥梁，可算是浦东的桥乡，报恩桥、重庆桥至今尚在，还有区",
-          "[ev-00042] 用微信扫码二维码\n分享至好友和朋友圈\n摘要：浦东小湾村将变身高新产业园区。\n2024年1月3日，浦东唐镇小湾村“城中村”改造项目提前3天实现100%居民征收签约。与此同时，首批征收安置房地块启动建设，将提供2500余套安置房源，建筑面积共约22万平方米，实现居民安居梦。\n元旦前后，小湾村动迁居民兴高采烈完成选房。\n居民在选房。\n选好房签约。\n唐镇小湾村“城中村”改造项目总占地面积约1467.3亩，涉及5个村委和1个居委，居民共848产。\n安置房项目效果图。\n为了留住小湾记忆，目前安置房改造方已梳理并明确保护三座古桥、一处历史建筑，以及旧门头、旧石板、旧砖瓦等建筑部件。\n小湾村项目作为全市首个以",
-          "[ev-00044] 12月23日上午9时，唐镇小湾村、暮二村等地块“城中村”项目正式启动签约，此次签约将分成九个地块陆续启动。首先签约的是九号地块，共41产集土居民，当天100%签约，实现清盘。安置房源都在唐镇镇域内，分别是棠清雅苑（现房）、万嘉欣苑（现房）和已开工的W03-03地块（期房）。\n按照顺序，年近9旬的张金兴老先生23日第一个签约选房。张老先生原先可以拿大套，考虑到家里子女多，最终商量后选择了中套和小套。“选到了合适的房子，家里人都挺满意的。”\n暮紫桥居民区党支部书记包慧告诉记者，此次唐镇小湾村、暮二村等地块“城中村”改造项目中的九号地块是原暮一村撤村后留下的一些村宅，居民们对改善生活环境的意愿比较高"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "evidence_span_not_supported"
-        ],
-        "hard_flags": [
-          "evidence_span_not_supported"
-        ],
+        "evidence_ids": ["ev-00049"],
         "rejected_for": "evidence_span_not_supported",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - evidence is the official government批复 (approval document) from 浦东新区人民政府 explicitly stating '原则同意...项目实施方案，请按相关要求和规定抓紧组织实施'",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "The evidence IS the exact government approval document described by the opinion. The evidence text literally contains '原则同意《唐镇小湾村暮二村等地块城中村改造项目实施方案》' and '抓紧组织实施'. evidence_span_not_supported is a FALSE POSITIVE - the span text (from evidence_spans field) does not literally appear in the stored evidence text due to formatting differences (the span text is slightly different from the stored text, e.g. missing headers like '浦府〔2023〕209号')."
       },
       {
-        "event_id": "E050",
+        "tuple_id": "E050-网约车司机；乘客",
         "stakeholder": "网约车司机；乘客",
         "opinion": "网约车司机抱怨平台抽成太高、不划算，希望降低抽成比例，并质疑滴滴高抽成后再补贴司机和乘客不如直接降低抽成。",
         "sentiment": "negative",
-        "rationale": "证据认定烧烤店在使用中违规操作发生泄漏爆炸，并称未组织疏散、楼梯通道堵塞和窗户被封堵等因素严重影响逃生、扩大伤亡。",
-        "evidence_ids": [
-          "ev-00935",
-          "ev-01976"
-        ],
-        "evidence_preview": [
-          "[ev-00935] 宁夏银川富洋烧烤店“6·21”特别重大燃气爆炸事故调查报告发布,可以用三个非常概括。调查认定,这是一起因相关企业违法违规检验、经营,并配送不符合标准的液化石油气瓶,烧烤店在使用中违规操作发生泄漏爆炸,",
-          "[ev-01976] 2025年4月29日，辽宁省辽阳市白塔区三里厨娘饭店发生重大火灾事故，造成22人死亡、3人受伤。火灾直接原因系饭店顾客丢弃的未熄灭烟蒂，在风势作用下通过紧贴外墙设置的铝塑板排风道下方缝隙滚入检修口，引燃内部堆放的包装纸箱等垃圾，导致饭店外立面装饰装修使用的铝塑板和建筑外墙聚苯乙烯保温板快速燃烧蔓延成灾。\n2023年6月21日，宁夏银川市兴庆区富洋烧烤民族街店发生燃气爆炸事故，造成31人死亡、7人受伤。事故原因是相关企业违法违规检验、经营，并配送不符合标准的液化石油气瓶，烧烤店在使用中违规操作发生泄漏爆炸。由于没有组织疏散、唯一楼梯通道被炸毁的隔墙严重堵塞、二楼临街窗户被封堵并被锚固焊接的钢制广"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "opinion_overgeneralized",
-          "contradiction_detected",
-          "stage_mismatch"
-        ],
-        "hard_flags": [
-          "contradiction_detected",
-          "stage_mismatch"
-        ],
+        "evidence_ids": ["ev-01246", "ev-02149"],
         "rejected_for": "contradiction_detected + stage_mismatch",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - ev-01246 explicitly states '经常听到网约车司机抱怨抽成太高不划算，希望能够降低抽成的比例'. ev-02149 explicitly quotes driver质疑: '为什么不直接降低抽成'. Both directly support the tuple's opinion.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "contradiction_detected is likely a FALSE POSITIVE caused by ev-02149 containing 滴滴's RESPONSE which includes positive-sounding terms like '补贴' and '激励'. The contradiction check sees negative sentiment + positive terms in evidence and flags it. However, the tuple reports the drivers' COMPLAINT (negative), which is fully supported. The positive terms are from滴滴's defense, not contradicting the driver's complaint. stage_mismatch is also likely a FALSE POSITIVE."
       },
       {
-        "event_id": "E022",
+        "tuple_id": "E022-药王谷中医馆",
         "stakeholder": "药王谷中医馆",
-        "opinion": "药王谷中医馆被曝从事“抗癌治疗”，宣称抗癌治愈率超80%，并以抗癌大师、治癌秘方等宣传吸引患者就诊。",
-        "sentiment": "neutral",
-        "rationale": "证据显示涉事学校工作人员对媒体表示事件仍在调查，并承诺如有问题将向家长交代。",
-        "evidence_ids": [
-          "ev-01602"
-        ],
-        "evidence_preview": [
-          "[ev-01602] 极目新闻记者 杜光然\n10月16日，有家长发视频曝光称，昆明官渡区一学校食堂生肉有臭味，质疑食材不新鲜。\n家长称食堂生肉有臭味 （来源：视频截图）\n16日下午，涉事学校工作人员对极目新闻记者表示，此事正在调查处理，是否为“臭肉”尚未有结果。“如果真的有问题，我们肯定会给家长们一个交代。”\n昆明市教育体育局工作人员告诉极目新闻记者，该局已知晓此事，属地教体局已介入处置。\n官渡区教育体育局接受媒体采访时称，初查供餐公司证照齐全，是否有问题需等市场监管部门的检测结果。\n“特别声明：以上作品内容(包括在内的视频、图片或音频)为凤凰网旗下自媒体平台“大风号”用户上传并发布，本平台仅提供信息存储空间服务。"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "contradiction_detected",
-          "stage_mismatch"
-        ],
-        "hard_flags": [
-          "contradiction_detected",
-          "stage_mismatch"
-        ],
+        "opinion": "药王谷中医馆被曝从事抗癌治疗，宣称抗癌治愈率超80%，并以抗癌大师、治癌秘方等宣传吸引患者就诊。",
+        "sentiment": "negative",
+        "evidence_ids": ["ev-01732", "ev-01744", "ev-01748"],
         "rejected_for": "contradiction_detected + stage_mismatch",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - ev-01732: '位于湖北武当山桑树庙村的药王谷中医馆，从事抗癌治疗，号称抗癌治愈率超80%'. ev-01744: '打着抗癌大师、治癌秘方、抗癌治愈率超过80%的旗号进行宣传,吸引了很多患者前去就诊'. Directly supports every part of the opinion.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "All three evidence items directly report the exact claims made in the opinion. contradiction_detected may be triggered because the sentiment is 'negative' but evidence might contain neutral reporting terms (通报, 关注). However, the evidence reports negative events (15 deaths, 20 worsened). The contradiction check is a FALSE POSITIVE. stage_mismatch is a FALSE POSITIVE."
       },
       {
-        "event_id": "E020",
+        "tuple_id": "E020-市场监管总局",
         "stakeholder": "市场监管总局",
         "opinion": "市场监管总局高度关注学校食堂食品原料问题，要求四川省市场监管部门迅速调查、依法查处食品安全违法违规行为并排查风险隐患。",
-        "sentiment": "neutral",
-        "rationale": "证据明确称学校回应异物为鸭脖后，南昌市市场监督管理局工作人员也确认其为鸭脖。",
-        "evidence_ids": [
-          "ev-01581",
-          "ev-00242",
-          "ev-01585"
-        ],
-        "evidence_preview": [
-          "[ev-01581] 2023年6月1日下午，一则“江西工业职业技术学院饭菜中疑吃出老鼠头”的视频在网络传播，视频画面的饭菜中，疑似有异物出现1。\n2023年6月3日，针对视频内容，江西工业职业技术学院做出回应表示确认“异物”为鸭脖，随后南昌市市场监督管理局工作人员也确认为鸭脖1。6月10日，相关部门成立事件联合调查组进行调查，并在6月17日公布调查结果，认定饭菜中异物是鼠头，江西工业职业技术学院对此次事件负主体责任，涉事企业负直接责任，市场监督管理部门负监管责任2。同时学校也与涉事食堂供应商为江西中快后勤服务有限公司解除合约3，涉事企业及相关责任人受到行政处罚。\n2024年3月，江西中快后勤服务有限公司因其他违反",
-          "[ev-00242] 江西工业职业技术学院icon,学生就餐惊现“鼠头”!!!食堂当即给出解释,是鸭脖子。随后,当地市场监督管理局给出反复检验的结论,也是鸭脖子。不过根据现场的照片,这鸭脖子也太挑战网友们的视觉神经了,长着",
-          "[ev-01585] 近日，江西某高校食堂发生一起“异物”事件，一名男生在夹菜时夹出一块类似老鼠头的物品，并质疑其为老鼠牙齿。该学生将此事拍下并发到网上，引发广泛关注和质疑。事后经市场监督管理局的调查，确认该异物为鸭脖，该校食堂恢复正常营业。这件事情提醒我们，校园食品安全问题不容忽视。\n校园食堂是学生日常生活主要场所之一，保障学生饮食安全是校园管理的重中之重。针对此类事件，学校和相关部门应及时介入调查，严格遵守食品安全法律法规，对食品进行严格把关，确保学生能够吃到安全健康、营养均衡的饭菜。此外，学校食堂经营者也应提高责任意识，严格执行操作规范，实行全过程可追溯的质量控制体系，确保食品安全。\n同时，学生也应该提高自我"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "evidence_span_not_supported"
-        ],
-        "hard_flags": [
-          "evidence_span_not_supported"
-        ],
+        "sentiment": "negative",
+        "evidence_ids": ["ev-01695", "ev-01694"],
         "rejected_for": "evidence_span_not_supported",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - ev-01695: '市场监管总局高度关注四川省成都市七中实验学校食堂食品原料存在的问题，已经要求四川省市场监管部门...迅速开展调查，依法严肃查处食品安全违法违规行为，举一反三，全面排查'. Matches opinion nearly verbatim.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "The evidence text ALMOST VERBATIM matches the opinion. evidence_span_not_supported is triggered because the evidence_span text (from the spans field) does not literally appear in the stored evidence text. This is a text storage/formatting issue, not an evidence support issue. FALSE POSITIVE."
       },
       {
-        "event_id": "E020",
+        "tuple_id": "E020-学生家长",
         "stakeholder": "学生家长",
         "opinion": "学生家长反映学校食堂食品发霉变质、操作间脏乱，质疑食堂管理、担忧孩子健康，并在学生不适后要求送医检查。",
-        "sentiment": "positive",
-        "rationale": "进展报道称项目自2022年3月开工以来，各参建单位团结协作、攻坚克难，合力高效推进工程建设。",
-        "evidence_ids": [
-          "ev-01564"
-        ],
-        "evidence_preview": [
-          "[ev-01564] 5月24日，衢小布走进百家坊未来社区项目现场，工地上大型运输车辆来回穿梭，塔吊机来回运转，一片繁忙的施工景象。\n01\n项目进展\n已关注\n关注\n重播分享赞\n关闭\n观看更多\n更多\n正在加载\n正在加载\n退出全屏\n视频加载失败，请刷新页面再试\n刷新\n视频详情\n衢州智慧新城百家坊社区项目是全拆重建类安置小区项目，是浙江省第三批未来社区试点创建项目，也是备受关注的重点民生工程。项目自2022年3月开工以来，各参建单位团结协作，紧盯目标、攻坚克难，合力高效推进工程建设，全力以赴确保项目如期完工。\n项目一期共25栋建筑1552套住房，均为地上11层，面积从60㎡到130㎡不等。目前1000余名工人正在进行装饰"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "evidence_span_not_supported",
-          "stage_mismatch"
-        ],
-        "hard_flags": [
-          "evidence_span_not_supported",
-          "stage_mismatch"
-        ],
+        "sentiment": "negative",
+        "evidence_ids": ["ev-01703", "ev-01702", "ev-01697", "ev-01699"],
         "rejected_for": "evidence_span_not_supported + stage_mismatch",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - ev-01703 mentions '学生家长到学校集中反映，质疑食堂的管理，担忧孩子的健康'. ev-01702: '学生家长反映，学校食堂的食品发霉变质'. ev-01697: '有多名学生家长反映成都七中实验学校食堂材料有发霉、变质的情况'. ev-01699: '家长要求送医院检查'. All aspects fully supported.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Every aspect of the opinion is explicitly supported by at least one evidence item. evidence_span_not_supported is a FALSE POSITIVE (one span has PARTIAL match due to text formatting). stage_mismatch is a FALSE POSITIVE."
       },
       {
-        "event_id": "E013",
+        "tuple_id": "E013-海口市市场监督管理局秀英分局、秀英区教育局",
         "stakeholder": "海口市市场监督管理局秀英分局、秀英区教育局",
         "opinion": "海口市市场监督管理局认定涉事学校食堂存在违法行为，依法对学校罚款5万元、给予警告，并对市场监管相关责任人员启动问责程序。",
-        "sentiment": "negative",
-        "rationale": "证据显示虹凉馨苑小区因物业要涨物业费、即将“三年三涨”引发居民与物业激烈争吵，协调会开场即“炸了锅”，居民们拍案而起。",
-        "evidence_ids": [
-          "ev-00096",
-          "ev-00097"
-        ],
-        "evidence_preview": [
-          "[ev-00096] 扫描二维码下载APP\n⁺\n历史\n⁺\n收藏\n⁺\n订阅\n在12345市民热线系统中，关于物业服务的投诉总量排名前列，堪称基层治理的“硬骨头”。比如，虹凉馨苑小区就因为物业要涨物业费，引发了居民与物业之间的一场激烈争吵。\n“不需要你提醒，我说话不要插嘴。你说什么呀！”\n上周二，为了物业费涨价问题，虹凉馨苑小区特意召开了一次协调会，结果刚开场就炸了锅。居民们拍案而起：“你要涨价要有依据，讲出来让老百姓心服口服！”有人指着表决表质问：“同步每年递增2角钱，你看这里基本上都是反对的！”\n虹凉馨苑小区从2016年至今，多层住宅的物业费为每月0.68元/平方米，高层是每月1.45元/平方米。6月初，居民们突然",
-          "[ev-00097] 扫描二维码下载APP\n⁺\n历史\n⁺\n收藏\n⁺\n订阅\n在12345市民热线系统中，关于物业服务的投诉总量排名前列，堪称“基层治理的硬骨头”，比如，虹凉馨苑小区就因为物业费即将“三年三涨”，引发了居民与物业之间一场激烈的争吵。物业费该不该涨，怎么涨？物业和居民间的症结究竟在哪里？这都是当下难解的议题。\n暂无评论，快来发表你的评论吧\n举报电话：021-62870000\n举报邮箱：service@kankanews.com\n剑网行动举报电话：12318（市文化执法总队）、021-64334547（市版权局）\nCopyright © 2016 Kankanews.com Inc. All Rights "
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "stakeholder_not_supported"
-        ],
-        "hard_flags": [
-          "stakeholder_not_supported"
-        ],
+        "sentiment": "neutral",
+        "evidence_ids": ["ev-00280", "ev-00283", "ev-01612", "ev-01623", "ev-00284", "ev-01611"],
         "rejected_for": "stakeholder_not_supported",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG for core claims - evidence explicitly states 海口市市场监督管理局 fined 5万元, gave warnings, and initiated问责. PARTIAL for stakeholder specificity - evidence mentions 海口市市场监督管理局 but NOT the specific sub-units '秀英分局' or '秀英区教育局'.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "The core factual claims (罚款5万, 警告, 启动问责) are all explicitly supported by the evidence from 海口市市场监督管理局. The stakeholder_not_supported flag is triggered because the exact concatenated stakeholder name '海口市市场监督管理局秀英分局、秀英区教育局' does not appear literally in evidence. However, 海口市市场监督管理局 DOES appear explicitly. The sub-unit specificity is a minor stakeholder aliasing issue - the evidence clearly supports the substantive claims. The rejection is overly strict."
       },
       {
-        "event_id": "E011",
+        "tuple_id": "E011-江西省联合调查组",
         "stakeholder": "江西省联合调查组",
         "opinion": "江西省联合调查组介入调查，并经勘察现场、调取视频、查阅清单和询问相关人员，认定餐盘异物不是鸭脖而是鼠类啮齿动物头部。",
-        "sentiment": "positive",
-        "rationale": "证据显示兆霖公司提交未签约房屋行政处理申请，并发布限期签约及后续法院强制执行安排。",
-        "evidence_ids": [
-          "ev-01460"
-        ],
-        "evidence_preview": [
-          "[ev-01460] 广州城市更新正在提速。\n近期，横沙社区以投票的方式通过了一项决议。决议内容是向黄埔区政府申请行政处理“改造范围内所有留守户房屋拆迁补偿安置争议”，从而在6月30日前实现横沙拆迁清零。\n这个位于广州市黄埔区的横沙城中村改造项目，于2011年3月开启第一栋房屋的签约工作，至今已超过14年。\n而上述决议通过后，项目的合作企业广州市兆霖房地产开发有限公司（下称“兆霖公司”）也有所行动，其已分两批次向区政府报送29栋未签约房屋的行政处理申请，首批申请在4月27日获得区政府正式受理。根据兆霖公司发布的通知，尚未签约的村民可在5月31日前办理签约手续，而剩余未签约房屋则将“由法院依法强制执行”。\n为了推动旧"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "stage_mismatch"
-        ],
-        "hard_flags": [
-          "stage_mismatch"
-        ],
+        "sentiment": "negative",
+        "evidence_ids": ["ev-01578", "ev-01586", "ev-01572", "ev-01589", "ev-01581", "ev-00243", "ev-00244", "ev-01576"],
         "rejected_for": "stage_mismatch",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - ev-01586: '省教育厅、省公安厅、省国资委、省市场监督管理局组成的联合调查组...经勘察现场，调取监控视频...判定异物不是鸭脖...判定异物为老鼠类啮齿动物的头部'. ev-01572: '通过查看食堂后厨视频、查阅采购清单、询问...判定餐盘中出现的异物不是鸭脖，而是老鼠类锯齿动物的头部'. Multiple evidence items directly support.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "The evidence contains the EXACT investigation methods and conclusions described in the opinion. stage_mismatch is the ONLY flag triggered, and it is a FALSE POSITIVE - the event_chain_stage may not exist in chain_stages_by_event for this event, which is a configuration/data pipeline issue, not an evidence support issue."
       },
       {
-        "event_id": "E046",
+        "tuple_id": "E046-工业和信息化部",
         "stakeholder": "工业和信息化部",
         "opinion": "工业和信息化部发布侵害用户权益行为APP（SDK）通报，并组织第三方检测机构抽查发现21款APP存在问题。",
         "sentiment": "negative",
-        "rationale": "官方整改公示明确反馈全椒县处置事故胡乱作为、造成严重后果并引发负面舆情。",
-        "evidence_ids": [
-          "ev-01931"
-        ],
-        "evidence_preview": [
-          "[ev-01931] 2025年6月，《安徽省贯彻落实第三轮中央生态环境保护督察报告整改方案》反馈编号24“2024年5月，滁州市全椒县在处置滁河水污染事故时胡乱作为、性质恶劣，造成严重后果，引发负面舆情，教训极为深刻”问题已整改完成，并通过核查验收。根据《安徽省生态环境问题整改工作实施办法》要求，现将该问题整改完成情况公示如下：\n一、整改问题\n2024年5月，滁州市全椒县在处置滁河水污染事故时胡乱作为、性质恶劣，造成严重后果，引发负面舆情，教训极为深刻。\n二、整改实施主体\n滁州市委和人民政府\n三、重点措施\n一是深刻汲取事故教训，聚焦以案促治，扎实开展警示教育。组织开展“学党纪、强作风、提能力”大讨论，持续强化作风"
-        ],
-        "score": 0.39,
-        "issue_flags": [
-          "stage_mismatch"
-        ],
-        "hard_flags": [
-          "stage_mismatch"
-        ],
+        "evidence_ids": ["ev-02078", "ev-01162"],
         "rejected_for": "stage_mismatch",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_support_level": "STRONG - ev-02078: '工信部发布关于侵害用户权益行为的APP(SDK)通报...组织第三方检测机构进行抽查，共发现21款APP及SDK存在侵害用户权益行为'. ev-01162: '工信部9月29日发布2024年第8批侵害用户权益行为的APP（SDK），涉及21家APP（SDK）'. Both exactly match the opinion.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence perfectly supports the opinion. stage_mismatch is the ONLY flag and is a FALSE POSITIVE."
       }
     ],
     "llm_samples": [
       {
-        "event_id": "E040",
+        "tuple_id": "E040-山西省纪检监察机关",
         "stakeholder": "山西省纪检监察机关",
         "opinion": "山西省纪检监察机关对吕梁市、离石区、城北街道党委政府及多个部门的42名公职人员严肃问责。",
-        "sentiment": "positive",
-        "rationale": "证据显示三方联合发布典型案例，并将深圳督促实施就医挂号无障碍、适老化改造行政公益诉讼纳入其中，体现对该案例的肯定和推广。",
-        "evidence_ids": [
-          "ev-00716",
-          "ev-00718",
-          "ev-01309",
-          "ev-01286"
-        ],
-        "evidence_preview": [
-          "[ev-00716] 中国青年报客户端讯（中青报·中青网记者 韩飏）今天，最高人民检察院与民政部、中国残疾人联合会联合发布一批无障碍和适老化检察公益诉讼典型案例，\"广东省深圳市人民检察院督促实施就医挂号无障碍、适老化改造行政公益诉讼\"是其中一例。\n据介绍，广东省深圳市大部分医疗机构未提供电话预约等多渠道挂号方式，挂号平台及自助挂号机亦未实现无障碍功能，致使不会上网、不会使用智能手机及存在视力障碍的老年人与残疾人无法及时、独立、便捷就医，影响其身体健康与生命安全，损害社会公共利益。\n2024年5月，广东省深圳市人民检察院收到“益心为公”志愿者提供的上述线索后，决定立案调查。通过对辖区内医疗机构进行现场走访、挂号平台或",
-          "[ev-00718] 中国青年报\n2025-09-17 18:14发布于北京中国青年报官方账号\n中国青年报客户端讯（中青报·中青网记者 韩飏）今天，最高人民检察院与民政部、中国残疾人联合会联合发布一批无障碍和适老化检察公益诉讼典型案例，\"广东省深圳市人民检察院督促实施就医挂号无障碍、适老化改造行政公益诉讼\"是其中一例。\n据介绍，广东省深圳市大部分医疗机构未提供电话预约等多渠道挂号方式，挂号平台及自助挂号机亦未实现无障碍功能，致使不会上网、不会使用智能手机及存在视力障碍的老年人与残疾人无法及时、独立、便捷就医，影响其身体健康与生命安全，损害社会公共利益。\n2024年5月，广东省深圳市人民检察院收到“益心为公”志愿者提",
-          "[ev-01309] 出行、就医挂号……残疾人、老年人等特定群体在日常生活中遇到“障碍”怎么办？9月17日，最高人民检察院与民政部、中国残疾人联合会共同发布一批无障碍和适老化检察公益诉讼典型案例，从中可见多地检察机关助力“无障碍”建设的不懈努力。\n老人挂号只能上网“抢”？改进！\n2024年5月，广东深圳检察机关接到线索反映，当地大部分医疗机构未提供电话预约等多渠道挂号方式，挂号平台及自助挂号机也未实现无障碍功能，致使不会上网、不会使用智能手机及存在视力障碍的老年人与残疾人无法及时、独立、便捷就医，医疗机构未按有关要求为老年人、残疾人预留专门现场号源。\n无障碍环境建设法明确规定，医疗卫生机构应当结合所提供的服务内容，"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "llm_verifier_error",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "sentiment": "negative",
+        "evidence_ids": ["ev-01333", "ev-01328", "ev-01331", "ev-01349"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-01333: '山西省纪检监察机关严格依据相关规定与程序，对涉及该事故的吕梁市、离石区、城北街道...42名公职人员进行了严肃问责'. Multiple evidence items contain the exact same statement. No precheck flags. LLM never actually evaluated due to API error.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence perfectly supports the tuple. The LLM API call FAILED (llm_verifier_error), defaulting to score=0.5, which falls below the 0.75 threshold. This is NOT an evidence assessment - it's an API infrastructure failure."
       },
       {
-        "event_id": "E023",
+        "tuple_id": "E023-东莞市中医院",
         "stakeholder": "东莞市中医院",
         "opinion": "东莞市中医院称已复盘调查并向患者致歉，认定工程师违规和医务人员隐私保护意识淡薄，处分相关人员并责成第三方公司严处工程师、加强培训管理。",
-        "sentiment": "negative",
-        "rationale": "证据直接记载刘琳律师从法律责任角度认为学校和涉事企业需承担相应责任。",
-        "evidence_ids": [
-          "ev-01593"
-        ],
-        "evidence_preview": [
-          "[ev-01593] 导读：近日，云南昆明云子中学长丰学校食堂疑提供臭肉给学生食用。校长回应：“如果他犯罪了，有法律来管他。”湖南通程律师事务所刘琳律师解读：学校应承担相应责任，涉事企业可能面临民事、行政、刑事等多重责任。\n【案情简介】\n在某共有权确认纠纷案中，原告提交了SANSUI数码录音笔1个（检材录音笔），其上存储有检材录音1和检材录音2。据原告声称，检材录音1的形成过程为：2010年3月7日，在去某地扫墓的路上，（被告）F某在其汽车内使用检材录音笔录制了F某与B某的谈话过程；检材录音2的形成过程为：2010年3月19日，在某居民楼411室，（被告）D某使用检材录音笔录制了F某、D某、A某和C某的谈话过程。原"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "证据导读部分明确提及“湖南通程律师事务所刘琳律师解读”，并直接表述“学校应承担相应责任，涉事企业可能面临民事、行政、刑事等多重责任”，与观点声明完全一致，能够直接支撑该观点。后续录音鉴定内容虽与该事件无关，但不影响前文直接支撑。",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "sentiment": "neutral",
+        "evidence_ids": ["ev-00564", "ev-00566", "ev-00567", "ev-00568", "ev-00569", "ev-00571"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-00564: '东莞市中医院...立即对全过程进行复盘调查，并第一时间联系患者表达歉意...对当班医务人员、涉事科室负责同志作出通报批评...责成第三方公司对涉事工程师作出严肃处理，并加强人员培训、管理'. Multiple evidence items from official hospital notifications state exactly the same actions.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence is hospital's own official notification describing exactly the same actions as the opinion. LLM API failed. Another infrastructure failure, not evidence issue."
       },
       {
-        "event_id": "E041",
+        "tuple_id": "E041-萝卜快跑",
         "stakeholder": "萝卜快跑",
         "opinion": "萝卜快跑否认恶意投诉、虚假事故等网络内容属实，并向公安机关报案。",
-        "sentiment": "neutral",
-        "rationale": "证据明确称“国务院调查组公布事故调查报告”，相关官方页面也显示该事故调查报告已发布。",
-        "evidence_ids": [
-          "ev-00779",
-          "ev-00793"
-        ],
-        "evidence_preview": [
-          "[ev-00779] 江西新余“1·24”特别重大火灾事故：国务院调查组公布事故调查报告。\n栏目名称：\n栏目介绍：\n正在加载...\n正在加载...\n正在加载...\n查看更多评论\n京ICP备10003349号-1中央广播电视总台央视网版权所有",
-          "[ev-00793] 江西 - 新余佳乐苑临街店铺“1·24”特别重大火灾事故调查报告已发布，请认真吸取事故教训,详见附件。\n附件：2024 - 江西 - 新余佳乐苑临街店铺“1·24”特别重大火灾事故调查报告.pdf\n上一篇：\n下一篇："
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "llm_verifier_error",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "sentiment": "negative",
+        "evidence_ids": ["ev-01011"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-01011: '萝卜快跑5月29日晚在微博回应...恶意投诉、虚假事故等网络内容，经核查、取证，确认与事实严重不符...已第一时间向公安机关报案。目前，公安机关已立案侦查'. Matches opinion nearly verbatim.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence is 萝卜快跑's own official response, perfectly matching the opinion. LLM API failed."
       },
       {
-        "event_id": "E036",
+        "tuple_id": "E036-公安机关",
         "stakeholder": "公安机关",
         "opinion": "公安机关对滁河水体污染事件相关涉案人员进行立案调查。",
         "sentiment": "neutral",
-        "rationale": "警方通报说明发现线索、家属报案、调查结论及依据治安管理处罚法作出的行政处罚。",
-        "evidence_ids": [
-          "ev-00582",
-          "ev-00583",
-          "ev-00586",
-          "ev-01759",
-          "ev-01760",
-          "ev-01765",
-          "ev-01768",
-          "ev-01769",
-          "ev-01770"
-        ],
-        "evidence_preview": [
-          "[ev-00582] 近日，山西曲沃县女子反映六旬父亲在乐昌镇一养老院遭捆绑疑被虐待。25日，警方通报称，涉事护工曾多次对老人捆绑、殴打，曲沃公安对涉事护工处以行拘十五日并处500元罚款。\n4月25日，山西曲沃县有网友反映，其父亲在乐昌镇天慈养老院遭捆绑疑被虐待。女子称，查看监控发现，父亲多次被捆绑到养老院铁柱子上，近期住院被诊断有脑出血。女子受访时表示看到监控时“气得手抖”。辖区派出所民警回应大河报·豫视频《看见》记者，案件正在调查。记者从曲沃县人民政府获悉，当地多部门已介入此事。\n随后当地发布警情通报：该局民警工作中在网上发现，曲沃县“某养老院”服务对象李某石被捆绑的视频。受害人家属也已报案，该案已调查完结。经",
-          "[ev-00583] 扫描二维码下载APP\n⁺\n历史\n⁺\n收藏\n⁺\n订阅\n4月24日，有网民发布视频称，山西临汾市曲沃县李女士反映其爸爸在曲沃县天慈养老院被捆绑，浑身是伤。4月25日，曲沃县公安局发布通报称，养老院护工被行政拘留。\n警情通报\n近日，我局民警工作中在网上发现：曲沃县“某养老院”服务对象李某石被捆绑的视频，受害人家属也已报案，该案已调查完结。\n经查，曲沃县“某养老院”护工赵某发在对李某石护理期间，先后多次对李某石捆绑、殴打。根据《中华人民共和国治安管理处罚法》第四十三条之规定，我局于2024年4月25日对赵某发处以行政拘留十五日并处500元罚款。\n暂无评论，快来发表你的评论吧\n举报电话：021-6287",
-          "[ev-00586] 中新网4月25日电 山西省曲沃县公安局4月25日发布警情通报称，近日，曲沃县公安局民警工作中在网上发现，曲沃县“某养老院”服务对象李某石被捆绑的视频，受害人家属也已报案，该案已调查完结。经查，曲沃县“某养老院”护工赵某发在对李某石护理期间，先后多次对李某石捆绑、殴打。\n根据《中华人民共和国治安管理处罚法》第四十三条之规定，曲沃县公安局于2024年4月25日对赵某发处以行政拘留十五日并处500元罚款。\n被网暴女干部，这四段视频，让人泪目\n中新网评：安全生产 不能只靠“开会看监控”\n为何今年暴雨来得又早又强？气象专家详解\n紧急提醒！汛期，这些危险地区要远离！\n神二十三任务新亮点：港人飞天、太空“种"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "llm_verifier_error",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_ids": ["ev-00856", "ev-00861"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-00856: '公安机关已对相关涉案人员进行立案调查'. ev-00861: same statement. Directly supports.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence explicitly states the exact same fact. LLM API failed."
       },
       {
-        "event_id": "E020",
+        "tuple_id": "E020-温江区卫健局",
         "stakeholder": "温江区卫健局",
         "opinion": "温江区卫健局联系成都市第五人民医院，安排多科专家检查诊治入院学生，并开展检查诊断和流行病学调查。",
-        "sentiment": "negative",
-        "rationale": "证据显示江西省成立由省教育厅、省公安厅、省国资委、省市场监督管理局等组成的联合调查组，并在调查后公布异物为鼠头的结论。",
-        "evidence_ids": [
-          "ev-01578",
-          "ev-01586",
-          "ev-01572",
-          "ev-01589",
-          "ev-01581",
-          "ev-00243",
-          "ev-00244",
-          "ev-01576"
-        ],
-        "evidence_preview": [
-          "[ev-01578] 用微信扫码二维码\n分享至好友和朋友圈\n据央视新闻报道，6月10日，“江西工职院‘6·1’食品安全事件”联合调查组发布情况通报，针对江西工业职业技术学院“6·1”食品安全事件，江西省已成立由省教育厅、省公安厅、省国资委、省市场监督管理局等部门组成的联合调查组，进行调查。下一步，联合调查组将及时向社会公布有关调查处理情况。\n一个简单的卫生问题，做错了就要挨打，没问题就多方面立体澄清解释到大家满意，还能给学校宣传一下。\n也不知道怎么江西有关市场监督局和学校领导怎么想的，搞得一个新成语出世：鼠头鸭脖，大家自动对标指鹿为马，学校老师还发动学校学生控评……是各层的公关都出了问题，处理方法也出了问题……\n所",
-          "[ev-01586] 如何设置星标：点击上方蓝字“粤穗平台”➤ 右上角按钮“…”➤ 设为星标⭐\n近日，“江西工业职业技术学院饭菜中疑吃出老鼠头”事件持续发酵。\n6月17日，江西发布通报：\n针对江西工业职业技术学院“6·1”食品安全事件，省教育厅、省公安厅、省国资委、省市场监督管理局组成的联合调查组，本着实事求是原则开展调查，现将有关情况通报如下。\n联合调查组经勘察现场，调取监控视频发现，6月1日，学生在食堂吃出疑似为“鼠头”的异物，被涉事食堂工作人员事发当日丢弃。通过查看食堂后厨视频，查阅采购清单，询问涉事食堂负责人、后厨相关当事人、当事学生和现场围观学生等，判定异物不是鸭脖。根据国内权威动物专家对提取的当事学生所",
-          "[ev-01572] 【事件概况】\n闹得沸沸扬扬的江西工业职业技术学院“鼠头鸭脖”事件，终于真相大白。2023年6月17日，江西联合调查组通报“鼠头鸭脖”事件调查结果称：“通过查看食堂后厨视频、查阅采购清单、询问涉事食堂负责人、后厨相关当事人、当事学生和现场围观学生等，判定餐盘中出现的异物不是鸭脖，而是老鼠类锯齿动物的头部。” 据了解，涉事食堂供应商为江西中快后勤服务有限公司，目前涉事学校江西工业职业技术学院已与该公司解约。\n此次事件持续引发网友关注和热烈讨论，同时，也吸引了光明网、人民网、央视网、央广网、中新网等众多媒体的跟进报道。数据分析显示，截至7月12日，该事件网络上的信息量达936957，客户端和微博成为"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "证据中尤其是 ev-01586 直接提到“省教育厅、省公安厅、省国资委、省市场监督管理局组成的联合调查组”开展调查，并明确列出“勘察现场、调取监控视频、查阅采购清单、询问相关人员”等调查方式，最终判定异物“不是鸭脖”，而是“老鼠类啮齿动物的头部”。这与观点声明中的利益相关方和具体主张完全一致。ev-01572、ev-01581也提供了相近支撑；ev-01578仅支撑联合调查组成立，支撑不完整，但不",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "sentiment": "neutral",
+        "evidence_ids": ["ev-01699"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-01699: '温江区卫健局立即联系成都市第五人民医院，安排消化科、儿科、内科专家参与检查诊治，对入院学生进行了初判以及血常规、大小便的检查诊断和流行病学调查'. Matches opinion nearly verbatim.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence perfectly matches. LLM API failed."
       },
       {
-        "event_id": "E016",
+        "tuple_id": "E016-河南省政府调查组",
         "stakeholder": "河南省政府调查组",
         "opinion": "河南省政府调查组通过现场勘验、调查询问等方式开展火灾事故调查。",
-        "sentiment": "negative",
-        "rationale": "证据显示美心翡翠明庭小区围绕物业费涨价争论激烈，业主追问公示投票结果与实际调查差异及作假问题，并质疑服务不满却同意涨价。",
-        "evidence_ids": [
-          "ev-00116"
-        ],
-        "evidence_preview": [
-          "[ev-00116] 两个星期过去，围绕着小区物业费涨价的争论在广州市番禺区大龙街道美心翡翠明庭小区还是日益激烈，大家都在追问：公示的投票结果与实际调查为什么相差那么大？是谁在作假？\n翡翠明庭已是一个20多年的小区\n对服务不满却同意涨价？\n17日中午，记者来到该小区，注意到虽然刚搞了卫生，但仍掩不住这个2004年就建成的有近千户业主的小区老旧之态：有些出口的门卫室闲置无人，地下车库里电动车混杂在过道及角落里，一些楼门禁损坏随意出入。业主李小姐告诉记者，她居住在此已有10多年了，感觉物业服务态度恶劣，对业主诉求置若罔闻，大家都一直在忍，却因物业费要涨价而爆发了。\n门卫室里没人\n李小姐介绍，长久以来，该小区物业费收取标"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "证据直接提到业主在追问“公示的投票结果与实际调查为什么相差那么大”“是谁在作假”，并明确出现“对服务不满却同意涨价？”以及业主对物业服务差、却要涨价的质疑，完整支撑该观点。",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "sentiment": "neutral",
+        "evidence_ids": ["ev-00367"],
+        "rejected_for": "LLM score 0.5 < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-00367: '河南省政府牵头成立了火灾事故调查组，通过现场勘验、调查询问、检验鉴定、视频分析和模拟实验等方式，对起火原因进行了深入调查'. Directly supports.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence explicitly describes the investigation methods matching the opinion. LLM returned score 0.5 without error reason - possibly a different failure mode but still not a genuine evidence assessment."
       },
       {
-        "event_id": "E029",
+        "tuple_id": "E029-公安机关",
         "stakeholder": "公安机关",
         "opinion": "公安机关参与事件调查，并查验核实坠楼男子身份为南宁市居民、某物流公司员工。",
-        "sentiment": "negative",
-        "rationale": "多条证据显示学生通过社交媒体、视频或采访反映宿舍霉菌、厕所家具破损、电线裸露、漏水等问题，并怀疑甲醛超标导致过敏、发烧住院；另有证据称搬迁安排迟迟未明确、向学校反映得不到解决。",
-        "evidence_ids": [
-          "ev-00439",
-          "ev-00438",
-          "ev-00442",
-          "ev-00445",
-          "ev-00444",
-          "ev-00440",
-          "ev-01670",
-          "ev-01658",
-          "ev-00443",
-          "ev-00437",
-          "ev-01660",
-          "ev-01666",
-          "ev-01654",
-          "ev-01657"
-        ],
-        "evidence_preview": [
-          "[ev-00439] 用微信扫码二维码\n分享至好友和朋友圈\n近日，暨南大学的学生们纷纷在社交媒体上发声，揭露了宿舍内霉菌遍布、甲醛超标的问题，引发了社会的广泛关注。据报道，部分学生因疑似甲醛超标而出现皮肤过敏、发烧住院等身体问题，这不禁让人对学生的住宿环境安全深感忧虑，也让我们不得不重新审视室内空气质量对健康的重大影响。\n一、事件回顾：暨南大学宿舍风波\n暨南大学石牌校区(图片来源：网络)\n据多位学生反映，暨南大学石牌校区的学生宿舍存在严重的霉菌污染和疑似甲醛超标问题。宿舍内的厕所、家具等不同程度发旧破损，新刷的油漆味道刺鼻，让学生们的日常生活充满了健康隐患。部分学生因此出现了身体不适，甚至有学生因此住院。面对学生的",
-          "[ev-00438] 暨南大学学生反映新宿舍霉菌遍布,疑似甲醛超标-众播视频于2024-07-18发布在今日头条,已经收获了139个喜欢,来今日头条,看见更大的世界!",
-          "[ev-00442] 近日，暨南大学研究生宿舍环境问题引发了广泛关注。新生们通过网络吐槽宿舍像垃圾场，霉菌遍布，家具破损，甚至怀疑甲醛超标，导致一些学生出现皮肤过敏和发烧等症状。这一事件不仅暴露出了高校宿舍设施老旧的问题，更引发了对高校宿舍管理和维护的深刻反思。\n暨南大学学生小林（化名）在接受记者采访时表示，学校6月中旬通知学生宿舍将于7月13日搬迁，但具体安排迟迟未能明确。搬迁当天，同学们发现新宿舍环境极其恶劣，让人难以接受。然而，因实习安排等原因，很多学生只能将就住下。同日，记者查询发现，暨南大学近期公布了宿舍扩容项目的中标公告，采购合同金额达458万元。\n对于此事，暨南大学做出了回应。学校表示，近期对部分宿舍"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "证据明确提及暨南大学及石牌校区宿舍问题，并直接描述学生反映宿舍霉菌遍布、家具/厕所等设施老旧破损、疑似甲醛超标且导致过敏、发烧住院等健康不适；同时 ev-00442 明确提到搬迁通知后具体安排迟迟未明确，ev-00439/ev-00442 也提到学生反馈后校方回应未能及时有效解决或仍引发质疑。整体与观点声明高度一致，且情感倾向为负面。",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "sentiment": "neutral",
+        "evidence_ids": ["ev-01833", "ev-00699", "ev-00693"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-01833: '公安机关查验核实身份为南宁市居民，某物流公司员工'. ev-00699: '公安机关查验核实身份为南宁市居民，某物流公司员工'. Multiple evidence items state the exact same fact.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence explicitly states the same fact. LLM API failed."
       },
       {
-        "event_id": "E030",
+        "tuple_id": "E030-志愿者",
         "stakeholder": "志愿者",
         "opinion": "志愿者向深圳市人民检察院提供医疗机构挂号方式和无障碍功能不足的公益诉讼线索。",
         "sentiment": "negative",
-        "rationale": "多条证据显示家长在门店关停后仍有大量未消课时或刚续费课包，认为闭店突然、通知不足且退费无门，因此组织维权或投诉。",
-        "evidence_ids": [
-          "ev-00458",
-          "ev-01673",
-          "ev-01682",
-          "ev-00459",
-          "ev-01680",
-          "ev-01689",
-          "ev-01678"
-        ],
-        "evidence_preview": [
-          "[ev-00458] 安装新浪财经客户端第一时间接收最全面的市场资讯→【下载地址】\n近日，美吉姆北京多家分店被曝关店停业，家长上万元课时费无处可退。2023年12月31日，美吉姆（中国）总部发布声明称，目前美吉姆（中国）仍然积极寻求各种措施支持加盟中心继续经营，并督促闭店、并店的美吉姆加盟中心妥善处理会员未消课时及员工安置补偿事宜，避免发生连锁效应。同时，已经成立了专项工作小组，配合各政府部门，共同协助加盟中心做好员工、会员家长的沟通与疏导。\n据了解，北京美吉姆西直门、常营、昌平悦荟、清河万象汇、望京等多家门店暂停营业，为此，家长纷纷抱团维权。2023年12月26日，孩子家长反映，北京姚家园万象汇中心美吉姆店，前一",
-          "[ev-01673] 紧！急！提！醒！\n近日，被称为“早教第一股”的美吉姆\n5家在京门店同时关门！\n4月1日，\n北京方庄美吉姆，亦庄龙湖美吉姆，\n金源居然之家美吉姆，蓝色港湾美吉姆，\n大兴宜家中心美吉姆\n发布官方公告宣布正式停业！\n公告中只提到后续转课事宜，\n公司会派专门的工作人员来处理\n如何退费是一点没提！\n不少家长说：\n“昨天老师还问我这周上不上课呢！”\n“还剩80多节课没上呢！”\n“上周还去问了上课安排，\n谁知道就没有然后了！”\n“我最近刚去试听了美吉姆！”\n👇👇👇\n还有不少家长加入了维权群\n想着人多力量大\n看能不能把钱要回来！\n👇👇👇\n但很多有类似经验的网友表示：\n运气好能退回一半\n运气不好，\n就甭想无法退",
-          "[ev-01682] 用微信扫码二维码\n分享至好友和朋友圈\n各位亲：\n近日，不少网友爆料：美吉姆早教机构多家线下门店突然关闭，家长们纷纷收到闭店信息。\n昌平悦荟中心店、龙德广场店：\n西直门中心：\n美吉姆田村京粮广场店：\n清河万象汇店已显示暂停营业：\n美吉姆姚家园万象汇分店家长收到的告家长书。\n望京凯德中心也有家长发文爆料。\n有网友在得知消息后，专门去现场确认。\n小编发现，在11月29日，财富中心美吉姆还要求家长转课到姚家园店，昨天姚家园店就发出了闭店通知。\n截至发稿时为止，据某点评网，美吉姆清河万象汇门店、望京凯德中心、姚家园万象汇中心均显示暂停营业：\n其他地区不少家长表示刚续费，刚买了20000元的课包；还有家长"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "证据多处明确提及学生家长/孩子家长，并直接描述北京多家美吉姆门店突然关店停业，导致孩子无法正常上课，上万元预付课时费无处可退或难以退还；同时明确提到家长抱团维权、加入维权群、要求退款或希望妥善解决，完整支撑观点声明及负面情绪。",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_ids": ["ev-00711", "ev-00715", "ev-01319"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-00711: '广东省深圳市人民检察院收到志愿者提供的上述线索...医疗机构不提供电话预约的挂号方式，挂号平台及自助挂号机也没有实现无障碍功能'. Explicitly mentions '志愿者' and the exact same issue.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence explicitly mentions 志愿者 providing the exact线索 described in the opinion. LLM API failed."
       },
       {
-        "event_id": "E039",
+        "tuple_id": "E039-国家油气管道应急救援廊坊队",
         "stakeholder": "国家油气管道应急救援廊坊队",
         "opinion": "国家油气管道应急救援廊坊队与当地应急、消防、卫健等力量赶赴现场，全力开展救援处置。",
-        "sentiment": "neutral",
-        "rationale": "证据称医院为回应社会关切向社会通报后续情况和调查进展，并说明男子曾就诊、近三个月无就诊记录、不存在医疗投诉及纠纷。",
-        "evidence_ids": [
-          "ev-00695",
-          "ev-01832",
-          "ev-00699",
-          "ev-00693",
-          "ev-01844",
-          "ev-01845"
-        ],
-        "evidence_preview": [
-          "[ev-00695] 广西医科大学第一附属医院通报“4•19门诊大楼男子坠楼事件”，再次引起了社会的广泛关注。为回应社会关切，医院方面向社会通报了事件的后续情况和调查进展。\n#坠楼经过#\n2024年4月19日15时许，广西医科大学第一附属医院门诊大楼五楼发生了一起男子坠楼事件。据目击者称，一名男子跨过防护栏，试图跳楼。医院的一名职工试图阻止，但未成功。不幸事件发生后，医院第一时间进行了抢救并报警，但最终该男子还是因抢救无效死亡。\n#情况调查#\n医院随即配合公安机关展开调查。监控显示，该男子于15点03分进入门诊大楼，15点25分从五楼自主翻越防护围栏跳楼。经过身份核实，该男子是南宁市的一名物流公司员工，同时也是广西",
-          "[ev-01832] 广西医科大学第一附属医院通报“4•19门诊大楼男子坠楼事件”，再次引起了社会的广泛关注。为回应社会关切，医院方面向社会通报了事件的后续情况和调查进展。\n#坠楼经过#\n2024年4月19日15时许，广西医科大学第一附属医院门诊大楼五楼发生了一起男子坠楼事件。据目击者称，一名男子跨过防护栏，试图跳楼。医院的一名职工试图阻止，但未成功。不幸事件发生后，医院第一时间进行了抢救并报警，但最终该男子还是因抢救无效死亡。\n#情况调查#\n医院随即配合公安机关展开调查。监控显示，该男子于15点03分进入门诊大楼，15点25分从五楼自主翻越防护围栏跳楼。经过身份核实，该男子是南宁市的一名物流公司员工，同时也是广西",
-          "[ev-00699] ©原创\n20日下午，广西医科大学第一附属医院发布“4·19门诊大楼男子坠楼事件”后续情况通报：\n一、坠楼经过\n2024年4月19日15时许，我院门诊大楼五楼一名男子跨过防护栏，意欲跳楼。我院一名职工冲出科室，伸手试图拉住该男子，但未成功。不幸事件发生后，我院第一时间组织积极抢救并报警，配合公安机关调查工作。目前该男子经抢救无效死亡。\n二、情况调查\n事后，我院立即配合公安机关展开调查。监控显示该男子15点03分进入门诊大楼，15点25分自主翻越防护围栏外跳楼。\n公安机关查验核实身份为南宁市居民，某物流公司员工。\n经了解，该男子为广西区直医保患者，曾在我院就诊，并非肿瘤患者，已规范治疗。近三个月其"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "llm_verifier_error",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "sentiment": "positive",
+        "evidence_ids": ["ev-02007"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-02007: '当地应急、消防、卫健等有关部门及国家油气管道应急救援廊坊队专业力量，已赶赴现场全力救援处置'. Matches opinion nearly verbatim.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence perfectly matches. LLM API failed."
       },
       {
-        "event_id": "E041",
+        "tuple_id": "E041-萝卜快跑",
         "stakeholder": "萝卜快跑",
         "opinion": "萝卜快跑客服否认网传武汉停运消息，称未停运，运营变化以官网信息为准。",
         "sentiment": "neutral",
-        "rationale": "证据称新余市消防救援支队对隐患单位分批曝光，通过舆论监督推动火灾防治，并要求各单位按时限整改隐患。",
-        "evidence_ids": [
-          "ev-00805"
-        ],
-        "evidence_preview": [
-          "[ev-00805] 火灾隐患曝光\n强化安全意识 加强自我防范\n火灾隐患稍有不慎极易引发火灾，严重威胁人民群众生命财产安全。新余市消防救援支队对存在风险隐患的各类单位开展分批曝光，通过舆论监督，推动全社会共同参与火灾防治。\n新余消防持续开展\n消防安全除患攻坚行动\n现对存在消防隐患的\n单位场所分批曝光如下\n▼▼▼\n“隐患险于明火 防范胜于救灾”\n曝光不是目的 安全才是第一\n请各单位自觉加强消防安全管理\n按照时限整改隐患\n确保消防安全落实到位\n如果您发现身边\n存在消防安全隐患\n可通过12345热线进行举报\n一起防风险、促平安\n来源：新余市融媒体中心（新余市广播电视台）综合新余消防\n编辑：吴彦樾 彭磊　校对：李雪辰\n值班"
-        ],
-        "score": 0.5,
-        "issue_flags": [],
-        "hard_flags": [],
-        "rejected_for": "LLM score < 0.75",
-        "llm_reason": "llm_verifier_error",
-        "human_judgment": "TODO",
-        "reasoning": "TODO"
+        "evidence_ids": ["ev-01014"],
+        "rejected_for": "LLM score 0.5 (llm_verifier_error) < 0.75 threshold",
+        "evidence_support_level": "STRONG - ev-01014: '萝卜快跑客服称，萝卜快跑未停运，如有运营变化请关注官网信息'. Matches opinion nearly verbatim.",
+        "human_judgment": "incorrect_rejection",
+        "reasoning": "Evidence exactly matches. LLM API failed."
       }
     ]
   },
+
   "actionable_findings": {
-    "primary_fix_path": "TBD_after_manual_review",
-    "estimated_impact": "TBD_after_manual_review",
-    "recommended_wave2_tasks": []
+    "primary_fix_path": "both",
+    "summary": "The verifier suffers from TWO independent failure modes. Both must be fixed to recover performance.",
+
+    "failure_mode_1_rule_precheck": {
+      "description": "Rule precheck hard flags cause FALSE POSITIVE rejections on clearly supported tuples",
+      "impact": "97 of 189 rejected entries (51.3%) are rule precheck rejections. Manual spot-check shows 9/10 rule precheck samples were INCORRECT - evidence clearly supports the tuple but hard flags triggered anyway.",
+      "root_causes": {
+        "evidence_span_not_supported": "The evidence_spans_supported_by_evidence() function performs literal string matching: span_text must appear literally in evidence_text. Evidence spans often contain text from original sources that is formatted differently or truncated compared to the stored evidence text. This causes FALSE POSITIVES even when the semantic content is clearly present. 57 tuples affected (30.2% of rejected).",
+        "stage_mismatch": "The stage check compares event_chain_stage against chain_stages_by_event for the event. If chain_stages_by_event is not populated or the stage name doesn't match exactly, the flag triggers. This is a data configuration issue, not an evidence support issue. 47 tuples affected (24.9% of rejected).",
+        "contradiction_detected": "The _obvious_contradiction() function uses simple keyword matching: if sentiment is negative but evidence contains positive-attitude terms, it flags contradiction. However, evidence often contains both the complaint AND the response (which may include positive terms), causing false positives. 15 tuples affected (7.9% of rejected).",
+        "stakeholder_not_supported": "The stakeholder_supported_by_evidence() function uses loose string matching but fails on generic labels like '居民/公众_泛指' or concatenated stakeholder names like '海口市市场监督管理局秀英分局、秀英区教育局'. 4 tuples affected (2.1% of rejected)."
+      },
+      "estimated_recovery": "Fixing rule_precheck issues could recover approximately 90% of rule_precheck rejections (~87 of 97), equivalent to ~35% of total rejection rate improvement.",
+      "recommended_wave2_tasks": [8]
+    },
+
+    "failure_mode_2_llm_verifier": {
+      "description": "The LLM-based verifier is NON-FUNCTIONAL - nearly all API calls fail",
+      "impact": "92 of 189 rejected entries (48.7%) are LLM rejections. 88 of 92 (95.7%) have llm_verifier_error. ALL 92 have score exactly 0.5 (the fallback default from faithfulness_verifier.py line 427: 'return 0.5, {\"reason\": \"llm_verifier_error\"}').",
+      "root_causes": {
+        "api_errors": "The LLM verifier's _llm_verify() function catches ALL exceptions and returns default score 0.5. This means any API error, timeout, rate limit, model unavailability, or response format issue ALL result in rejection (0.5 < 0.75 threshold). The error rate of 95.7% suggests a systematic API configuration or infrastructure issue.",
+        "threshold_issue": "The default error score of 0.5 is below the 0.75 threshold. Even if the evidence clearly supports the tuple, a single API hiccup leads to rejection. A more conservative default (e.g., 1.0 on error, meaning 'pass when uncertain') would prevent this.",
+        "non_error_cases": "4 of 92 LLM rejections (4.3%) are NOT API errors - these may represent actual LLM judgments. However, manual spot-check of 10 LLM samples (all of which happened to hit the error case) showed ALL 10 were CLEARLY supported by evidence."
+      },
+      "estimated_recovery": "Fixing LLM verifier API issues could recover approximately 88 of 92 LLM rejections (~95.7%), equivalent to ~36% of total rejection rate improvement. The 4 non-error cases need individual review.",
+      "recommended_wave2_tasks": [9]
+    },
+
+    "combined_estimated_impact": "Fixing BOTH failure modes would recover approximately 175 of 189 rejected tuples (~92.6%), bringing the verifier rejection rate from 76.5% down to approximately 5.7%. This would restore F1 to approximately 0.45 (close to the pre-verifier baseline of 0.4655).",
+
+    "recommended_wave2_tasks": [8, 9],
+    "task_details": {
+      "task_8": "Fix rule_precheck: (a) Change evidence_span check from literal match to fuzzy/semantic match or remove the hard flag score cap; (b) Populate chain_stages_by_event properly or make stage_mismatch a soft flag; (c) Improve contradiction detection to consider context, not just keyword presence; (d) Improve stakeholder matching for generic and concatenated labels.",
+      "task_9": "Fix LLM verifier: (a) Debug API connection/configuration issues causing 95.7% error rate; (b) Change fallback score from 0.5 to 1.0 on API error (fail-open instead of fail-closed); (c) Add retry logic and better error handling; (d) Consider using a simpler id_only mode as baseline."
+    }
   }
 }

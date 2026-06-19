@@ -1,0 +1,35 @@
+Task 6: Fix GENERAL_TOPIC_TERMS to merge all 6 domains
+=======================================================
+
+Date: 2026-06-17
+
+Bug:
+Line 44: GENERIC_TOPIC_TERMS = URBAN_RENEWAL_GENERIC_TOPIC_TERMS
+This only aliased urban_renewal domain terms (10 terms), ignoring the other 5 domains.
+
+Fix:
+Line 44: GENERIC_TOPIC_TERMS = set().union(*DOMAIN_GENERIC_TOPIC_TERMS.values())
+Merges all 6 domain term sets into a single deduplicated set.
+
+Domain term breakdown:
+  urban_renewal:       10 terms
+  education:            7 terms
+  healthcare:           8 terms
+  public_safety:        6 terms
+  urban_mobility:       6 terms
+  digital_governance:   6 terms
+  ---------------------------------
+  Total (deduplicated): 43 unique terms
+
+Before (urban_renewal only):      10 terms
+After  (all 6 domains merged):    43 terms
+Improvement:                      4.3x coverage
+
+Combined > 2x urban_renewal:      True (43 > 20)
+
+Test results: 15/15 passed in test_event_chain_retriever.py
+Full suite:   402 passed, 2 failed (2 pre-existing failures in test_script_entrypoints.py - unrelated)
+
+Files modified:
+  - src/episoa/retrieval/event_chain_retriever.py (line 44)
+  - tests/test_event_chain_retriever.py (new test: test_general_topic_terms_covers_all_domains)

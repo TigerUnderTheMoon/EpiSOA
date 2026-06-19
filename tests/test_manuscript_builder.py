@@ -181,6 +181,20 @@ def test_main_metrics_are_loaded_from_formal_artifact(tmp_path):
     assert metrics["Tuple-F1-exact"] == 0.08
 
 
+def test_legacy_manuscript_auxiliary_outputs_are_removed(tmp_path):
+    builder = importlib.import_module("scripts.build_episoa_manuscript")
+    for name in builder.LEGACY_AUXILIARY_OUTPUTS:
+        (tmp_path / name).write_text("stale 0.7337 strict-char", encoding="utf-8")
+    current = tmp_path / "episoa_full_draft.docx"
+    current.write_text("current", encoding="utf-8")
+
+    removed = builder.remove_legacy_auxiliary_outputs(tmp_path)
+
+    assert sorted(path.name for path in removed) == sorted(builder.LEGACY_AUXILIARY_OUTPUTS)
+    assert current.exists()
+    assert not any((tmp_path / name).exists() for name in builder.LEGACY_AUXILIARY_OUTPUTS)
+
+
 def test_failure_reason_counts_are_loaded_from_failure_audit(tmp_path):
     builder = importlib.import_module("scripts.build_episoa_manuscript")
     run_dir = tmp_path / "runs"

@@ -1,0 +1,25 @@
+{
+  "active_plan": "D:/Workplace/EpiSOA/.omo/plans/episoa-remediation.md",
+  "started_at": "2026-06-17T14:40:00Z",
+  "session_ids": ["ses_current"],
+  "plan_name": "episoa-remediation",
+  "worktree_path": null,
+  "current_wave": "FINAL",
+  "total_waves": 5,
+  "wave_status": {
+    "wave_1": "completed",
+    "wave_2": "completed",
+    "wave_3": "completed",
+    "wave_4": "completed",
+    "wave_final": "completed"
+  },
+  "tasks_completed": 24,
+  "tasks_total": 28,
+  "deferred_items": [
+    "oracle_evidence selector mode bug (0 tuples) - documented as known limitation",
+    "full_soe_high_recall API 522 failures - documented as known limitation",
+    "held-out test set has 9 events (plan requested >=10)",
+    "full_soe vs without_verifier statistically significant (p<0.0001) - honestly disclosed in Limitations section"
+  ],
+  "notes": "Wave FINAL complete. 6/7 Must Have pass, 8/8 Must NOT Have pass. Conditional PASS with honest limitations. Awaiting user okay."
+}

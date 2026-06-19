@@ -1,0 +1,49 @@
+=== TASK 5: Held-Out Gold Test Set - Evidence File ===
+Created: 2026-06-17
+
+=== VALIDATION SUMMARY ===
+Split distribution: train=31, dev=9, test=10
+Train / Test overlap: EMPTY (confirmed)
+All 50 events accounted for: YES
+All test events have gold labels: YES
+All test events have held_out=True: YES
+Gold tuples in held-out test set: 34
+
+=== HELD-OUT TEST SET (10 events) ===
+E005 (urban_renewal, 2 gold tuples)
+E009 (urban_renewal, 4 gold tuples)
+E013 (education, 3 gold tuples)
+E020 (education, 4 gold tuples)
+E029 (healthcare, 2 gold tuples)
+E026 (healthcare, 5 gold tuples)
+E036 (public_safety, 3 gold tuples)
+E034 (public_safety, 3 gold tuples)
+E045 (urban_mobility, 4 gold tuples)
+E050 (digital_governance, 4 gold tuples)
+
+=== DOMAIN DISTRIBUTION ===
+urban_renewal: 2
+education: 2
+healthcare: 2
+public_safety: 2
+urban_mobility: 1
+digital_governance: 1
+
+=== OLD TEST EVENTS CONVERTED TO DEV ===
+E002 (was test→dev, no gold, urban_renewal)
+E008 (was test→dev, no gold, urban_renewal)
+E016 (was test→dev, no gold, education)
+E018 (was test→dev, no gold, education)
+E041 (was test→dev, no gold, urban_mobility)
+
+=== FILES MODIFIED/CREATED ===
+1. data/pubevent_soa_lite/events.jsonl - updated split/held_out fields
+2. configs/paper_with_heldout.yaml - new config with held-out run_id
+3. heldout_test_events.json - selection rationale manifest
+4. .omo/evidence/task-5-heldout-gold-overlap.txt - this file
+
+=== NOT MODIFIED ===
+- human_gold_tuples_v2.jsonl (FROZEN per G3)
+- human_gold_event_chains_v2.jsonl (FROZEN per G3)
+- evidence files
+- LLM model parameters

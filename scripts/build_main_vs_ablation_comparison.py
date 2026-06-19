@@ -21,6 +21,8 @@ OUTPUT_METRICS = (
     "Num-Tuples",
     "Num-Tuples-All",
     "Tuple-F1-soft",
+    "Tuple-F1-char@0.5",
+    "Tuple-F1-exact",
     "Tuple-Precision",
     "Tuple-Recall",
     "Tuple-F1-semantic@0.25",

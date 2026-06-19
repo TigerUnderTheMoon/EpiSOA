@@ -1,0 +1,12 @@
+=== P0 [Normal] ===
+公共事件利益相关者观点证据链归因方法
+
+=== P4 [Normal] ===
+摘要：[目的]公共事件中利益相关方观点分散于多源异构证据之中，难以系统归因与追溯。本文定义证据链驱动的利益相关者观点归因任务，输出<事件, 利益相关者, 观点, 情感, 理由, 事件链, 证据ID>结构化元组。[方法]提出EpiSOA框架，整合事件注册、C-FSM证据采集、证据规范化、LLM预标注与三人独立人工裁定、事件链检索、覆盖优化证据选择、利益相关者规范化归因和分解式忠实性验证。[结果]在human_gold_v2数据集（50个事件、174条gold元组）上，完整EpiSOA（full_soe）语义F1@0.3=0.391，精确率0.610，召回率0.287，产出82条元组；去除验证器上界F1@0.3=0.637（209条元组）。人工裁定采用三位专家逐条审核，未提供内容级kappa系数。[局限]精确匹配F1=0.000；仅支持中文公开证据；事件规模50个；验证器存在精确率-召回率权衡；事件链检索依赖规则方法。[结论]EpiSOA为公共事件提供了可审计的证据链驱动知识发现框架，覆盖优化选择、利益相关者规范化归因与分解式验证机制为利益相关者分析提供了结构化基准。
+
+=== P9 [Normal] ===
+EpiSOA: Evidence-Chain-Driven Stakeholder Opinion Attribution for Public Events
+
+=== P12 [Normal] ===
+Abstract: [Objective] Stakeholder opinions in public events are dispersed across heterogeneous evidence sources, posing challenges for systematic attribution and traceability. This study defines evidence-chain-driven stakeholder opinion attribution and formalizes the output as structured tuples <Event, Stakeholder, Opinion, Sentiment, Rationale, EventChain, EvidenceIDs>. [Methods] We propose EpiSOA, an auditable framework integrating event registry construction, C-FSM evidence collection, evidence normalization, LLM-assisted silver preannotation with three-way independent human adjudication, event-chain retrieval, coverage-optimized evidence selection, stakeholder-canonical schema attribution, and decomposed faithfulness verification. [Results] On the human_gold_v2 dataset (50 events, 174 gold tuples), the full EpiSOA (full_soe) achieves semantic F1@0.3=0.391, precision=0.610, and recall=0.287, producing 82 tuples. The without-verifier upper bound reaches F1@0.3=0.637 (209 tuples). Human adjudication employed three-expert per-item review without content-level kappa reporting. [Limitations] Exact-match F1 remains at 0.000. The system supports only Chinese-language public evidence. The dataset is limited to 50 events. The verifier exhibits a precision-recall trade-off. Event-chain retrieval relies on rule-based methods. [Conclusions] EpiSOA provides an auditable evidence-chain-driven knowledge discovery framework for public events. Its coverage-optimized selection, stakeholder-canonical attribution, and decomposed verification mechanisms establish a structured benchmark for stakeholder analysis and reproducible research.
+

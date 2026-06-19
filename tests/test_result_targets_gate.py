@@ -34,6 +34,20 @@ def test_stage_guard_passes_for_complete_full_soe_improvement(tmp_path: Path) ->
     assert result["comparisons"]["full_soe_vs_without_soe_graph"]["Tuple-F1-semantic@0.3_delta"] == 0.06
 
 
+def test_stage_guard_uses_semantic_05_for_no_graph_win_gate(tmp_path: Path) -> None:
+    runs_dir = tmp_path / "runs"
+    write_setting(runs_dir, "full_soe", f1_03=0.76, f1_05=0.70)
+    write_setting(runs_dir, "without_soe_graph", f1_03=0.70, f1_05=0.70)
+
+    result = run_gate(runs_dir=runs_dir, mode="stage-guard")
+
+    assert result["status"] == "failed"
+    assert any(
+        "Tuple-F1-semantic@0.5" in issue and "without_soe_graph" in issue
+        for issue in result["issues"]
+    )
+
+
 def test_final_gate_requires_main_targets_and_non_oracle_ablation_lead(tmp_path: Path) -> None:
     runs_dir = tmp_path / "runs"
     main_dir = runs_dir / "main"
@@ -62,6 +76,32 @@ def test_final_gate_requires_main_targets_and_non_oracle_ablation_lead(tmp_path:
 
     assert result["status"] == "passed"
     assert result["ignored_settings_for_best_check"] == ["oracle_evidence"]
+
+
+def test_final_gate_accepts_lower_nonzero_semantic_05_after_metric_policy_change(tmp_path: Path) -> None:
+    runs_dir = tmp_path / "runs"
+    main_dir = runs_dir / "main"
+    main_dir.mkdir(parents=True)
+    write_json(
+        main_dir / "metrics.json",
+        {
+            "Metric-Scope": "gold_event_scope",
+            "Tuple-F1-semantic": 0.1468,
+            "Tuple-Precision-semantic": 0.3636,
+            "Tuple-Recall-semantic": 0.092,
+            "Tuple-F1-semantic@0.5": 0.1468,
+        },
+    )
+    write_setting(runs_dir, "full_soe", f1_03=0.2385, f1_05=0.1468, f1_025=0.2477)
+    write_setting(runs_dir, "direct_llm", f1_03=0.05, f1_05=0.04, f1_025=0.06)
+    write_json(
+        runs_dir / "ablation_summary.json",
+        {"status": "completed", "settings": ["full_soe", "direct_llm"]},
+    )
+
+    result = run_gate(runs_dir=runs_dir, mode="final", main_dir=main_dir)
+
+    assert result["status"] == "passed"
 
 
 def test_final_gate_fails_when_non_oracle_variant_matches_main(tmp_path: Path) -> None:

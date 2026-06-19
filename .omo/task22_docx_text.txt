@@ -1,0 +1,15 @@
+=== P0 [Normal] ===
+EpiSOA：一种面向公共事件的证据链驱动利益相关者观点归因方法研究
+
+=== P4 [Normal] ===
+摘要：[目的]针对公共事件证据分散、主体诉求难追溯问题，提出证据链驱动归因框架。[方法]整合事件注册、C-FSM采集、人工gold、事件链检索、覆盖选择、主体规范化归因和分解式验证。[结果]human_gold_v2上语义F1=0.1468，P=0.3636，R=0.0920，ESR=1.0。[局限]char@0.5=0.0550，exact=0.0000；direct LLM可作为有效baseline对照。[结论]EpiSOA适用于可审计公共事件知识发现。
+
+=== P5 [Normal] ===
+关键词：公共事件；利益相关者；观点归因；证据链；知识发现；大语言模型
+
+=== P9 [Normal] ===
+EpiSOA: An Evidence-Chain-Driven Stakeholder Opinion Attribution Method for Public Events
+
+=== P12 [Normal] ===
+Abstract: [Objective] This study defines and investigates evidence-grounded stakeholder opinion attribution for public events. [Methods] We design EpiSOA, an auditable pipeline covering event registry construction, public evidence collection, normalization, LLM-assisted silver preannotation, human adjudication, event-chain retrieval, coverage-optimized evidence selection, stakeholder-canonical schema attribution, and decomposed faithfulness verification. [Results] On the formal human_gold_v2 artifacts, the main run achieves a semantic Tuple-F1 of 0.1468, precision of 0.3636, and recall of 0.0920. [Conclusions] EpiSOA is best positioned as an evidence-chain-driven knowledge discovery framework for auditable public-event analysis rather than as a pure algorithmic SOTA claim; its current limitations are strict character-level matching, high-threshold semantic matching, and the direct LLM setting is now reported as a valid baseline artifact.
+
