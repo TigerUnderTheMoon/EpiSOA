@@ -1,0 +1,1 @@
+﻿Task 25: IAA/Limitations already honest in docx (Para 87-88 downgrades kappa=1.0, Para 91 acknowledges verifier trade-off, Para 92 lists future work). No changes needed - already compliant.

@@ -1,0 +1,1 @@
+﻿Task 30: Data availability statement updated at paragraph 94. Now includes ScienceDB URL (https://www.scidb.cn/surl/dakd), lists package contents (event registry, evidence metadata, gold tuples/chains, configs, schema, checksums), and excludes (full text, login content, raw LLM responses, personal info).
