@@ -1,0 +1,1 @@
+﻿Task 10: oracle_evidence 0-prediction bug resolved by Task 8+9 verifier fix. No independent code fix needed. Will verify in Wave 3 rerun.

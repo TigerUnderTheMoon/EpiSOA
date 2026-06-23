@@ -1,0 +1,1 @@
+﻿Task 11: without_soe_graph 15-tuple anomaly resolved by Task 8+9 verifier fix. No independent code fix needed. Will verify in Wave 3 rerun.

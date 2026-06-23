@@ -1,0 +1,1 @@
+﻿Task 14: 7 integration tests PASS (all-pass, all-reject, LLM error, threshold boundary, empty predictions, missing evidence, id_only mode). Uses @pytest.mark.integration marker. Run with: python -m pytest tests/test_verifier_integration_v2.py -m integration

@@ -1,0 +1,1 @@
+﻿Task 13: config consistency verified. paper.yaml and ablation.yaml now identical (except mode and settings list). Both have verifier.mode=decomposed, threshold=0.45, no api_key/base_url empty values. Cache pollution was root cause (already cleared in Task 7). No code changes needed.
