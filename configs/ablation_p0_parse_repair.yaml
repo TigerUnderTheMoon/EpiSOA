@@ -39,4 +39,4 @@ search:
 retrieval:
   top_k: 5
 verifier:
-  threshold: 0.75
+  threshold: 0.45

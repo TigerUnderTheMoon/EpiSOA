@@ -219,7 +219,7 @@ def _write_prompt_manifest(setting_dir: Path, config, flags: dict | None = None)
         "max_rationale_chars": MAX_RATIONALE_CHARS,
         "allowed_sentiment": sorted(ALLOWED_SENTIMENT),
         "allowed_support": sorted(ALLOWED_SUPPORT),
-        "verifier_threshold": float(config.verifier.get("threshold", 0.75)),
+        "verifier_threshold": float(config.verifier.get("threshold", 0.45)),
         "verifier_mode": flags.get("verifier_mode", config.verifier.get("mode", "decomposed")),
         "evidence_selector_mode": flags.get("selector_mode", (config.ablation.get("evidence_selector", {}) or {}).get("mode", "chain_aware")),
         "max_evidence_per_event": int(flags.get("max_evidence_per_event", config.ablation.get("max_evidence_per_event", 12))),
@@ -587,7 +587,7 @@ def _run_core_pipeline(
         verified_all = verify_tuples(
             candidates,
             collected,
-            float(config.verifier.get("threshold", 0.75)),
+            float(config.verifier.get("threshold", 0.45)),
             llm_client=llm_client,
             mode=verifier_mode,
             cache_dir=cache_dir,

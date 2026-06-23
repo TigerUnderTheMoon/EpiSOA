@@ -40,7 +40,7 @@ search:
 retrieval:
   top_k: 5
 verifier:
-  threshold: 0.75
+  threshold: 0.45
 probe:
   output_dir: outputs/model_probe
   max_evidence_per_event: 20

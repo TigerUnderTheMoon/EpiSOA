@@ -530,7 +530,7 @@ VERIFIER_USER = """利益相关方：{stakeholder}
 证据列表：
 {evidence_texts}
 
-== 宽松验证指引（当前验证阈值已从0.75降低为0.40） ==
+== 宽松验证指引（当前验证阈值已从0.75降低为0.45） ==
 1. 利益相关者名称允许简称和近似表达：如"广州市白云区政府" ≈ "白云区政府" ≈ "广州市政府"，只要可合理推断为同一主体即可判定为支持
 2. 观点允许同义改写：核心意思一致即可判定为支持，无需逐字对应。例如"反对涨价" ≈ "不满物业费调整"、"印发补偿方案" ≈ "发布征收标准"
 3. 证据片段支持度从宽判断：只要证据涉及观点的核心内容，即使表述不完全一致也应判定为部分支持（score ≥ 0.5）
@@ -594,11 +594,11 @@ def _llm_verify(
         return score, parsed
     except Exception:
         # LLM error fallback: return a neutral score (0.6) instead of 0.5.
-        # 0.6 is above the recommended threshold (0.45) and below the config
-        # threshold (0.75), so the tuple is NOT rejected solely due to LLM
-        # infrastructure errors. The rule_precheck result (already computed
-        # before this call) determines the final verdict via _apply_hard_flag_score_cap.
-        # This prevents mass rejection when LLM API has transient failures
-        # (network timeout, rate limit, JSON parse errors).
+        # 0.6 is above the unified verifier threshold (0.45), so the tuple
+        # is NOT rejected solely due to LLM infrastructure errors. The
+        # rule_precheck result (already computed before this call) determines
+        # the final verdict via _apply_hard_flag_score_cap. This prevents
+        # mass rejection when LLM API has transient failures (network
+        # timeout, rate limit, JSON parse errors).
         # See tests/test_verifier_llm_error_fix.py for TDD verification.
         return 0.6, {"reason": "llm_verifier_error", "score": 0.6}

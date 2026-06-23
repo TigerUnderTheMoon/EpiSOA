@@ -45,4 +45,4 @@ search:
 seed: 42
 verifier:
   mode: decomposed
-  threshold: 0.75
+  threshold: 0.45

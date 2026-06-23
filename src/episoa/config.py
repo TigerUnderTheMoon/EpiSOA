@@ -40,7 +40,7 @@ def load_config(path: str | Path) -> PaperConfig:
         search=dict(raw.get("search", {})),
         collector=dict(raw.get("collector", {})),
         retrieval=dict(raw.get("retrieval", {"top_k": 5})),
-        verifier=dict(raw.get("verifier", {"threshold": 0.75})),
+        verifier=dict(raw.get("verifier", {"threshold": 0.45})),
         ablation=dict(raw.get("ablation", {})),
         runtime=dict(raw.get("runtime", {})),
     )
