@@ -1,0 +1,1 @@
+﻿Task 33: Archived 20 historical .py scripts and 模板.doc to outputs/manuscript/_archive_scripts/. Manuscript dir now clean (only docx/pdf/json/md/png/zip/txt remain).
