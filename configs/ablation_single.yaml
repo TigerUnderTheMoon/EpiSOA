@@ -16,17 +16,15 @@ data:
   raw_posts_path: data/pubevent_soa_lite/raw/raw_posts.jsonl
 mode: ablation
 model:
-  api_key: ''
-  api_key_env: OPENAI_API_KEY
-  base_url: ''
-  base_url_env: OPENAI_BASE_URL
+  api_key_env: DEEPSEEK_API_KEY
+  base_url_env: DEEPSEEK_BASE_URL
   embedding_model: mock-embedding
   llm_mode: real
-  llm_model: gpt-5.5
+  llm_model: deepseek-v4-flash
   max_retries: 2
   max_tokens: 8000
   mode: real
-  model_name: gpt-5.5
+  model_name: deepseek-v4-flash
   provider: openai_compatible
   reranker_model: mock-reranker
   temperature: 0.1

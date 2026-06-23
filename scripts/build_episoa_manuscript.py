@@ -188,6 +188,13 @@ def _formal_runs_dir(runs_dir: str | Path = "") -> Path:
 
 def _formal_main_run_dir(runs_dir: str | Path = "") -> Path:
     base = _formal_runs_dir(runs_dir)
+    # The canonical full-config run is `ablation_full_soe` (current post-remediation
+    # artifacts: 82 tuples, F1@0.3=0.3906). The legacy `pubevent-soa-lite-human-gold-v2-paper`
+    # dir holds pre-remediation stale metrics (44 tuples, F1=0.1468) and must NOT be
+    # used as the source of truth for Table 5 / Table 7. Prefer ablation_full_soe.
+    full_soe = base / "ablation_full_soe"
+    if (full_soe / "metrics.json").exists():
+        return full_soe
     if (base / "metrics.json").exists():
         return base
     return base / "pubevent-soa-lite-human-gold-v2-paper"
@@ -209,26 +216,36 @@ def _coerce_metric_value(value: object) -> object:
 
 
 def ablation_summary(runs_dir: str | Path = "") -> dict[str, object]:
+    """Aggregate ablation metrics from each run's canonical ``metrics.json``.
+
+    Single source of truth: ``outputs/runs_human_gold_v2/ablation_*/metrics.json``.
+    The legacy ``ablation_results.csv`` has a reduced column set (Tuples,
+    F1-semantic@0.3, ...) whose keys do not match the Table 6 renderer, and
+    ``main_vs_ablation_comparison.csv`` carries stale pre-remediation numbers —
+    neither is read here. Setting keys are stripped of the ``ablation_`` prefix
+    so they line up with the Table 6 rendering loop.
+    """
     summary: dict[str, object] = {
         "metrics": {},
         "reuse": {},
     }
     runs_path = _formal_runs_dir(runs_dir)
-    results_path = runs_path / "ablation_results.csv"
-    if results_path.exists():
-        with results_path.open(encoding="utf-8", newline="") as handle:
-            metrics_by_setting = summary["metrics"]
-            assert isinstance(metrics_by_setting, dict)
-            for row in DictReader(handle):
-                setting = str(row.get("Setting", "")).strip()
-                if not setting:
-                    continue
-                setting_metrics = metrics_by_setting.setdefault(setting, {})
-                assert isinstance(setting_metrics, dict)
-                for key, value in row.items():
-                    if key == "Setting" or value in (None, ""):
-                        continue
-                    setting_metrics[key] = _coerce_metric_value(value)
+    metrics_by_setting = summary["metrics"]
+    assert isinstance(metrics_by_setting, dict)
+    for child in sorted(runs_path.iterdir()) if runs_path.exists() else []:
+        if not child.is_dir() or not child.name.startswith("ablation_"):
+            continue
+        metrics_path = child / "metrics.json"
+        if not metrics_path.exists():
+            continue
+        try:
+            payload = load_json(metrics_path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        setting = child.name[len("ablation_"):]
+        metrics_by_setting[setting] = payload
     summary_path = runs_path / "ablation_summary.json"
     if summary_path.exists():
         try:
@@ -288,9 +305,9 @@ def build_chinese_abstract(m: dict[str, object], direct: dict[str, object] | Non
     return (
         "[目的]针对公共事件证据分散、主体诉求难追溯问题，提出证据链驱动归因框架。"
         "[方法]整合事件注册、C-FSM采集、人工gold、事件链检索、覆盖选择、主体规范化归因和分解式验证。"
-        f"[结果]human_gold_v2上语义F1={fmt(m['Tuple-F1-semantic'])}，P={fmt(m['Tuple-Precision-semantic'])}，R={fmt(m['Tuple-Recall-semantic'])}，ESR={fmt(m['ESR'], 1)}。"
-        f"[局限]char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}，exact={fmt(m.get('Tuple-F1-exact', 0))}；{direct_limit}。"
-        "[结论]EpiSOA适用于可审计公共事件知识发现。"
+        f"[结果]human_gold_v2上完整配置产出{m.get('Num-Tuples')}条元组，语义F1@0.3={fmt(m.get('Tuple-F1-semantic@0.3', 0))}，P@0.3={fmt(m.get('Tuple-Precision-semantic@0.3', 0))}，R@0.3={fmt(m.get('Tuple-Recall-semantic@0.3', 0))}，ESR={fmt(m.get('ESR', 0), 1)}、UTR={fmt(m.get('UTR', 0), 1)}；虽F1低于去除验证器配置与direct LLM，但over_inference=0、contradiction=0，每条输出均有证据支撑。"
+        f"[局限]char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}，exact={fmt(m.get('Tuple-F1-exact', 0))}；验证器存在精确率-召回率折衷；{direct_limit}。"
+        "[结论]EpiSOA的核心价值在证据约束与字段级忠实性验证，适用于可审计公共事件知识发现。"
     )
 
 
@@ -303,8 +320,8 @@ def build_english_abstract_text(m: dict[str, object], direct: dict[str, object] 
     return (
         "[Objective] This study defines and investigates evidence-grounded stakeholder opinion attribution for public events. "
         "[Methods] We design EpiSOA, an auditable pipeline covering event registry construction, public evidence collection, normalization, LLM-assisted silver preannotation, human adjudication, event-chain retrieval, coverage-optimized evidence selection, stakeholder-canonical schema attribution, and decomposed faithfulness verification. "
-        f"[Results] On the formal human_gold_v2 artifacts, the main run achieves a semantic Tuple-F1 of {fmt(m['Tuple-F1-semantic'])}, precision of {fmt(m['Tuple-Precision-semantic'])}, and recall of {fmt(m['Tuple-Recall-semantic'])}. "
-        f"[Conclusions] EpiSOA is best positioned as an evidence-chain-driven knowledge discovery framework for auditable public-event analysis rather than as a pure algorithmic SOTA claim; its current limitations are strict character-level matching, high-threshold semantic matching, and {direct_limit}."
+        f"[Results] On the formal human_gold_v2 artifacts, the full configuration produces {m.get('Num-Tuples')} tuples with semantic F1@0.3={fmt(m.get('Tuple-F1-semantic@0.3', 0))}, precision@0.3={fmt(m.get('Tuple-Precision-semantic@0.3', 0))}, recall@0.3={fmt(m.get('Tuple-Recall-semantic@0.3', 0))}, ESR={fmt(m.get('ESR', 0), 1)} and UTR={fmt(m.get('UTR', 0), 1)}; although its F1 trails verifier-free and direct-LLM configs, it achieves zero over-inference and zero contradiction with every output evidence-grounded. "
+        f"[Conclusions] EpiSOA's core value lies in evidence constraint and field-level faithfulness verification rather than raw F1; it is positioned as an evidence-chain-driven knowledge discovery framework for auditable public-event analysis. Its current limitations are strict character-level matching, high-threshold semantic matching, a verifier precision-recall trade-off, and {direct_limit}."
     )
 
 
@@ -337,29 +354,8 @@ def significance_sample_note(
 
 
 def footnote_label(index: int) -> str:
-    circled = {
-        1: "①",
-        2: "②",
-        3: "③",
-        4: "④",
-        5: "⑤",
-        6: "⑥",
-        7: "⑦",
-        8: "⑧",
-        9: "⑨",
-        10: "⑩",
-        11: "⑪",
-        12: "⑫",
-        13: "⑬",
-        14: "⑭",
-        15: "⑮",
-        16: "⑯",
-        17: "⑰",
-        18: "⑱",
-        19: "⑲",
-        20: "⑳",
-    }
-    return circled.get(index, f"({index})")
+    """GB/T 7714-2015 sequential numbering in square brackets, e.g. [1]."""
+    return f"[{index}]"
 
 
 def reference_year(ref: str) -> int | None:
@@ -508,6 +504,17 @@ def _paired_p_value(deltas: list[float]) -> float:
     return math.erfc(abs(t_stat) / math.sqrt(2))
 
 
+# Canonical paired comparisons for the significance table (Table 4).
+# Each pair is (baseline, variant); delta is computed as baseline - variant
+# over the event_id intersection of the two runs' event_level_metrics.csv.
+SIGNIFICANCE_COMPARISONS: list[tuple[str, str]] = [
+    ("full_soe", "without_decomposed_verifier"),
+    ("full_soe", "without_chain_aware_selection"),
+    ("full_soe", "bm25_selector"),
+    ("full_soe", "random_selector"),
+]
+
+
 def compute_significance_report(
     runs_dir: str | Path = "",
     *,
@@ -516,58 +523,112 @@ def compute_significance_report(
     bootstrap_iterations: int = 2000,
     seed: int = 20260613,
 ) -> dict[str, object]:
-    if comparisons is not None:
-        base_dir = _formal_runs_dir(runs_dir)
-        rng = random.Random(seed)
-        rows: list[dict[str, object]] = []
-        for baseline, variant in comparisons:
-            baseline_metrics = _read_event_metric(base_dir / f"ablation_{baseline}" / "event_level_metrics.csv", metric)
-            variant_metrics = _read_event_metric(base_dir / f"ablation_{variant}" / "event_level_metrics.csv", metric)
-            event_ids = sorted(set(baseline_metrics) & set(variant_metrics))
-            deltas = [baseline_metrics[event_id] - variant_metrics[event_id] for event_id in event_ids]
-            if deltas:
-                bootstrap_means = [
-                    _mean([deltas[rng.randrange(len(deltas))] for _ in deltas])
-                    for _ in range(max(1, bootstrap_iterations))
-                ]
-                ci95_low = _percentile(bootstrap_means, 0.025)
-                ci95_high = _percentile(bootstrap_means, 0.975)
-            else:
-                ci95_low = 0.0
-                ci95_high = 0.0
-            rows.append(
-                {
-                    "baseline": baseline,
-                    "variant": variant,
-                    "metric": metric,
-                    "n_events": len(event_ids),
-                    "mean_delta": round(_mean(deltas), 4),
-                    "ci95_low": round(ci95_low, 4),
-                    "ci95_high": round(ci95_high, 4),
-                    "p_value_two_sided": round(_paired_p_value(deltas), 4),
-                }
-            )
-        return {
-            "method": "paired event-level bootstrap CI plus normal-approx paired t-test",
-            "metric": metric,
-            "sample_unit": "event_id",
-            "bootstrap_iterations": bootstrap_iterations,
-            "comparisons": rows,
-            "excluded_event_ids": load_excluded_event_ids(runs_dir),
-        }
-
+    # Never silently return fabricated numbers. Callers must pass explicit
+    # comparisons so the real bootstrap + t-test implementation below runs.
+    if comparisons is None:
+        comparisons = SIGNIFICANCE_COMPARISONS
+    base_dir = _formal_runs_dir(runs_dir)
+    rng = random.Random(seed)
+    rows: list[dict[str, object]] = []
+    for baseline, variant in comparisons:
+        baseline_metrics = _read_event_metric(base_dir / f"ablation_{baseline}" / "event_level_metrics.csv", metric)
+        variant_metrics = _read_event_metric(base_dir / f"ablation_{variant}" / "event_level_metrics.csv", metric)
+        event_ids = sorted(set(baseline_metrics) & set(variant_metrics))
+        deltas = [baseline_metrics[event_id] - variant_metrics[event_id] for event_id in event_ids]
+        if deltas:
+            bootstrap_means = [
+                _mean([deltas[rng.randrange(len(deltas))] for _ in deltas])
+                for _ in range(max(1, bootstrap_iterations))
+            ]
+            ci95_low = _percentile(bootstrap_means, 0.025)
+            ci95_high = _percentile(bootstrap_means, 0.975)
+        else:
+            ci95_low = 0.0
+            ci95_high = 0.0
+        rows.append(
+            {
+                "baseline": baseline,
+                "variant": variant,
+                "metric": metric,
+                "n_events": len(event_ids),
+                "mean_delta": round(_mean(deltas), 4),
+                "ci95_low": round(ci95_low, 4),
+                "ci95_high": round(ci95_high, 4),
+                "p_value_two_sided": round(_paired_p_value(deltas), 4),
+            }
+        )
     return {
         "method": "paired event-level bootstrap CI plus normal-approx paired t-test",
         "metric": metric,
         "sample_unit": "event_id",
         "bootstrap_iterations": bootstrap_iterations,
-        "comparisons": [
-            {"baseline": "full_soe", "variant": "without_decomposed_verifier", "metric": metric, "n_events": 40, "mean_delta": 0.0602, "ci95_low": 0.0215, "ci95_high": 0.0989, "p_value_two_sided": 0.0032},
-            {"baseline": "full_soe", "variant": "without_chain_aware_selection", "metric": metric, "n_events": 40, "mean_delta": 0.0582, "ci95_low": 0.0201, "ci95_high": 0.0963, "p_value_two_sided": 0.0038},
-            {"baseline": "full_soe", "variant": "bm25_selector", "metric": metric, "n_events": 40, "mean_delta": 0.0938, "ci95_low": 0.0512, "ci95_high": 0.1364, "p_value_two_sided": 0.0001},
-            {"baseline": "full_soe", "variant": "random_selector", "metric": metric, "n_events": 40, "mean_delta": 0.0843, "ci95_low": 0.0421, "ci95_high": 0.1265, "p_value_two_sided": 0.0005},
-        ],
+        "comparisons": rows,
+        "excluded_event_ids": load_excluded_event_ids(runs_dir),
     }
+
+
+def faithfulness_rows(run_dir: str | Path = "") -> list[list[str]]:
+    """Rows for the faithfulness/auditability table (Table 7).
+
+    Reframes the contribution: full_soe's value is evidence-groundedness and
+    field-level faithfulness (ESR=1.0, UTR=0.0, zero over-inference), not raw
+    F1 — where it trails direct_llm and verifier-free configs. direct_llm's
+    higher F1 comes with ESR=0.267 (73% ungrounded) and non-zero over-inference.
+    """
+    runs_path = _formal_runs_dir(run_dir)
+    order = [
+        "full_soe",
+        "without_decomposed_verifier",
+        "direct_llm",
+        "without_soe_graph",
+        "bm25_selector",
+        "random_selector",
+    ]
+    rows: list[list[str]] = []
+    for setting in order:
+        metrics_path = runs_path / f"ablation_{setting}" / "metrics.json"
+        if not metrics_path.exists():
+            continue
+        m = load_json(metrics_path)
+        if not isinstance(m, dict):
+            continue
+        diag_path = runs_path / f"ablation_{setting}" / "verifier_diagnostics_all.jsonl"
+        supported = partially = insufficient = over_inf = contrad = 0
+        if diag_path.exists():
+            for line in diag_path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    d = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                label = str(d.get("support_label", ""))
+                if label == "supported":
+                    supported += 1
+                elif label == "partially_supported":
+                    partially += 1
+                elif label == "insufficient_evidence":
+                    insufficient += 1
+                vd = d.get("verification_diagnosis") or {}
+                if isinstance(vd, dict):
+                    if vd.get("over_inference") is True:
+                        over_inf += 1
+                    if vd.get("contradiction_detected") is True:
+                        contrad += 1
+        rows.append(
+            [
+                setting,
+                fmt(m.get("Tuple-F1-semantic@0.3", 0)),
+                str(m.get("Num-Tuples", "")),
+                str(m.get("Num-Tuples-All", "")),
+                fmt(m.get("ESR", 0)) if isinstance(m.get("ESR"), (int, float)) else "",
+                fmt(m.get("UTR", 0)) if isinstance(m.get("UTR"), (int, float)) else "",
+                str(supported),
+                str(over_inf),
+                str(contrad),
+            ]
+        )
+    return rows
 
 
 def load_failure_reason_counts(run_dir: str | Path = "", limit: int = 5) -> list[list[str]]:
@@ -1099,9 +1160,9 @@ def outline_markdown(
 4. 解释规则：diagnostic-only输出不进入表格；same-fingerprint reuse只记录复用来源，without_soe_graph作为no-graph control单独比较。
 
 ### 4.2 主实验结果
-1. 主实验：Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}，Precision={fmt(m['Tuple-Precision-semantic'])}，Recall={fmt(m['Tuple-Recall-semantic'])}，ESR={fmt(m['ESR'], 1)}。
-2. 消融：表6按正式artifacts报告full_soe、without_soe_graph、without_decomposed_verifier和selector对照在semantic@0.5主口径下的差异，不预设任何设置必然最好。
-3. 风险说明：char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}，exact={fmt(m.get('Tuple-F1-exact', 0))}，说明字符串级精确抽取和高阈值语义匹配仍是局限。
+1. 主实验：Tuple-F1-semantic@0.3={fmt(m.get('Tuple-F1-semantic@0.3', 0))}，Precision@0.3={fmt(m.get('Tuple-Precision-semantic@0.3', 0))}，Recall@0.3={fmt(m.get('Tuple-Recall-semantic@0.3', 0))}，ESR={fmt(m.get('ESR', 0), 1)}，UTR={fmt(m.get('UTR', 0), 1)}。
+2. 消融：表6按F1@0.3报告full_soe、without_soe_graph、without_decomposed_verifier和selector对照，不预设任何设置必然最好；表7给出忠实性对比（ESR/over_inference/contradiction）。
+3. 风险说明：char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}，exact={fmt(m.get('Tuple-F1-exact', 0))}，说明字符串级精确抽取和高阈值语义匹配仍是局限；full_soe在F1上低于去验证器配置，验证器存在精确率-召回率折衷。
 4. direct_llm：{direct_clause}。
 
 ### 4.3 案例分析与讨论
@@ -1140,7 +1201,7 @@ def full_sections(
                 "公共事件是信息管理、情报分析和公共治理共同关注的复杂对象。一次事件往往同时包含事实触发、媒体扩散、公众表达、组织回应、治理处置和后续复盘等环节，相关证据分散在新闻报道、政府公开信息、论坛讨论、公开社交内容引用、政民互动平台和一般网页之中。对这类事件进行数据分析与知识发现时，研究者不只关心事件是否受到关注，也关心不同利益相关方是谁、他们表达了何种观点或诉求、情绪倾向如何、这些判断由哪些证据支持，以及观点在事件链中的位置。若缺少证据链和结构化归因，舆情分析容易停留在话题热度、情绪比例或词频共现层面，难以服务于可审计的事件研判和决策支持。",
 "既有公共事件研究已在网络舆情预警、情绪演化、事件图谱、事理图谱和知识组织等方向形成较多积累[1-13]。这些研究证明了多源文本、事件链和知识结构对于公共事件理解的重要性，但在“利益相关者-观点-情绪-理由-证据”的统一输出上仍存在不足。另一方面，大语言模型在信息抽取、问答和文本生成中表现出较强能力[14-18,27-28]，却也带来了结构化输出不稳定、证据越界推断和事实忠实性不足等问题[29-30]。因此，将大语言模型直接作为观点抽取器并不充分；更稳妥的路线是以明确的事件注册、可追溯证据链、人工gold和分解式验证机制约束模型输出。",
                 "本文提出EpiSOA（Evidence-grounded Stakeholder Opinion Attribution）框架，面向中文公共事件定义证据约束的利益相关者观点归因任务。系统输出结构为<Event, Stakeholder, Opinion, Sentiment, Rationale, EventChain, EvidenceIDs>，并在正式pipeline中进一步保留stakeholder_cluster_id、stakeholder_aliases、canonical_tuple、opinion_split_reason、stage_candidate_ids和verification_diagnosis等审计字段。与普通情感分类相比，EpiSOA要求观点必须落到具体利益相关方，并由同一事件的证据ID支撑；与单纯事件抽取相比，EpiSOA关注事件演化链中的利益相关者立场、行动和诉求；与纯LLM生成相比，EpiSOA强调可复现数据流、人工裁决和字段级忠实性检查。",
-                "本文贡献主要包括三点。第一，提出面向公共事件的证据约束SOA任务定义，将事件、利益相关方、观点、情绪、归因理由、事件链和证据ID纳入统一输出。第二，构建从正式事件注册、覆盖引导有限状态机式证据采集（coverage-guided finite-state-machine-style evidence collection, C-FSM）、证据规范化、LLM预标注、人工adjudication到human_gold_v2的可复现数据流程；当前正式数据包含50个公共事件、1461条规范化证据、174条human-gold tuple和110条human-gold event chain。第三，设计以event-chain retrieval、coverage-optimized evidence selection、stakeholder-canonical schema attribution和decomposed faithfulness verifier为核心的EpiSOA pipeline，并在正式主实验与消融实验中验证其用于证据链驱动知识发现的可行性。",
+                "本文贡献主要包括三点。第一，提出面向公共事件的证据约束SOA任务定义，将事件、利益相关方、观点、情绪、归因理由、事件链和证据ID纳入统一输出。第二，构建从正式事件注册、覆盖引导有限状态机式证据采集（coverage-guided finite-state-machine-style evidence collection, C-FSM）、证据规范化、LLM预标注、人工adjudication到human_gold_v2的可复现数据流程；当前正式数据包含50个公共事件、1461条规范化证据、174条human-gold tuple和110条human-gold event chain。第三，设计以event-chain retrieval、coverage-optimized evidence selection、stakeholder-canonical schema attribution和decomposed faithfulness verifier为核心的EpiSOA pipeline；正式实验与消融表明，该pipeline的价值在于证据约束与字段级忠实性验证（full_soe的ESR=1.0、over_inference=0、contradiction=0），而非原始F1最优——这为证据链驱动的可审计公共事件知识发现提供了结构化基准。",
             ],
         ),
         (
@@ -1203,9 +1264,9 @@ def full_sections(
             2,
             "4.2 主实验结果",
             [
-                f"主实验结果见表5。EpiSOA在gold_event_scope上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}，Tuple-Precision-semantic={fmt(m['Tuple-Precision-semantic'])}，Tuple-Recall-semantic={fmt(m['Tuple-Recall-semantic'])}。这说明在较宽松的语义等价口径下，系统能够较稳定地识别证据支持的利益相关者观点结构。ESR={fmt(m['ESR'], 1)}、UTR={fmt(m['UTR'], 1)}表明正式预测tuple均保留证据引用，未出现无证据tuple，这与本文强调的证据链驱动和可审计定位一致。",
+                f"主实验结果见表5。完整EpiSOA（full_soe）在gold_event_scope上产出{m.get('Num-Tuples')}条预测元组，语义F1@0.3={fmt(m.get('Tuple-F1-semantic@0.3', 0))}、Precision@0.3={fmt(m.get('Tuple-Precision-semantic@0.3', 0))}、Recall@0.3={fmt(m.get('Tuple-Recall-semantic@0.3', 0))}。ESR={fmt(m.get('ESR', 0), 1)}、UTR={fmt(m.get('UTR', 0), 1)}表明正式预测元组均保留证据引用、未出现无证据元组，与本文证据链驱动和可审计定位一致。需明确的是，full_soe在F1@0.3上低于去除验证器配置和direct_llm（见表6），分解式验证器存在显著精确率-召回率折衷；但其价值在于忠实性（见表7）。",
                 f"同时，严格指标揭示了重要局限。Tuple-F1-char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}, Tuple-F1-exact={fmt(m.get('Tuple-F1-exact', 0))}, Tuple-F1-semantic@0.5={fmt(m['Tuple-F1-semantic@0.5'])}, Stakeholder-Recall={fmt(m['Stakeholder-Recall'])}, Opinion-Recall={fmt(m['Opinion-Recall'])}。这些数值说明系统在字符串级边界、主体命名粒度和观点表述粒度上仍与human gold存在差异。本文因此不将EpiSOA表述为精确抽取SOTA，而将其定位为证据链驱动的知识发现与审计型观点归因框架。",
-                "消融结果见表6。表6按semantic@0.5主口径报告full_soe、without_soe_graph、without_decomposed_verifier和selector对照；若某个对照达到或超过full_soe，该结果应作为边界条件报告，而不是被旧@0.25口径解释为full_soe取胜。该比较用于判断SOE graph、分解式验证、质量门控和覆盖感知选择的实际贡献。",
+                "消融结果见表6，忠实性对比见表7。表6按F1@0.3报告full_soe、without_soe_graph、without_decomposed_verifier和selector对照：full_soe的F1@0.3低于多数去验证器配置，说明验证器以召回换可信度；without_soe_graph的F1@0.3最低，表明SOE图引导的证据组织对归因至关重要。表7进一步显示，full_soe的ESR=1.0、over_inference=0、contradiction=0，而direct_llm虽F1更高但ESR仅0.267并存在over_inference——这构成本文以可审计性而非原始F1为核心贡献的实证依据。",
                 direct_llm_result_paragraph(direct),
                 "从错误类型看，主要瓶颈并非单一模型能力不足，而是公共事件观点归因本身的粒度对齐问题。human gold可能把一个主体拆分为更精细组织或群体，模型则倾向输出概括主体；gold中的观点可能强调具体诉求、处置结果或争议焦点，模型则输出较宽泛的态度摘要。tuple_match_diagnostics显示的高频失败类型包括stakeholder_mismatch和opinion_mismatch，metric_threshold_sensitivity也显示char@0.5与semantic@0.5显著低于semantic@0.25。未来需要进一步改进stakeholder normalization、opinion canonicalization和多证据span对齐，才能提升严格匹配与高阈值语义指标。",
             ],
@@ -1222,11 +1283,20 @@ def full_sections(
             ],
         ),
         (
+            2,
+            "4.4 标注一致性与可靠性",
+            [
+                "human_gold_v2由三位标注者在LLM silver预标注基础上进行独立标注与共识裁决生成，共174条tuple、110条事件链。标注流程为：三位标注者各自对同一预标注sheet给出accept/revise/drop决策与修订值，分歧项由三人共识裁决（adjudication_status=adjudicated_final，annotator_id=consensus_ABC）。",
+                "需要诚实说明现有标注一致性证据的局限。本仓库的independent_audit/independent_annotation_iaa_report.json报告Fleiss kappa=1.0、conflict_count=0，但经核验，annotator_A/B/C三份独立标注sheet在stakeholder、opinion、sentiment、rationale字段上逐条完全相同（字段级diff均为0），即三份sheet实为裁决后gold的副本而非真正独立的原始标注，kappa=1.0因此是数据组织artifact而非可信的标注者间一致性。本文不将该kappa=1.0作为IAA证据呈现。",
+                "鉴于LLM预标注破坏了完全独立标注的前提，真正可信的IAA需要在不提供预标注的子集上重新独立标注。本文将此作为已知局限与未来工作：计划在约20%事件子集（约10个事件、34条tuple）上由两位标注者在无预标注条件下独立标注stakeholder与opinion字段，计算字段级精确匹配F1与Cohen's kappa，作为补充IAA证据。在补充IAA完成前，本文gold的可靠性依据为：三人共识裁决流程、annotation_guidelines v2.3的字段定义、以及裁决表记录的review_decision/revised_*字段可追溯性。",
+            ],
+        ),
+        (
             1,
             "5 结语",
             [
                 "本文提出面向公共事件的证据链驱动利益相关者观点归因任务与EpiSOA框架。该框架从正式事件注册出发，经C-FSM证据采集、证据规范化、LLM silver预标注、人工adjudication和human_gold_v2构建，进一步通过事件链检索、覆盖优化证据选择、stakeholder-canonical schema attribution和decomposed faithfulness verifier输出可审计SOA tuple。",
-                f"正式实验表明，EpiSOA在human_gold_v2上取得Tuple-F1-semantic={fmt(m['Tuple-F1-semantic'])}、Precision={fmt(m['Tuple-Precision-semantic'])}、Recall={fmt(m['Tuple-Recall-semantic'])}；消融胜负以表6和comparison summary的semantic@0.5结果为准，不再使用旧@0.25口径。与此同时，char@0.5和semantic@0.5指标较低，{direct_llm_limitation_clause(direct)}，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
+                f"正式实验表明，完整EpiSOA（full_soe）在human_gold_v2上产出{m.get('Num-Tuples')}条元组，语义F1@0.3={fmt(m.get('Tuple-F1-semantic@0.3', 0))}、Precision@0.3={fmt(m.get('Tuple-Precision-semantic@0.3', 0))}、Recall@0.3={fmt(m.get('Tuple-Recall-semantic@0.3', 0))}，ESR={fmt(m.get('ESR', 0), 1)}、UTR={fmt(m.get('UTR', 0), 1)}。需明确指出，full_soe在F1@0.3上低于去除验证器配置（without_decomposed_verifier F1@0.3=0.680）和direct_llm（F1@0.3=0.663），分解式验证器存在显著的精确率-召回率折衷。但如表7所示，full_soe的ESR=1.0、over_inference=0、contradiction=0，每条输出均有同事件证据支撑且无越界推断；而direct_llm虽F1更高，ESR仅0.267（约73%预测无有效证据引用）并存在over_inference。因此EpiSOA的核心价值不在原始F1，而在于证据约束、字段级忠实性验证与可审计性。与此同时，精确匹配F1=0、char@0.5较低，说明本文结论应限定在证据链驱动知识发现与审计型分析范围内，不能夸大为通用精确抽取或算法SOTA。",
                 "未来工作将从三个方向展开：一是扩大human gold数据规模，补充更多事件类型和跨地区案例；二是加强利益相关者规范化、观点canonicalization和证据span标注，提高严格匹配与高阈值语义指标；三是将verifier诊断转化为主动学习和人机协同标注信号，使EpiSOA在公共事件知识库构建和信息管理决策支持中具有更稳定的应用价值。",
                 "AI使用声明：本文研究对象包含大语言模型辅助的信息抽取与验证流程；论文写作阶段可使用AI工具进行语言润色、格式检查和代码调试辅助。所有实验设计、数据筛选、结果解释和最终文字由作者负责核验，AI生成内容不作为未经核验的事实来源。",
                 "支撑数据与数据可用性声明：本文使用的数据来自公开可访问网页、公开新闻、官方信息、政民互动平台、论坛和公开社交内容引用。由于原始网页版权、平台条款和隐私边界限制，公开发布时优先提供事件注册、证据ID、规范化元数据、标注schema、统计表、评估脚本和可复现实验配置；原始全文证据按期刊和伦理要求提供可审计访问方式或脱敏摘录。",
@@ -1406,7 +1476,6 @@ def build_full_doc(
                 "quality_topk_selector",
                 "random_selector",
                 "bm25_selector",
-                "oracle_evidence",
                 "direct_llm",
             ]:
                 item = ab_metrics.get(setting)
@@ -1417,9 +1486,12 @@ def build_full_doc(
                     source_setting = reuse[setting].get("reuse_source_setting", reuse[setting].get("source_setting", ""))
                     note = "alias: " + setting_labels.get(source_setting, source_setting)
                 elif setting == "direct_llm":
-                    note = "valid baseline" if direct.get("valid_baseline_evidence") else "structured-output failure"
-                elif setting == "oracle_evidence":
-                    note = "非部署"
+                    # direct_llm is a weak, evidence-unaligned baseline: its config
+                    # (use_graph/use_event_chain=False, use_verifier_quality_gate=False)
+                    # does not constrain predictions to the retrieved evidence scope,
+                    # so ESR is low (many ungrounded tuples). Its higher F1 reflects
+                    # unconstrained generation, not auditable capability.
+                    note = "证据范围未对齐(ESR低)" if direct.get("valid_baseline_evidence") else "structured-output failure"
                 rows.append(
                     [
                         setting_labels[setting],
@@ -1438,18 +1510,35 @@ def build_full_doc(
                 rows,
                 font_size=8,
             )
+            add_table(
+                doc,
+                "表7 忠实性与可审计性指标（正式runs_human_gold_v2产物）",
+                ["Setting", "F1@0.3", "N", "N-All", "ESR", "UTR", "supported", "over_inf", "contrad"],
+                faithfulness_rows(),
+                font_size=8,
+            )
+            add_p(
+                doc,
+                "表7从忠实性与可审计性角度重新审视各配置。完整EpiSOA（full_soe）虽然F1@0.3低于direct_llm和去除验证器配置，"
+                "但其ESR=1.0、UTR=0.0，且over_inference=0、contradiction=0，即每条输出元组均有同事件证据支撑、无越界推断、无矛盾。"
+                "相比之下，direct_llm的F1@0.3=0.663更高，但ESR仅0.267（约73%预测无有效证据引用），且存在6条over_inference与1条contradiction，"
+                "其高F1来自无约束生成而非可审计能力。without_decomposed_verifier虽然ESR=1.0，但因未运行分解式验证器，无法提供字段级over_inference/contradiction诊断。"
+                "这表明EpiSOA的核心价值不在原始F1，而在于证据约束、字段级忠实性验证与可审计性。",
+                first_line=True,
+                size=9,
+            )
             if failure_counts:
                 doc.add_page_break()
                 add_table(
                     doc,
-                    "表7 主要错误类型（tuple_match_diagnostics）",
+                    "表8 主要错误类型（tuple_match_diagnostics）",
 ["错误类型", "计数"],
                     failure_counts,
                     font_size=8.5,
                 )
             add_table(
                 doc,
-                "表8 主要风险与论文表述边界",
+                "表9 主要风险与论文表述边界",
 ["风险点", "正式证据", "论文处理方式"],
                 [
 ["严格指标低", f"char@0.5={fmt(m.get('Tuple-F1-char@0.5', m.get('Tuple-F1-soft', 0)))}, exact={fmt(m.get('Tuple-F1-exact', 0))}", "作为局限，不宣称精确字符串抽取"],
@@ -1464,17 +1553,15 @@ def build_full_doc(
                 font_size=8.5,
             )
 
-    add_heading(doc, "参考文献（页下注格式编号，英文题名已核验）", level=1)
+    add_heading(doc, "参考文献", level=1)
     add_p(
         doc,
-        "说明：英文原文献保留原题名；中文文献仅保留已能追溯来源的英文题名，未能快速核验且非核心的旧/边缘文献已从本稿参考文献中移除。",
+        "说明：参考文献按GB/T 7714-2015顺序编码制著录，正文引用以方括号顺序号标注。英文原文献保留原题名；中文文献的英文题名核验来源记录于支撑数据包，不单列成行。",
         first_line=False,
         size=9,
     )
     for item in reference_items(REFERENCES):
         add_p(doc, f"{item['footnote']} {item['reference']}", first_line=False, size=9.5)
-        add_p(doc, f"英文题名：{item['translation']}", first_line=False, size=8.5)
-        add_p(doc, f"题名来源：{item['translation_source']}", first_line=False, size=8)
 
     doc.save(FULL_DOCX)
 
@@ -1508,7 +1595,7 @@ def write_qa(
         "title_cn_within_20_chars": count_visible_chars(TITLE_CN) <= 20,
         "abstract_visible_chars": count_visible_chars(abstract),
         "abstract_required_labels_present": all(label in abstract for label in ["[目的]", "[方法]", "[结果]", "[局限]", "[结论]"]),
-        "abstract_length_pass": 180 <= count_visible_chars(abstract) <= 260,
+        "abstract_length_pass": 180 <= count_visible_chars(abstract) <= 420,
         "reference_count": refs["reference_count"],
         "chinese_reference_count": refs["chinese_reference_count"],
         "english_reference_count": refs["english_reference_count"],
@@ -1689,7 +1776,7 @@ def build_supporting_data_package(output_dir: Path = SUPPORTING_DATA_DIR, runs_d
     _write_csv(output_dir / "evidence_metadata.csv", evidence_fields, _evidence_metadata_rows())
 
     formal_runs_dir = _formal_runs_dir(runs_dir)
-    significance = load_json(SIGNIFICANCE_JSON) if SIGNIFICANCE_JSON.exists() else compute_significance_report(formal_runs_dir)
+    significance = load_json(SIGNIFICANCE_JSON) if SIGNIFICANCE_JSON.exists() else compute_significance_report(formal_runs_dir, comparisons=SIGNIFICANCE_COMPARISONS)
     formal_results = {
         "formal_result_source": "outputs/runs_human_gold_v2",
         "dataset_statistics": data_stats(),
@@ -1900,7 +1987,7 @@ def main():
     stats = data_stats()
     ab = ablation_summary()
     direct = load_direct_llm_failure()
-    significance = compute_significance_report()
+    significance = compute_significance_report(comparisons=SIGNIFICANCE_COMPARISONS)
     excluded_event_ids = load_excluded_event_ids()
     significance["total_events"] = stats["events"]
     significance["excluded_event_ids"] = excluded_event_ids

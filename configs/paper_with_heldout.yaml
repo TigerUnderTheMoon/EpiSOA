@@ -26,12 +26,15 @@ model:
   mode: real
   llm_mode: real
   provider: openai_compatible
-  llm_model: "gpt-5.5"
-  model_name: "gpt-5.5"
+  llm_model: "deepseek-v4-flash"
+  model_name: "deepseek-v4-flash"
   embedding_model: mock-embedding
   reranker_model: mock-reranker
-  api_key_env: "OPENAI_API_KEY"
-  base_url_env: "OPENAI_BASE_URL"
+  api_key_env: "DEEPSEEK_API_KEY"
+  base_url: "https://api.deepseek.com"
+  base_url_env: "DEEPSEEK_BASE_URL"
+  thinking_mode: "disabled"
+  response_format_mode: "json_object"
   temperature: 0.1
   max_tokens: 8000
   timeout_seconds: 180

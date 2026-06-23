@@ -124,9 +124,43 @@ def test_pipeline_verifier_uses_chain_stages_for_temporal_consistency():
     )
 
     diagnosis = verified[0].verification_diagnosis
-    assert verified[0].verified is False
     assert diagnosis["temporal_stage_consistency"] is False
     assert "stage_mismatch" in diagnosis["issue_flags"]
+    # A lone stage_mismatch with all content fields supported is downgraded to a
+    # soft penalty (not the hard 0.39 cap), so the tuple stays verified. This
+    # avoids over-rejecting tuples whose content is fully evidence-grounded but
+    # whose event-chain stage label is a near-miss variant.
+    assert verified[0].verified is True
+
+
+def test_pipeline_verifier_stage_mismatch_still_caps_when_content_unsupported():
+    """When stage_mismatch co-occurs with a content-faithfulness hard flag
+    (e.g. rationale_not_supported), the hard cap still applies."""
+    client = FakeDecomposedVerifierClient(
+        {
+            "score": 0.9,
+            "reason": "rationale not grounded",
+            "verification_diagnosis": {
+                "stakeholder_support": True,
+                "opinion_support": "supported",
+                "sentiment_support": True,
+                "rationale_support": False,
+                "evidence_span_support": True,
+                "temporal_stage_consistency": False,
+            },
+        }
+    )
+    verified = verify_tuples(
+        [prediction(event_chain_stage="trigger")],
+        [evidence("住建部门回应居民诉求并说明整改安排。")],
+        mode="decomposed",
+        chain_stages_by_event={"E001": {"response"}},
+        llm_client=client,
+    )
+    diagnosis = verified[0].verification_diagnosis
+    assert "stage_mismatch" in diagnosis["issue_flags"]
+    assert "rationale_not_supported" in diagnosis["issue_flags"]
+    assert verified[0].verified is False
 
 
 def test_pipeline_verifier_preserves_llm_nested_contradiction_diagnosis():

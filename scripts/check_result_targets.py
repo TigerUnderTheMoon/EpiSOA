@@ -11,6 +11,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+ROOT = Path(__file__).resolve().parent.parent
+
 
 REQUIRED_SETTING_ARTIFACTS = (
     "metrics.json",
@@ -59,6 +61,9 @@ def run_gate(
         _check_stage_guard(runs_dir, result, issues)
     elif mode == "final":
         _check_final_gate(runs_dir, Path(main_dir) if main_dir is not None else None, result, issues)
+    elif mode == "consistency":
+        _check_consistency(runs_dir, result, issues)
+        _check_iaa_integrity(result, issues)
     else:
         issues.append(f"unknown mode: {mode}")
 
@@ -215,6 +220,153 @@ def _check_setting_attribution_health(setting_dir: Path, setting: str, issues: l
         )
 
 
+def _check_consistency(runs_dir: Path, result: dict[str, Any], issues: list[str]) -> None:
+    """Assert the manuscript's headline numbers match the canonical artifacts.
+
+    Guards against the regression where the docx Table 5/6 carried stale
+    pre-remediation numbers (44 tuples / F1=0.1468) while the abstract and
+    ablation_summary.json used current numbers (82 tuples / F1@0.3=0.3906).
+    The single source of truth is ``ablation_full_soe/metrics.json``.
+    """
+    full_soe = runs_dir / "ablation_full_soe" / "metrics.json"
+    metrics = _read_json(full_soe, issues)
+    if not isinstance(metrics, dict):
+        return
+
+    # Headline values the abstract / body / Table 5 must agree on.
+    expected = {
+        "Num-Tuples": metrics.get("Num-Tuples"),
+        "Num-Gold": metrics.get("Num-Gold"),
+        "Tuple-F1-semantic@0.3": metrics.get("Tuple-F1-semantic@0.3"),
+        "Tuple-F1-semantic@0.5": metrics.get("Tuple-F1-semantic@0.5"),
+        "Tuple-F1-exact": metrics.get("Tuple-F1-exact"),
+        "ESR": metrics.get("ESR"),
+    }
+    result["comparisons"]["headline_metrics"] = expected
+
+    for key, value in expected.items():
+        if value in (None, ""):
+            issues.append(f"ablation_full_soe metrics.json missing headline key: {key}")
+
+    # The legacy main run dir (pubevent-soa-lite-human-gold-v2-paper) holds
+    # pre-remediation stale metrics. The builder prefers ablation_full_soe, so
+    # the legacy file is only a problem if ablation_full_soe is missing (forcing
+    # fallback). Record its staleness as info either way.
+    legacy_main = runs_dir / "pubevent-soa-lite-human-gold-v2-paper" / "metrics.json"
+    if legacy_main.exists():
+        legacy = _read_json(legacy_main, [])
+        if isinstance(legacy, dict):
+            legacy_tuples = legacy.get("Num-Tuples")
+            if legacy_tuples is not None and legacy_tuples != expected["Num-Tuples"]:
+                if not (runs_dir / "ablation_full_soe" / "metrics.json").exists():
+                    issues.append(
+                        f"stale legacy main run {legacy_main} has Num-Tuples={legacy_tuples} "
+                        f"but canonical ablation_full_soe is missing; builder would fall back to stale"
+                    )
+                result.setdefault("warnings", []).append(
+                    f"legacy main run {legacy_main} is stale (Num-Tuples={legacy_tuples}); "
+                    "builder prefers ablation_full_soe, but consider regenerating or removing"
+                )
+
+    # ablation_summary.json main_result must agree with ablation_full_soe metrics.
+    summary_path = runs_dir / "ablation_summary.json"
+    summary = _read_json(summary_path, issues)
+    if isinstance(summary, dict):
+        main_result = summary.get("main_result") or {}
+        if isinstance(main_result, dict):
+            for key in ("setting", "tuples", "f1_semantic_03"):
+                if key not in main_result:
+                    issues.append(f"ablation_summary.json main_result missing key: {key}")
+            if main_result.get("tuples") is not None and main_result["tuples"] != expected["Num-Tuples"]:
+                issues.append(
+                    f"ablation_summary.json main_result.tuples={main_result['tuples']} "
+                    f"!= ablation_full_soe Num-Tuples={expected['Num-Tuples']}"
+                )
+            summary_f1 = main_result.get("f1_semantic_03")
+            canonical_f1 = expected["Tuple-F1-semantic@0.3"]
+            if summary_f1 is not None and canonical_f1 is not None:
+                if abs(float(summary_f1) - float(canonical_f1)) > 1e-6:
+                    issues.append(
+                        f"ablation_summary.json main_result.f1_semantic_03={summary_f1} "
+                        f"!= ablation_full_soe Tuple-F1-semantic@0.3={canonical_f1}"
+                    )
+
+    # Significance report must be regenerated from real data, not the hardcoded
+    # placeholder that claimed full_soe is +0.0602 better (it is in fact worse).
+    sig_path = runs_dir.parent / "manuscript" / "significance_report.json"
+    sig = _read_json(sig_path, [])
+    if isinstance(sig, dict):
+        for comp in sig.get("comparisons", []) or []:
+            if not isinstance(comp, dict):
+                continue
+            if comp.get("baseline") == "full_soe" and comp.get("variant") == "without_decomposed_verifier":
+                delta = comp.get("mean_delta")
+                if isinstance(delta, (int, float)) and delta > 0:
+                    issues.append(
+                        f"significance_report.json still has reversed delta (full_soe better by {delta}); "
+                        "real data shows full_soe is significantly worse — regenerate"
+                    )
+                if comp.get("n_events") == 40:
+                    issues.append(
+                        "significance_report.json still has hardcoded n_events=40; "
+                        "real paired event count is ~45 — regenerate"
+                    )
+
+
+def _check_iaa_integrity(result: dict[str, Any], issues: list[str]) -> None:
+    """Detect the tautological IAA artifact: annotator_A/B/C sheets identical.
+
+    The bundled independent_audit IAA report claims Fleiss kappa=1.0 / 0
+    conflicts, but the three independent sheets are byte-identical copies of
+    the post-adjudication gold. Real IAA requires genuine disagreement. This
+    flags the artifact so the manuscript does not cite kappa=1.0 as evidence.
+    """
+    import csv as _csv
+
+    base = ROOT / "data" / "pubevent_soa_lite" / "human_gold_v2_stakeholder_canonical" / "independent"
+    report_path = ROOT / "data" / "pubevent_soa_lite" / "human_gold_v2" / "independent_audit" / "independent_annotation_iaa_report.json"
+    sheets: dict[str, list[dict[str, str]]] = {}
+    for name in ("A", "B", "C"):
+        for fname in (f"human{name}_tuple_adjudication_sheet.csv", "humanA_tuple_adjudication_sheet.csv"):
+            path = base / f"annotator_{name}" / fname
+            if path.exists():
+                with path.open(encoding="utf-8-sig", newline="") as handle:
+                    sheets[name] = list(_csv.DictReader(handle))
+                break
+    if len(sheets) < 3:
+        result["iaa"] = {"status": "sheets_missing", "found": sorted(sheets)}
+        return
+    a, b, c = sheets["A"], sheets["B"], sheets["C"]
+    iaa_fields = ("stakeholder", "opinion", "sentiment", "rationale")
+    n = min(len(a), len(b), len(c))
+    field_diffs = 0
+    for i in range(n):
+        for fld in iaa_fields:
+            av = (a[i].get(fld) or "").strip()
+            bv = (b[i].get(fld) or "").strip()
+            cv = (c[i].get(fld) or "").strip()
+            if av != bv or av != cv or bv != cv:
+                field_diffs += 1
+    identical = field_diffs == 0
+    result["iaa"] = {
+        "annotator_rows": {k: len(v) for k, v in sheets.items()},
+        "iaa_field_diffs": field_diffs,
+        "iaa_fields_identical": identical,
+        "bundled_kappa": None,
+    }
+    bundled = _read_json(report_path, [])
+    if isinstance(bundled, dict):
+        kappa = (bundled.get("tuple_iaa") or {}).get("fleiss_kappa")
+        result["iaa"]["bundled_kappa"] = kappa
+        if identical and kappa == 1.0:
+            issues.append(
+                "IAA artifact: annotator_A/B/C sheets have 0 field-level diffs across "
+                "stakeholder/opinion/sentiment/rationale but bundled report claims "
+                "Fleiss kappa=1.0 — not a valid inter-annotator agreement; do not "
+                "cite kappa=1.0 in the manuscript"
+            )
+
+
 def _int_value(value: Any) -> int:
     try:
         return int(value or 0)
@@ -246,7 +398,7 @@ def _read_json(path: Path, issues: list[str]) -> Any:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs-dir", default="outputs/runs_human_gold_v2")
-    parser.add_argument("--mode", choices=("stage-guard", "final"), required=True)
+    parser.add_argument("--mode", choices=("stage-guard", "final", "consistency"), required=True)
     parser.add_argument("--main-dir", default=None)
     parser.add_argument("--output", default=None)
     args = parser.parse_args()

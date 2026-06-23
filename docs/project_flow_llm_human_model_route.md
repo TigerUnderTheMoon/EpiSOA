@@ -44,11 +44,15 @@
 
 ## 模型路线
 
-默认质量优先路线已经切到 `gpt-5.5`：`configs/paper.yaml`、`configs/ablation.yaml` 以及相关 benchmark / ablation 配置使用 OpenAI API 默认参数。
+默认质量优先路线已切到 `deepseek-v4-flash`（DeepSeek-V4 官方正式模型，非即将弃用的 `deepseek-chat` 别名）：`configs/paper.yaml`、`configs/ablation.yaml`、`configs/ablation_human_gold_v2.yaml` 主实验统一使用 DeepSeek 官方 endpoint `https://api.deepseek.com`，通过 `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` 环境变量鉴权。
 
-`deepseek-v4-flash` 保留为低成本 baseline，不再作为质量优先默认。模型 probe 配置保留 per-model API 参数，便于在同一 probe 中比较 `deepseek-v4-flash` 与 `gpt-5.5` 的 parse success、zero prediction count、Tuple-F1-soft、sentiment accuracy、成本和延迟。
+`deepseek-chat` 与 `deepseek-reasoner` 为 legacy 别名，将于 2026/07/24 15:59 UTC 彻底退役，不再用于主实验。过渡期内 `deepseek-chat` 透明路由到 `deepseek-v4-flash` 非思考模式，但论文实验直接使用正式模型名 `deepseek-v4-flash` 以保证可复现性。
 
-LLM 调用已从普通 JSON mode 升级到 JSON Schema structured outputs；兼容不支持 `json_schema` 的 OpenAI-compatible provider 时，client 会按现有降级逻辑去掉 `response_format` 后重试。
+DeepSeek-V4 默认开启 thinking mode，会静默忽略 `temperature` 并消耗 token 预算生成 CoT。主实验配置统一显式设置 `thinking_mode: "disabled"`（由 `src/episoa/llm/client.py` 透传为 payload 顶层 `thinking: {"type": "disabled"}`），使 `temperature: 0.1` 生效、输出直接为结构化 JSON、成本与延迟可控。probe 对比评估保留各模型默认 thinking 行为，不设此项。
+
+`gpt-5.5` 保留为模型 probe 中的强模型对照项，便于在同一 probe 中比较 `deepseek-v4-flash` 与 `gpt-5.5` 的 parse success、zero prediction count、Tuple-F1-soft、sentiment accuracy、成本和延迟。
+
+LLM 调用支持两种 `response_format` 模式，由 model 配置的 `response_format_mode` 字段控制：`json_schema`（默认，OpenAI 原生，API 层强制 schema）和 `json_object`（DeepSeek V4 等 only-json_object provider，client 自动把 `json_schema` 降级为 `json_object` 并把 schema 注入 system_prompt）。主实验配置统一设置 `response_format_mode: "json_object"`。provider 不支持时 client 仍会按降级逻辑去掉 `response_format` 后重试。
 
 ## 下一步命令
 

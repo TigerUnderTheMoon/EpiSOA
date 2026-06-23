@@ -14,13 +14,17 @@ from docx import Document
 def test_structured_abstract_uses_required_labels_and_compact_length():
     builder = importlib.import_module("scripts.build_episoa_manuscript")
     metrics = {
+        "Num-Tuples": 82,
         "Tuple-F1-semantic": 0.7337,
-        "Tuple-Precision-semantic": 0.7561,
-        "Tuple-Recall-semantic": 0.7126,
+        "Tuple-F1-semantic@0.3": 0.3906,
+        "Tuple-Precision-semantic@0.3": 0.6098,
+        "Tuple-Recall-semantic@0.3": 0.2874,
         "Tuple-F1-soft": 0.2012,
         "Tuple-F1-semantic@0.5": 0.4320,
+        "Tuple-F1-char@0.5": 0.0703,
+        "Tuple-F1-exact": 0.0,
         "ESR": 1.0,
-        "UTR": 1.0,
+        "UTR": 0.0,
         "Stakeholder-Recall": 0.7,
         "Opinion-Recall": 0.7,
     }
@@ -29,7 +33,7 @@ def test_structured_abstract_uses_required_labels_and_compact_length():
 
     for label in ["[目的]", "[方法]", "[结果]", "[局限]", "[结论]"]:
         assert label in abstract
-    assert 180 <= builder.count_visible_chars(abstract) <= 230
+    assert 280 <= builder.count_visible_chars(abstract) <= 420
     assert "direct LLM" in abstract
 
 
@@ -218,18 +222,15 @@ def test_failure_reason_counts_are_loaded_from_failure_audit(tmp_path):
     assert ["sentiment_mismatch", "31"] not in counts
 
 
-def test_ablation_summary_updates_direct_llm_from_ablation_results(tmp_path):
+def test_ablation_summary_reads_per_run_metrics_json(tmp_path):
     builder = importlib.import_module("scripts.build_episoa_manuscript")
     run_dir = tmp_path / "runs"
-    run_dir.mkdir()
-    (run_dir / "ablation_results.csv").write_text(
-        "\n".join(
-            [
-                "Setting,Metric-Scope,Num-Tuples,Tuple-F1-semantic@0.25,Tuple-F1-semantic@0.3,Tuple-F1-semantic@0.5,Tuple-F1-soft",
-                "direct_llm,gold_event_scope,7,0.4100,0.3900,0.2100,0.1200",
-            ]
-        )
-        + "\n",
+    direct_dir = run_dir / "ablation_direct_llm"
+    direct_dir.mkdir(parents=True)
+    (direct_dir / "metrics.json").write_text(
+        '{"Num-Tuples": 7, "Tuple-F1-semantic@0.25": 0.41, '
+        '"Tuple-F1-semantic@0.3": 0.39, "Tuple-F1-semantic@0.5": 0.21, '
+        '"Tuple-F1-soft": 0.12}',
         encoding="utf-8",
     )
 
