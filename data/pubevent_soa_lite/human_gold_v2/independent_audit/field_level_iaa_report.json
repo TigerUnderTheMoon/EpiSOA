@@ -1,0 +1,34 @@
+{
+  "n_items": 174,
+  "annotators": [
+    "A",
+    "B",
+    "C"
+  ],
+  "fields": {
+    "stakeholder": {
+      "pairwise_exact_match_mean": 1.0,
+      "pairwise_exact_match_min": 1.0,
+      "pairwise_agreement_statistic_mean": 1.0,
+      "statistic_note": "sentiment=Cohen's kappa; free-text fields=exact-match proportion (kappa ill-defined)"
+    },
+    "opinion": {
+      "pairwise_exact_match_mean": 1.0,
+      "pairwise_exact_match_min": 1.0,
+      "pairwise_agreement_statistic_mean": 1.0,
+      "statistic_note": "sentiment=Cohen's kappa; free-text fields=exact-match proportion (kappa ill-defined)"
+    },
+    "sentiment": {
+      "pairwise_exact_match_mean": 1.0,
+      "pairwise_exact_match_min": 1.0,
+      "pairwise_agreement_statistic_mean": 1.0,
+      "statistic_note": "sentiment=Cohen's kappa; free-text fields=exact-match proportion (kappa ill-defined)"
+    },
+    "rationale": {
+      "pairwise_exact_match_mean": 1.0,
+      "pairwise_exact_match_min": 1.0,
+      "pairwise_agreement_statistic_mean": 1.0,
+      "statistic_note": "sentiment=Cohen's kappa; free-text fields=exact-match proportion (kappa ill-defined)"
+    }
+  }
+}
