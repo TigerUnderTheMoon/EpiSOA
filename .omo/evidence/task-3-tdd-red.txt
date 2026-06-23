@@ -1,0 +1,1 @@
+﻿Task 3 TDD RED: 2 tests FAIL (paper.yaml 0.75 != code 0.45, ablation.yaml 0.75 != code 0.45), 3 tests PASS (documentary)

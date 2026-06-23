@@ -1,0 +1,1 @@
+﻿Task 5 without_soe_graph diagnosis: 15 tuples caused by verifier over-rejection (same bug), NOT code bug. Line 537 coupling does NOT affect this setting (explicit flag override). 104 candidates generated, 89 rejected by verifier. Fix: Task 8+9 verifier fix.

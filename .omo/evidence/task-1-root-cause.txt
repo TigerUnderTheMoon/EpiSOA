@@ -1,0 +1,1 @@
+﻿Task 1 root cause: main experiment 44 vs ablation 82 gap caused by CACHE POLLUTION (resume=true in main despite config false). Flags are IDENTICAL between paper mode and ablation full_soe. Fix: clear cache + rerun (Option A).

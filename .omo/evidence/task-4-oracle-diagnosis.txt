@@ -1,0 +1,1 @@
+﻿Task 4 oracle_evidence diagnosis: 0 predictions caused by verifier over-rejection (same as full_soe), NOT oracle selector bug. 129 candidates generated, all rejected by verifier threshold 0.75. Secondary issue: 26 parse_failed_events (E025-E050).

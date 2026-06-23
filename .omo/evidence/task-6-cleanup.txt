@@ -1,0 +1,1 @@
+﻿Task 6 root cleaned: moved baseline_manifest.json, verifier_rejection_analysis.json, heldout_test_events.json; removed tmp_pytest, auto_run_*
