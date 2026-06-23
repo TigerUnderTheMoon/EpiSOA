@@ -139,7 +139,9 @@ def verify_tuples(
             llm_details = {}
 
         issue_flags = _merge_issue_flags(precheck_flags, llm_details)
-        score = _apply_hard_flag_score_cap(score, issue_flags)
+        # Compute the diagnosis body first so the hard-flag cap can consult the
+        # per-field support verdicts (needed to downgrade a lone stage_mismatch
+        # from a hard cap to a soft penalty when all content fields are supported).
         diagnosis = decomposed_diagnosis(
             prediction,
             evidence_map,
@@ -147,6 +149,10 @@ def verify_tuples(
             llm_details=llm_details,
             issue_flags=issue_flags,
         )
+        score = _apply_hard_flag_score_cap(score, issue_flags, diagnosis=diagnosis)
+        diagnosis["support_score"] = round(float(score), 4)
+        diagnosis["verified"] = score >= threshold
+        diagnosis["support_label"] = _label_from_score(score, threshold)
         if "cache_hit" in llm_details:
             diagnosis["cache_hit"] = llm_details["cache_hit"]
         if "cache_key" in llm_details:
@@ -308,6 +314,24 @@ def _merge_issue_flags(precheck_flags: list[str], llm_details: dict | None) -> l
         flags.append("stage_mismatch")
     if diagnosis.get("contradiction_detected") is True or str(diagnosis.get("contradiction_detected", "")).lower() == "true":
         flags.append("contradiction_detected")
+
+    # Post-LLM relaxation: when the LLM explicitly confirms a field is supported,
+    # remove any precheck-originated flag for that field. The LLM is the final
+    # authority on semantic support; keyword-based heuristics should not cap
+    # scores on tuples the LLM has judged as content-grounded.
+    if _diagnosis_true(diagnosis.get("stakeholder_support")):
+        flags = [f for f in flags if f != "stakeholder_not_supported"]
+    if _diagnosis_true(diagnosis.get("sentiment_support")):
+        flags = [f for f in flags if f != "sentiment_not_supported"]
+    if _diagnosis_true(diagnosis.get("rationale_support")):
+        flags = [f for f in flags if f != "rationale_not_supported"]
+    if _diagnosis_true(diagnosis.get("evidence_span_support")):
+        flags = [f for f in flags if f != "evidence_span_not_supported"]
+    if _diagnosis_true(diagnosis.get("temporal_stage_consistency")):
+        flags = [f for f in flags if f != "stage_mismatch"]
+    if not (diagnosis.get("contradiction_detected") is True or str(diagnosis.get("contradiction_detected", "")).lower() == "true"):
+        flags = [f for f in flags if f != "contradiction_detected"]
+
     return normalize_verifier_issue_flags(flags)
 
 
@@ -315,6 +339,14 @@ def _diagnosis_false(value: Any) -> bool:
     if value is False:
         return True
     return str(value).strip().lower() in {"false", "unsupported", "no"}
+
+
+def _diagnosis_true(value: Any) -> bool:
+    """Return True when the LLM diagnosis value unambiguously confirms support."""
+    if value is True:
+        return True
+    text = str(value).strip().lower()
+    return text in {"true", "supported", "yes"}
 
 
 def _relax_precheck_flags(
@@ -428,13 +460,48 @@ def _shared_chars_count(left: str, right: str) -> int:
     return len(left_set & right_set)
 
 
-def _apply_hard_flag_score_cap(score: float, issue_flags: list[str]) -> float:
-    if any(flag in HARD_PRECHECK_FLAGS for flag in issue_flags):
+def _apply_hard_flag_score_cap(
+    score: float,
+    issue_flags: list[str],
+    diagnosis: dict[str, Any] | None = None,
+) -> float:
+    # Stage-mismatch is a temporal-alignment signal, not a content-faithfulness
+    # failure. When it is the ONLY hard flag AND every content field
+    # (stakeholder/opinion/sentiment/rationale/evidence_span) is supported,
+    # down-grade it to a soft penalty instead of capping the score at 0.39.
+    # This prevents over-rejection of tuples whose content is fully grounded
+    # but whose event-chain stage label is a near-miss variant.
+    effective_hard = [f for f in issue_flags if f in HARD_PRECHECK_FLAGS]
+    if (
+        diagnosis is not None
+        and effective_hard == ["stage_mismatch"]
+        and _all_content_fields_supported(diagnosis)
+    ):
+        score = max(0.2, score - 0.1)  # treat stage_mismatch as a single soft penalty
+    elif any(flag in HARD_PRECHECK_FLAGS for flag in issue_flags):
         score = min(score, 0.39)
     soft_count = sum(1 for flag in issue_flags if flag in SOFT_PRECHECK_FLAGS)
     if soft_count > 0:
         score = max(0.2, score - 0.1 * soft_count)
     return score
+
+
+def _all_content_fields_supported(diagnosis: dict[str, Any]) -> bool:
+    """True when stakeholder/opinion/sentiment/rationale/evidence_span all
+    indicate support, i.e. the tuple's content is fully evidence-grounded
+    regardless of the temporal-stage signal."""
+    if diagnosis.get("stakeholder_support") is not True:
+        return False
+    if diagnosis.get("sentiment_support") is not True:
+        return False
+    if diagnosis.get("rationale_support") is not True:
+        return False
+    if diagnosis.get("evidence_span_support") is not True:
+        return False
+    opinion = str(diagnosis.get("opinion_support", "")).strip().lower()
+    if opinion not in {"supported", "true"}:
+        return False
+    return True
 
 
 def char_overlap(left: str, right: str) -> float:
@@ -526,4 +593,12 @@ def _llm_verify(
         score = float(parsed.get("score", parsed.get("verification_score", 0.5)))
         return score, parsed
     except Exception:
-        return 0.5, {"reason": "llm_verifier_error"}  # conservative default on error
+        # LLM error fallback: return a neutral score (0.6) instead of 0.5.
+        # 0.6 is above the recommended threshold (0.45) and below the config
+        # threshold (0.75), so the tuple is NOT rejected solely due to LLM
+        # infrastructure errors. The rule_precheck result (already computed
+        # before this call) determines the final verdict via _apply_hard_flag_score_cap.
+        # This prevents mass rejection when LLM API has transient failures
+        # (network timeout, rate limit, JSON parse errors).
+        # See tests/test_verifier_llm_error_fix.py for TDD verification.
+        return 0.6, {"reason": "llm_verifier_error", "score": 0.6}

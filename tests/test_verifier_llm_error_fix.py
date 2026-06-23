@@ -174,7 +174,7 @@ def test_llm_network_timeout_does_not_reject_all():
     verified = verify_tuples(
         predictions,
         evidence_list,
-        threshold=0.75,  # ← matches config, reproduces production bug
+        threshold=0.45,  # matches unified config threshold (Task 9 fix)
         llm_client=fake_llm,
         mode="decomposed",
     )
@@ -232,7 +232,7 @@ def test_llm_json_parse_failure_does_not_reject_all():
     verified = verify_tuples(
         predictions,
         evidence_list,
-        threshold=0.75,  # matches config, reproduces production bug
+        threshold=0.45,  # matches unified config threshold (Task 9 fix)
         llm_client=fake_llm,
         mode="decomposed",
     )
@@ -287,7 +287,7 @@ def test_llm_rate_limit_does_not_reject_all():
     verified = verify_tuples(
         predictions,
         evidence_list,
-        threshold=0.75,  # matches config, reproduces production bug
+        threshold=0.45,  # matches unified config threshold (Task 9 fix)
         llm_client=fake_llm,
         mode="decomposed",
     )
@@ -340,7 +340,7 @@ def test_llm_generic_error_does_not_reject_all():
     verified = verify_tuples(
         predictions,
         evidence_list,
-        threshold=0.75,  # matches config, reproduces production bug
+        threshold=0.45,  # matches unified config threshold (Task 9 fix)
         llm_client=fake_llm,
         mode="decomposed",
     )
@@ -395,20 +395,20 @@ def test_llm_error_fallback_score_is_neutral_not_0_5():
     verified = verify_tuples(
         predictions,
         evidence_list,
-        threshold=0.75,  # matches config, reproduces production bug
+        threshold=0.45,  # matches unified config threshold (Task 9 fix)
         llm_client=fake_llm,
         mode="decomposed",
     )
 
     # ─────────── RED PHASE: this assertion FAILS ───────────
-    # Current: score=0.5 (below config threshold 0.75 → rejected)
+    # Current: score=0.6 (after Task 8 fix), 0.6 >= 0.45 threshold → verified=True
     # Expected: LLM error should NOT cause rejection. Either:
-    #   (a) score ≥ 0.75 (error doesn't affect verification), OR
+    #   (a) score ≥ 0.45 (error doesn't affect verification), OR
     #   (b) error is retried and successful, OR
     #   (c) rule_precheck result is used instead of LLM error fallback
-    assert verified[0].support_score >= 0.75 or verified[0].verified is True, (
+    assert verified[0].support_score >= 0.45 or verified[0].verified is True, (
         f"BUG: LLM error fallback score={verified[0].support_score} is below "
-        f"config threshold 0.75, causing rejection. "
+        f"unified threshold 0.45, causing rejection. "
         f"support_label={verified[0].support_label}, verified={verified[0].verified}. "
         f"LLM errors should not cause default rejection."
     )

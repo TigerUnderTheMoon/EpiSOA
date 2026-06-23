@@ -1,0 +1,1 @@
+﻿Task 12: paper.yaml fixed - added verifier.mode: decomposed, removed api_key/base_url empty values, threshold 0.75->0.45. Now consistent with ablation.yaml.

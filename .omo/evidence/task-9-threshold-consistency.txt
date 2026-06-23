@@ -1,0 +1,1 @@
+﻿Task 9 GREEN: verifier threshold unified to 0.45 across configs/paper.yaml, configs/ablation.yaml, and code default. 5/5 TDD tests PASS. Three-way inconsistency (0.75/0.45/0.40) resolved.

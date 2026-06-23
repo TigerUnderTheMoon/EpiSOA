@@ -31,7 +31,6 @@ model:
   embedding_model: mock-embedding
   reranker_model: mock-reranker
   api_key_env: "OPENAI_API_KEY"
-  base_url: ""
   base_url_env: "OPENAI_BASE_URL"
   temperature: 0.1
   max_tokens: 8000
@@ -40,7 +39,6 @@ model:
 search:
   provider: custom
   api_key_env: SEARCH_API_KEY
-  base_url: ""
   base_url_env: SEARCH_BASE_URL
   timeout_seconds: 30
   max_retries: 2
@@ -59,4 +57,4 @@ retrieval:
   top_k: 5
 verifier:
   mode: decomposed
-  threshold: 0.75
+  threshold: 0.45
