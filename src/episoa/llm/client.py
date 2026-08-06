@@ -136,7 +136,7 @@ class OpenAICompatibleClient:
                 if response_format and attempt == 0 and _looks_like_response_format_error(exc):
                     payload.pop("response_format", None)
                     continue
-        raise RuntimeError(f"LLM API call failed after retries: {last_error}") from last_error
+        raise RuntimeError(f"LLM API call failed after retries: {_format_llm_error(last_error)}") from last_error
 
 
 def build_llm_client(model_config: dict[str, Any]) -> OpenAICompatibleClient:
@@ -174,5 +174,18 @@ def json_schema_response_format(name: str, schema: dict[str, Any], *, strict: bo
 
 
 def _looks_like_response_format_error(exc: Exception) -> bool:
-    text = str(exc).lower()
+    response = getattr(exc, "response", None)
+    body = getattr(response, "text", "") if response is not None else ""
+    text = f"{exc} {body}".lower()
     return "response_format" in text or "json_object" in text or "json_schema" in text or "unsupported" in text
+
+
+def _format_llm_error(exc: Exception | None) -> str:
+    if exc is None:
+        return "unknown error"
+    message = str(exc)
+    response = getattr(exc, "response", None)
+    body = getattr(response, "text", "") if response is not None else ""
+    if body:
+        return f"{message}; response_body={body[:2000]}"
+    return message

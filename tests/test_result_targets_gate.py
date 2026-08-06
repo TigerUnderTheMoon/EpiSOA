@@ -209,6 +209,33 @@ def test_final_gate_rejects_all_parse_failed_setting(tmp_path: Path) -> None:
     assert any("direct_llm" in issue and "zero parsed attribution tuples" in issue for issue in result["issues"])
 
 
+def test_consistency_gate_rejects_mixed_model_ablation_artifacts(tmp_path: Path) -> None:
+    runs_dir = tmp_path / "runs"
+    write_setting(runs_dir, "full_soe", f1_03=0.76, f1_05=0.71)
+    write_setting(runs_dir, "direct_llm", f1_03=0.70, f1_05=0.65)
+    write_json(
+        runs_dir / "ablation_full_soe" / "input_manifest.json",
+        {"model": {"model_name": "deepseek-v4-flash", "base_url": "https://api.deepseek.com"}},
+    )
+    write_json(
+        runs_dir / "ablation_direct_llm" / "input_manifest.json",
+        {"model": {"model_name": "gpt-5.5", "base_url": "https://api.asxs.top/v1"}},
+    )
+    write_json(
+        runs_dir / "ablation_summary.json",
+        {
+            "status": "completed",
+            "settings": ["full_soe"],
+            "main_result": {"setting": "full_soe", "tuples": None, "f1_semantic_03": 0.76},
+        },
+    )
+
+    result = run_gate(runs_dir=runs_dir, mode="consistency")
+
+    assert result["status"] == "failed"
+    assert any("mixed model provenance" in issue and "direct_llm" in issue for issue in result["issues"])
+
+
 def test_final_gate_checks_main_semantic_05_threshold(tmp_path: Path) -> None:
     runs_dir = tmp_path / "runs"
     main_dir = runs_dir / "main"

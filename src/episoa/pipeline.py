@@ -1,4 +1,4 @@
-"""End-to-end EpiSOA paper pipeline."""
+﻿"""End-to-end EpiSOA paper pipeline."""
 
 from __future__ import annotations
 
@@ -7,7 +7,9 @@ import csv
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 import shutil
+import stat
 import subprocess
 import time
 from pathlib import Path
@@ -956,6 +958,31 @@ def _write_reuse_manifest(
     return payload
 
 
+def _remove_tree(path: Path) -> str:
+    """Remove run artifacts, clearing the directory if Windows denies root rmdir."""
+
+    def _make_writable_and_retry(func, failed_path, _exc_info) -> None:
+        try:
+            os.chmod(failed_path, stat.S_IWRITE | stat.S_IREAD)
+        except OSError:
+            pass
+        func(failed_path)
+
+    try:
+        shutil.rmtree(path, onerror=_make_writable_and_retry)
+        return "removed"
+    except PermissionError:
+        for child in list(path.iterdir()):
+            if child.is_dir():
+                shutil.rmtree(child, onerror=_make_writable_and_retry)
+            else:
+                try:
+                    child.unlink()
+                except PermissionError:
+                    os.chmod(child, stat.S_IWRITE | stat.S_IREAD)
+                    child.unlink()
+        return "cleared"
+
 def _copy_setting_artifacts(source_dir: Path, target_dir: Path) -> None:
     excluded = {"config_snapshot.yaml", "input_manifest.json", "prompt_manifest.json", "reuse_manifest.json"}
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -965,7 +992,7 @@ def _copy_setting_artifacts(source_dir: Path, target_dir: Path) -> None:
         target = target_dir / source.name
         if source.is_dir():
             if target.exists():
-                shutil.rmtree(target)
+                _remove_tree(target)
             shutil.copytree(source, target)
         else:
             shutil.copyfile(source, target)
@@ -1390,8 +1417,8 @@ def run_ablation_pipeline(
 
         if force:
             if setting_dir.exists():
-                shutil.rmtree(setting_dir)
-                print(f"  [FORCE] removed {setting_dir}")
+                force_cleanup = _remove_tree(setting_dir)
+                print(f"  [FORCE] {force_cleanup} {setting_dir}")
 
         setting_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1562,6 +1589,7 @@ def run_ablation_pipeline(
         "event_ids": runtime["event_ids"],
         "skip_llm_verifier": bool(runtime["skip_llm_verifier"]),
         "settings": list(all_metrics.keys()),
+        "main_result": _ablation_main_result(all_metrics),
         "metrics": all_metrics,
         "reuse": reuse,
         "delta_audits": {setting: str(path) for setting, path in delta_paths.items()},
@@ -1578,6 +1606,15 @@ def run_ablation_pipeline(
     print(f"=== Delta Audit ===\n{runs_dir / 'ablation_delta'}")
     print(f"=== Audit Report ===\n{runs_dir / 'ablation_audit_report.md'}")
     return summary
+
+
+def _ablation_main_result(all_metrics: dict[str, dict[str, float | int | str | None]]) -> dict[str, object]:
+    full_metrics = all_metrics.get("full_soe") or {}
+    return {
+        "setting": "full_soe",
+        "tuples": full_metrics.get("Num-Tuples"),
+        "f1_semantic_03": full_metrics.get("Tuple-F1-semantic@0.3"),
+    }
 
 
 def _write_event_level_deltas(runs_dir: Path, gold: list[GoldTuple], settings: list[str]) -> None:
@@ -1675,12 +1712,146 @@ def _write_deltas_csv(path: Path, deltas: list[dict]) -> None:
             writer.writerow(d)
 
 
+FORMAL_RESULT_SETTING = "ablation_full_soe"
+FORMAL_RESULT_REQUIRED_ARTIFACTS = (
+    "metrics.json",
+    "scoring_scope.json",
+    "verified_soa_tuples.jsonl",
+    "candidate_soa_tuples.jsonl",
+    "metric_threshold_sensitivity.csv",
+    "tuple_failure_audit.csv",
+)
+FORMAL_RESULT_REQUIRED_METRICS = (
+    "Metric-Scope",
+    "Num-Tuples",
+    "Num-Gold",
+    "Tuple-F1-semantic@0.3",
+    "ESR",
+)
+
+
+def _formal_result_status(runs_dir: str | Path) -> dict[str, object]:
+    runs_dir = Path(runs_dir)
+    setting_dir = runs_dir / FORMAL_RESULT_SETTING
+    artifacts: dict[str, dict[str, bool]] = {}
+    missing: list[str] = []
+    empty: list[str] = []
+    health_issues: list[str] = []
+
+    for artifact in FORMAL_RESULT_REQUIRED_ARTIFACTS:
+        rel = f"{FORMAL_RESULT_SETTING}/{artifact}"
+        path = setting_dir / artifact
+        exists = path.exists()
+        nonempty = exists and (not path.is_file() or path.stat().st_size > 0)
+        artifacts[rel] = {"exists": exists, "nonempty": nonempty}
+        if not exists:
+            missing.append(rel)
+        elif path.is_file() and path.stat().st_size == 0:
+            empty.append(rel)
+
+    metrics_path = setting_dir / "metrics.json"
+    if metrics_path.exists() and metrics_path.stat().st_size > 0:
+        try:
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            health_issues.append(f"{FORMAL_RESULT_SETTING}/metrics.json is invalid JSON: {exc}")
+        else:
+            if not isinstance(metrics, dict):
+                health_issues.append(f"{FORMAL_RESULT_SETTING}/metrics.json must contain a JSON object")
+            else:
+                for key in FORMAL_RESULT_REQUIRED_METRICS:
+                    if metrics.get(key) in (None, ""):
+                        health_issues.append(f"{FORMAL_RESULT_SETTING}/metrics.json missing headline key: {key}")
+                if metrics.get("Metric-Scope") not in (None, "gold_event_scope"):
+                    health_issues.append(
+                        f"{FORMAL_RESULT_SETTING}/metrics.json Metric-Scope must be gold_event_scope, "
+                        f"got {metrics.get('Metric-Scope')}"
+                    )
+
+    summary_path = setting_dir / "schema_attribution_summary.json"
+    if summary_path.exists() and summary_path.stat().st_size > 0:
+        try:
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            health_issues.append(f"{FORMAL_RESULT_SETTING}/schema_attribution_summary.json is invalid JSON: {exc}")
+        else:
+            if isinstance(summary, dict):
+                api_calls = _safe_int(summary.get("num_api_calls"))
+                tuples = _safe_int(summary.get("num_tuples_generated"))
+                requested = _safe_int(summary.get("num_events_requested"))
+                skipped = _safe_int(summary.get("num_events_skipped"))
+                parse_failed = summary.get("parse_failed_events", [])
+                parse_failed_count = len(parse_failed) if isinstance(parse_failed, list) else 0
+                prompted = max(0, requested - skipped)
+                if api_calls > 0 and tuples == 0 and prompted > 0 and parse_failed_count >= prompted:
+                    health_issues.append(
+                        f"{FORMAL_RESULT_SETTING} produced zero parsed attribution tuples after "
+                        f"{api_calls} API calls ({parse_failed_count}/{prompted} prompted events parse failed)"
+                    )
+
+    return {
+        "runs_dir": str(runs_dir),
+        "canonical_setting": FORMAL_RESULT_SETTING,
+        "setting_dir": str(setting_dir),
+        "artifacts": artifacts,
+        "missing": missing,
+        "empty": empty,
+        "health_issues": health_issues,
+        "warnings": [],
+        "ready": not missing and not empty and not health_issues,
+    }
+
+
+def _formal_model_provenance_warnings(model_config: dict[str, object], runs_dir: str | Path) -> list[str]:
+    manifest_path = Path(runs_dir) / FORMAL_RESULT_SETTING / "input_manifest.json"
+    if not manifest_path.exists():
+        return []
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [f"{FORMAL_RESULT_SETTING}/input_manifest.json is invalid JSON: {exc}"]
+    if not isinstance(manifest, dict):
+        return [f"{FORMAL_RESULT_SETTING}/input_manifest.json must contain a JSON object"]
+
+    manifest_model = manifest.get("model") if isinstance(manifest.get("model"), dict) else {}
+    current_name = str(model_config.get("model_name") or model_config.get("llm_model") or "").strip()
+    manifest_name = str(manifest_model.get("model_name") or manifest_model.get("llm_model") or "").strip()
+    current_base_env = str(model_config.get("base_url_env") or "").strip()
+    manifest_base_env = str(manifest_model.get("base_url_env") or "").strip()
+
+    warnings: list[str] = []
+    if current_name and manifest_name and current_name != manifest_name:
+        warnings.append(
+            f"{FORMAL_RESULT_SETTING}/input_manifest.json model_name mismatch: "
+            f"manifest={manifest_name}, current_config={current_name}"
+        )
+    if current_base_env and manifest_base_env and current_base_env != manifest_base_env:
+        warnings.append(
+            f"{FORMAL_RESULT_SETTING}/input_manifest.json base_url_env mismatch: "
+            f"manifest={manifest_base_env}, current_config={current_base_env}"
+        )
+    return warnings
+
+
+def _safe_int(value: object) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
 def paper_status() -> dict:
     config = load_config("configs/paper.yaml")
     ablation_config = load_config("configs/ablation.yaml")
     validation = validate_paper_data()
     events_status = _events_status(Path(config.data["events_path"]))
     latest_run = config.run_dir
+    ablation_runs_dir = Path(ablation_config.output.get("runs_dir", "outputs/runs"))
+    formal_results = _formal_result_status(ablation_runs_dir)
+    provenance_warnings = _formal_model_provenance_warnings(ablation_config.model, ablation_runs_dir)
+    formal_results["warnings"].extend(provenance_warnings)
+    if provenance_warnings:
+        formal_results["ready"] = False
     artifacts = {
         name: (latest_run / name).exists()
         for name in (
@@ -1696,17 +1867,19 @@ def paper_status() -> dict:
     return {
         "dataset": validation["dataset"],
         "artifacts": artifacts,
+        "formal_results": formal_results,
         "paper_readiness": {
             "data_ready": validation["paper_data_ready"],
             "events_ready": events_status["events_ready"],
             "main_results_ready": artifacts["main_results.csv"],
-            "ablation_ready": artifacts["ablation_results.csv"],
+            "formal_results_ready": bool(formal_results["ready"]),
+            "ablation_ready": artifacts["ablation_results.csv"] and bool(formal_results["ready"]),
             "retrieval_ready": artifacts["retrieval_results.csv"],
             "verifier_ready": artifacts["verifier_results.csv"],
             "case_study_ready": artifacts["case_studies.jsonl"],
         },
         "api_config": api_config_status(config),
-        "next_commands": _next_commands(validation["paper_data_ready"], artifacts, events_status),
+        "next_commands": _next_commands(validation["paper_data_ready"], artifacts, events_status, formal_results),
     }
 
 
@@ -1723,7 +1896,12 @@ def _events_status(events_path: Path) -> dict[str, object]:
     return {"num_events": len(events), "hard_errors": errors, "events_ready": bool(events) and not errors}
 
 
-def _next_commands(data_ready: bool, artifacts: dict[str, bool], events_status: dict[str, object] | None = None) -> list[str]:
+def _next_commands(
+    data_ready: bool,
+    artifacts: dict[str, bool],
+    events_status: dict[str, object] | None = None,
+    formal_results: dict[str, object] | None = None,
+) -> list[str]:
     if events_status is not None and not events_status.get("events_ready", False):
         return [
             "populate data/pubevent_soa_lite/events.jsonl with accepted concrete public events",
@@ -1739,7 +1917,9 @@ def _next_commands(data_ready: bool, artifacts: dict[str, bool], events_status: 
     commands = []
     if not artifacts["main_results.csv"]:
         commands.append("python scripts/run_paper_experiment.py --config configs/paper.yaml")
-    if not artifacts["ablation_results.csv"]:
+    if formal_results is not None and not formal_results.get("ready", False):
+        commands.append("python scripts/run_ablation.py --config configs/ablation.yaml --force")
+    elif not artifacts["ablation_results.csv"]:
         commands.append("python scripts/run_ablation.py --config configs/ablation.yaml")
     return commands
 
@@ -1806,3 +1986,6 @@ def _format_csv_value(value) -> str:
     if isinstance(value, (list, tuple, dict)):
         return json.dumps(value, ensure_ascii=False, sort_keys=True)
     return str(value)
+
+
+

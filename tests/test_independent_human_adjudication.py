@@ -62,6 +62,51 @@ def test_prepare_and_audit_independent_sheets(tmp_path):
     assert (tmp_path / "audit" / "adjudication_conflict_sheet.csv").exists()
 
 
+def test_audit_marks_identical_adjudicated_copies_invalid_for_iaa_claims(tmp_path):
+    tuple_paths = []
+    chain_paths = []
+    for annotator in ("annotator_A", "annotator_B", "annotator_C"):
+        annotator_dir = tmp_path / annotator
+        tuple_path = annotator_dir / tuple_sheet_filename(annotator)
+        chain_path = annotator_dir / "human_chain_adjudication_sheet.csv"
+        tuple_paths.append(tuple_path)
+        chain_paths.append(chain_path)
+        write_csv(tuple_path, [{
+            "event_id": "E1",
+            "tuple_id": "T1",
+            "stakeholder": "stakeholder",
+            "opinion": "opinion",
+            "sentiment": "neutral",
+            "rationale": "rationale",
+            "evidence_ids": "ev1",
+            "review_decision": "accept",
+            "reviewer_id": annotator,
+            "annotator_id": annotator,
+            "adjudication_status": "adjudicated_final",
+        }])
+        write_csv(chain_path, [{
+            "event_id": "E1",
+            "chain_id": "C1",
+            "event_chain": "start -> end",
+            "evidence_ids": "ev1",
+            "review_decision": "accept",
+            "reviewer_id": annotator,
+            "annotator_id": annotator,
+            "adjudication_status": "adjudicated_final",
+        }])
+
+    report = audit_independent_annotations(
+        tuple_sheets=tuple_paths,
+        chain_sheets=chain_paths,
+        output_dir=tmp_path / "audit",
+    )
+
+    assert report["status"] == "diagnostic_only"
+    assert report["iaa_valid_for_claims"] is False
+    assert report["tuple_iaa"]["valid_for_iaa"] is False
+    assert report["independence_audit"]["tuple"]["identical_adjudicated_copies"] is True
+
+
 def test_independent_tuple_sheet_names_are_annotator_specific():
     assert tuple_sheet_filename("annotator_A") == "humanA_tuple_adjudication_sheet.csv"
     assert tuple_sheet_filename("annotator_B") == "humanB_tuple_adjudication_sheet.csv"

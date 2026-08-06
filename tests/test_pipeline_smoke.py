@@ -2,7 +2,15 @@ from pathlib import Path
 
 from episoa.data.schema import PredictionTuple
 from episoa.config import load_config
-from episoa.pipeline import ABLATION_SETTINGS, PIPELINE_FLAG_KEYS, _apply_verifier_quality_gate, paper_status
+from episoa.pipeline import (
+    ABLATION_SETTINGS,
+    PIPELINE_FLAG_KEYS,
+    _apply_verifier_quality_gate,
+    _ablation_main_result,
+    _formal_model_provenance_warnings,
+    _formal_result_status,
+    paper_status,
+)
 
 
 def test_paper_status_returns_valid_structure() -> None:
@@ -11,11 +19,77 @@ def test_paper_status_returns_valid_structure() -> None:
     assert "paper_readiness" in status
     assert isinstance(status["paper_readiness"]["data_ready"], bool)
     assert isinstance(status["paper_readiness"]["events_ready"], bool)
+    assert isinstance(status["paper_readiness"]["formal_results_ready"], bool)
+    assert "formal_results" in status
     assert "dataset" in status
     assert "num_gold_tuples" in status["dataset"]
     assert status["next_commands"] is not None
     if Path("outputs/runs_human_gold_v2/ablation_results.csv").exists():
         assert status["artifacts"]["ablation_results.csv"] is True
+
+
+def test_formal_result_status_requires_canonical_full_soe_metrics(tmp_path) -> None:
+    status = _formal_result_status(tmp_path / "runs")
+
+    assert status["ready"] is False
+    assert "ablation_full_soe/metrics.json" in status["missing"]
+
+
+def test_formal_result_status_rejects_empty_outputs_and_total_parse_failure(tmp_path) -> None:
+    setting_dir = tmp_path / "runs" / "ablation_full_soe"
+    setting_dir.mkdir(parents=True)
+    for name in (
+        "metrics.json",
+        "scoring_scope.json",
+        "verified_soa_tuples.jsonl",
+        "metric_threshold_sensitivity.csv",
+        "tuple_failure_audit.csv",
+    ):
+        (setting_dir / name).write_text("{}\n", encoding="utf-8")
+    (setting_dir / "candidate_soa_tuples.jsonl").write_text("", encoding="utf-8")
+    (setting_dir / "schema_attribution_summary.json").write_text(
+        (
+            '{"num_api_calls": 3, "num_tuples_generated": 0, '
+            '"num_events_requested": 3, "num_events_skipped": 0, '
+            '"parse_failed_events": ["E001", "E002", "E003"]}'
+        ),
+        encoding="utf-8",
+    )
+
+    status = _formal_result_status(tmp_path / "runs")
+
+    assert status["ready"] is False
+    assert "ablation_full_soe/candidate_soa_tuples.jsonl" in status["empty"]
+    assert any("zero parsed attribution tuples" in issue for issue in status["health_issues"])
+
+
+def test_formal_model_provenance_warnings_flag_stale_manifest_model(tmp_path) -> None:
+    setting_dir = tmp_path / "runs" / "ablation_full_soe"
+    setting_dir.mkdir(parents=True)
+    (setting_dir / "input_manifest.json").write_text(
+        '{"model": {"model_name": "gpt-5.5", "base_url_env": "OPENAI_BASE_URL"}}',
+        encoding="utf-8",
+    )
+
+    warnings = _formal_model_provenance_warnings(
+        {"model_name": "deepseek-v4-flash", "base_url_env": "DEEPSEEK_BASE_URL"},
+        tmp_path / "runs",
+    )
+
+    assert any("model_name mismatch" in warning for warning in warnings)
+    assert any("base_url_env mismatch" in warning for warning in warnings)
+
+
+def test_ablation_main_result_summarizes_full_soe_headlines() -> None:
+    main_result = _ablation_main_result(
+        {"full_soe": {"Num-Tuples": 164, "Tuple-F1-semantic@0.3": 0.6272}}
+    )
+
+    assert main_result == {
+        "setting": "full_soe",
+        "tuples": 164,
+        "f1_semantic_03": 0.6272,
+    }
 
 
 def test_main_configs_use_soe_v3_coverage_optimized() -> None:

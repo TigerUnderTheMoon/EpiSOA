@@ -465,6 +465,7 @@ def build_registry_split(event_rows):
 
 def write_splits(output_dir, filename_prefix, rows, split, backup_existing=False):
     rows_by_split = {"train": [], "dev": [], "test": []}
+    unassigned_event_ids = []
 
     for row in rows:
         event_id = row.get("event_id")
@@ -475,6 +476,14 @@ def write_splits(output_dir, filename_prefix, rows, split, backup_existing=False
                 break
         if assigned:
             rows_by_split[assigned].append(row)
+        else:
+            unassigned_event_ids.append(event_id)
+
+    if unassigned_event_ids:
+        preview = sorted({str(event_id) for event_id in unassigned_event_ids})[:10]
+        raise ValueError(
+            f"{filename_prefix} rows not assigned to any registry split: {preview}"
+        )
 
     for split_name, split_rows in rows_by_split.items():
         path = Path(output_dir) / "splits" / split_name / f"{filename_prefix}.jsonl"

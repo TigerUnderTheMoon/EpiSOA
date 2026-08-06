@@ -1,7 +1,7 @@
 """Audit the manuscript docx for number consistency against the canonical
-artifacts. Catches the regression where the docx Table 5/6 carried stale
-pre-remediation numbers (44 tuples / F1=0.1468) while the abstract used
-current numbers (82 / 0.3906).
+artifacts. Catches regressions where the docx Table 5/6 carries stale
+pre-remediation numbers while the abstract or formal artifacts use newer
+canonical values.
 
 Reads the rendered docx text and asserts every headline number matches
 ``outputs/runs_human_gold_v2/ablation_full_soe/metrics.json`` and the
@@ -31,7 +31,13 @@ def _docx_text(path: Path) -> str:
 
 
 def _load_metrics() -> dict:
-    return json.loads((RUNS_DIR / "ablation_full_soe" / "metrics.json").read_text(encoding="utf-8"))
+    metrics_path = RUNS_DIR / "ablation_full_soe" / "metrics.json"
+    if not metrics_path.exists():
+        raise FileNotFoundError(f"canonical metrics missing: {metrics_path}")
+    metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    if not isinstance(metrics, dict):
+        raise ValueError(f"canonical metrics must contain a JSON object: {metrics_path}")
+    return metrics
 
 
 def main() -> int:
@@ -45,14 +51,18 @@ def main() -> int:
         return 2
 
     text = _docx_text(docx)
-    metrics = _load_metrics()
+    try:
+        metrics = _load_metrics()
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
     issues: list[str] = []
 
     # Headline numbers that must appear in the manuscript.
     expected_present = {
-        "Num-Tuples (82)": str(metrics["Num-Tuples"]),
-        "F1@0.3 (0.3906)": f"{metrics['Tuple-F1-semantic@0.3']:.4f}",
-        "Num-Gold (174)": str(metrics["Num-Gold"]),
+        "Num-Tuples": str(metrics["Num-Tuples"]),
+        "F1@0.3": f"{metrics['Tuple-F1-semantic@0.3']:.4f}",
+        "Num-Gold": str(metrics["Num-Gold"]),
     }
     for label, value in expected_present.items():
         if value not in text:

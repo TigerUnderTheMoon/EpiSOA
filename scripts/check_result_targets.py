@@ -291,6 +291,8 @@ def _check_consistency(runs_dir: Path, result: dict[str, Any], issues: list[str]
                         f"!= ablation_full_soe Tuple-F1-semantic@0.3={canonical_f1}"
                     )
 
+    _check_ablation_model_provenance(runs_dir, result, issues)
+
     # Significance report must be regenerated from real data, not the hardcoded
     # placeholder that claimed full_soe is +0.0602 better (it is in fact worse).
     sig_path = runs_dir.parent / "manuscript" / "significance_report.json"
@@ -311,6 +313,38 @@ def _check_consistency(runs_dir: Path, result: dict[str, Any], issues: list[str]
                         "significance_report.json still has hardcoded n_events=40; "
                         "real paired event count is ~45 — regenerate"
                     )
+
+
+def _check_ablation_model_provenance(runs_dir: Path, result: dict[str, Any], issues: list[str]) -> None:
+    full_manifest = _read_json(runs_dir / "ablation_full_soe" / "input_manifest.json", issues)
+    if not isinstance(full_manifest, dict):
+        return
+    canonical = _manifest_model_identity(full_manifest)
+    result.setdefault("provenance", {})["canonical_model"] = canonical
+    mismatches: list[dict[str, Any]] = []
+    for setting_dir in sorted(runs_dir.glob("ablation_*")):
+        if setting_dir.name in {"ablation_delta"} or not (setting_dir / "metrics.json").exists():
+            continue
+        setting = setting_dir.name.removeprefix("ablation_")
+        manifest_path = setting_dir / "input_manifest.json"
+        manifest = _read_json(manifest_path, issues)
+        if not isinstance(manifest, dict):
+            continue
+        identity = _manifest_model_identity(manifest)
+        if identity != canonical:
+            mismatches.append({"setting": setting, "model": identity})
+            issues.append(
+                f"mixed model provenance for {setting}: {identity} != canonical full_soe {canonical}"
+            )
+    result.setdefault("provenance", {})["mismatched_settings"] = mismatches
+
+
+def _manifest_model_identity(manifest: dict[str, Any]) -> dict[str, str]:
+    model = manifest.get("model") if isinstance(manifest.get("model"), dict) else {}
+    return {
+        "model_name": str(model.get("model_name") or model.get("llm_model") or ""),
+        "base_url": str(model.get("base_url") or ""),
+    }
 
 
 def _check_iaa_integrity(result: dict[str, Any], issues: list[str]) -> None:
@@ -357,8 +391,10 @@ def _check_iaa_integrity(result: dict[str, Any], issues: list[str]) -> None:
     bundled = _read_json(report_path, [])
     if isinstance(bundled, dict):
         kappa = (bundled.get("tuple_iaa") or {}).get("fleiss_kappa")
+        iaa_valid_for_claims = bundled.get("iaa_valid_for_claims")
         result["iaa"]["bundled_kappa"] = kappa
-        if identical and kappa == 1.0:
+        result["iaa"]["iaa_valid_for_claims"] = iaa_valid_for_claims
+        if identical and kappa == 1.0 and iaa_valid_for_claims is not False:
             issues.append(
                 "IAA artifact: annotator_A/B/C sheets have 0 field-level diffs across "
                 "stakeholder/opinion/sentiment/rationale but bundled report claims "

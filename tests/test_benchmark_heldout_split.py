@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.build_benchmark_tasks import build_event_split
+from scripts.build_benchmark_tasks import build_event_split, write_splits
 
 
 def test_benchmark_split_comes_from_stage1_registry():
@@ -27,3 +27,11 @@ def test_benchmark_rejects_unheldout_test_event():
             dev_ratio=0.1,
             seed=42,
         )
+
+
+def test_split_writer_rejects_task_rows_not_in_stage1_registry(tmp_path):
+    split = {"train": ["E1"], "dev": ["E2"], "test": ["E3"]}
+    rows = [{"event_id": "E1"}, {"event_id": "E99"}]
+
+    with pytest.raises(ValueError, match="not assigned to any registry split"):
+        write_splits(tmp_path, "tuple_identification", rows, split)

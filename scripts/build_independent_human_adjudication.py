@@ -111,10 +111,25 @@ def audit_independent_annotations(
     chain_votes = collect_votes(chain_sheets, "chain")
     tuple_report = agreement_report(tuple_votes)
     chain_report = agreement_report(chain_votes)
+    independence = {
+        "tuple": independence_audit(tuple_sheets, "tuple"),
+        "chain": independence_audit(chain_sheets, "chain"),
+    }
+    tuple_report["valid_for_iaa"] = bool(independence["tuple"]["valid_for_iaa"])
+    chain_report["valid_for_iaa"] = bool(independence["chain"]["valid_for_iaa"])
+    iaa_valid_for_claims = tuple_report["valid_for_iaa"] and chain_report["valid_for_iaa"]
+    if not tuple_report["valid_for_iaa"]:
+        tuple_report["meets_target"] = False
+        tuple_report["meets_minimum"] = False
+    if not chain_report["valid_for_iaa"]:
+        chain_report["meets_target"] = False
+        chain_report["meets_minimum"] = False
     conflicts = conflict_rows(tuple_votes) + conflict_rows(chain_votes)
     write_csv(output_dir / "adjudication_conflict_sheet.csv", conflicts)
     report = {
-        "status": "completed",
+        "status": "completed" if iaa_valid_for_claims else "diagnostic_only",
+        "iaa_valid_for_claims": iaa_valid_for_claims,
+        "independence_audit": independence,
         "tuple_iaa": tuple_report,
         "chain_iaa": chain_report,
         "conflict_count": len(conflicts),
@@ -131,6 +146,57 @@ def audit_independent_annotations(
     )
     (output_dir / "independent_annotation_iaa_report.md").write_text(render_markdown(report), encoding="utf-8")
     return report
+
+
+def independence_audit(paths: list[Path], record_type: str) -> dict[str, Any]:
+    id_field = "tuple_id" if record_type == "tuple" else "chain_id"
+    fields = (
+        ("stakeholder", "opinion", "sentiment", "rationale")
+        if record_type == "tuple"
+        else ("event_chain", "evidence_ids")
+    )
+    row_sets = [read_csv(path) for path in paths]
+    maps = [rows_by_key(rows, record_type, id_field, path) for rows, path in zip(row_sets, paths)]
+    if not maps:
+        return {"valid_for_iaa": False, "reason": "no sheets"}
+    common_keys = set(maps[0])
+    for row_map in maps[1:]:
+        common_keys &= set(row_map)
+
+    comparable_fields = 0
+    field_diffs = 0
+    statuses: list[str] = []
+    for key in sorted(common_keys):
+        rows = [row_map[key] for row_map in maps]
+        statuses.extend(normalize_cell(row.get("adjudication_status")) for row in rows)
+        for field in fields:
+            values = [normalize_cell(row.get(field)) for row in rows]
+            if not any(values):
+                continue
+            comparable_fields += 1
+            if len(set(values)) > 1:
+                field_diffs += 1
+
+    all_rows_adjudicated_final = bool(statuses) and all(status == "adjudicated_final" for status in statuses)
+    identical_adjudicated_copies = (
+        comparable_fields > 0 and field_diffs == 0 and all_rows_adjudicated_final
+    )
+    return {
+        "record_type": record_type,
+        "shared_items": len(common_keys),
+        "compared_fields": list(fields),
+        "comparable_fields": comparable_fields,
+        "field_diffs": field_diffs,
+        "all_rows_adjudicated_final": all_rows_adjudicated_final,
+        "identical_adjudicated_copies": identical_adjudicated_copies,
+        "valid_for_iaa": not identical_adjudicated_copies,
+        "warning": (
+            "annotator sheets appear to be identical adjudicated-final copies; "
+            "raw kappa is diagnostic only and must not be cited as inter-annotator agreement"
+            if identical_adjudicated_copies
+            else ""
+        ),
+    }
 
 
 def materialize_consensus_sheets(
@@ -370,6 +436,8 @@ def render_markdown(report: dict[str, Any]) -> str:
     return "\n".join([
         "# Independent Annotation IAA Report",
         "",
+        f"- status: {report['status']}",
+        f"- iaa_valid_for_claims: {report.get('iaa_valid_for_claims')}",
         f"- tuple_iaa: {report['tuple_iaa']}",
         f"- chain_iaa: {report['chain_iaa']}",
         f"- conflict_count: {report['conflict_count']}",

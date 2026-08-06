@@ -3,8 +3,10 @@ significance-direction regressions documented in the paper-repair plan.
 """
 
 import importlib
+import csv
 import json
 import sys
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -102,6 +104,83 @@ def test_audit_manuscript_numbers_passes_on_current_docx(monkeypatch):
     docx = ROOT / "outputs" / "manuscript" / "episoa_full_draft.docx"
     if not docx.exists():
         pytest.skip("manuscript docx not built")
+    if not (ROOT / "outputs" / "runs_human_gold_v2" / "ablation_full_soe" / "metrics.json").exists():
+        pytest.skip("canonical ablation_full_soe metrics not built")
     monkeypatch.setattr(sys, "argv", ["audit_manuscript_numbers.py", "--docx", str(docx)])
     rc = audit.main()
     assert rc == 0
+
+
+def test_audit_manuscript_numbers_reports_missing_canonical_metrics(monkeypatch, tmp_path, capsys):
+    audit = importlib.import_module("scripts.audit_manuscript_numbers")
+    docx = tmp_path / "draft.docx"
+    document_xml = (
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        "<w:body><w:p><w:r><w:t>draft text</w:t></w:r></w:p></w:body>"
+        "</w:document>"
+    )
+    with zipfile.ZipFile(docx, "w") as zf:
+        zf.writestr("word/document.xml", document_xml)
+
+    monkeypatch.setattr(audit, "RUNS_DIR", tmp_path / "runs")
+    monkeypatch.setattr(sys, "argv", ["audit_manuscript_numbers.py", "--docx", str(docx)])
+
+    rc = audit.main()
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "canonical metrics missing" in captured.err
+
+
+def test_result_gate_allows_explicitly_invalidated_iaa_artifact(monkeypatch, tmp_path):
+    crt = importlib.import_module("scripts.check_result_targets")
+    base = (
+        tmp_path
+        / "data"
+        / "pubevent_soa_lite"
+        / "human_gold_v2_stakeholder_canonical"
+        / "independent"
+    )
+    for name in ("A", "B", "C"):
+        path = base / f"annotator_{name}" / f"human{name}_tuple_adjudication_sheet.csv"
+        path.parent.mkdir(parents=True)
+        with path.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=["event_id", "tuple_id", "stakeholder", "opinion", "sentiment", "rationale"],
+            )
+            writer.writeheader()
+            writer.writerow({
+                "event_id": "E1",
+                "tuple_id": "T1",
+                "stakeholder": "stakeholder",
+                "opinion": "opinion",
+                "sentiment": "neutral",
+                "rationale": "rationale",
+            })
+    report = (
+        tmp_path
+        / "data"
+        / "pubevent_soa_lite"
+        / "human_gold_v2"
+        / "independent_audit"
+        / "independent_annotation_iaa_report.json"
+    )
+    report.parent.mkdir(parents=True)
+    report.write_text(
+        json.dumps({
+            "status": "diagnostic_only",
+            "iaa_valid_for_claims": False,
+            "tuple_iaa": {"fleiss_kappa": 1.0, "valid_for_iaa": False},
+        }),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(crt, "ROOT", tmp_path)
+    result = {}
+    issues = []
+
+    crt._check_iaa_integrity(result, issues)
+
+    assert issues == []
+    assert result["iaa"]["iaa_valid_for_claims"] is False
