@@ -1,0 +1,61 @@
+run_id: episoa-ea-v1.5-prepilot
+mode: ea_pilot
+data:
+  raw_posts_path: data/pubevent_soa_ea/pilot/raw/raw_posts.jsonl
+  sources_path: data/pubevent_soa_ea/pilot/sources.jsonl
+  documents_path: data/pubevent_soa_ea/pilot/documents.jsonl
+  effect_candidates_path: data/pubevent_soa_ea/pilot/process/effect_candidates.jsonl
+  explanation_candidates_path: data/pubevent_soa_ea/pilot/process/explanation_candidates.jsonl
+  relation_judgments_path: data/pubevent_soa_ea/pilot/process/relation_judgments.jsonl
+  evidence_links_path: data/pubevent_soa_ea/pilot/process/evidence_links.jsonl
+  extraction_attempts_path: data/pubevent_soa_ea/pilot/process/extraction_attempts.jsonl
+  m3_attempts_path: data/pubevent_soa_ea/pilot/process/m3_attempts.jsonl
+  verification_diagnostics_path: data/pubevent_soa_ea/pilot/process/verification_diagnostics.jsonl
+  viewpoint_effects_path: data/pubevent_soa_ea/pilot/formal/viewpoint_effects.jsonl
+  attribution_claims_path: data/pubevent_soa_ea/pilot/formal/attribution_claims.jsonl
+  semantic_pair_judgments_path: data/pubevent_soa_ea/pilot/process/semantic_pair_judgments.jsonl
+  canonical_effects_path: data/pubevent_soa_ea/pilot/formal/canonical_effects.jsonl
+  canonical_claim_groups_path: data/pubevent_soa_ea/pilot/formal/canonical_claim_groups.jsonl
+  claim_pair_relations_path: data/pubevent_soa_ea/pilot/formal/claim_pair_relations.jsonl
+  fusion_pair_judgments_path: data/pubevent_soa_ea/pilot/process/fusion_pair_judgments.jsonl
+  fusion_cluster_diagnostics_path: data/pubevent_soa_ea/pilot/process/fusion_cluster_diagnostics.jsonl
+  canonical_adjudication_queue_path: data/pubevent_soa_ea/pilot/process/canonical_adjudication_queue.jsonl
+  event_dossiers_path: data/pubevent_soa_ea/pilot/formal/event_dossiers.jsonl
+output:
+  runs_dir: outputs/ea/pilot
+  cache_dir: outputs/ea/cache
+runtime:
+  ea_method_version: EpiSOA-EA-v1.5-prepilot
+  schema_version: ea-schema-v1.5
+  max_api_concurrency: 1
+  chunk_size_chars: 6000
+  chunk_overlap_chars: 300
+  schema_retries: 1
+model:
+  provider: openai_compatible
+  llm_model: deepseek-v4-flash
+  model_version: DeepSeek-V4-Flash-2026-04-24
+  context_window_tokens: 1000000
+  reserved_output_tokens: 8192
+  api_key_env: DEEPSEEK_API_KEY
+  base_url: https://api.deepseek.com
+  temperature: 0.0
+  max_tokens: 8192
+  thinking_mode: disabled
+  response_format_mode: json_object
+  timeout_seconds: 120
+  max_retries: 2
+evaluation:
+  explanation_span_f1_threshold: 0.5
+  semantic_equivalence_rules_path: configs/ea_semantic_equivalence_v1.yaml
+  gold_workspace: data/pubevent_soa_ea/gold_workflow
+  gold_version: pending-m5-gold
+  split_version: pending-m5-split
+  prompt_version: ea-v1.5-prepilot-prompt-v1
+  semantic_pair_prompt_version: ea-v1.5-prepilot-semantic-pair-v1
+  decoding_version: deepseek-v4-flash-nonthinking-temperature-0-json-object-v1
+  judgment_resource_id: pending-m5-frozen-pair-resource
+  seed: 0
+  fusion_embedding_threshold: 0.8
+  blocking_recall_threshold: 0.98
+ablation: {}

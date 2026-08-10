@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Target/current boundary:** The project overview below describes the legacy `soe_v3` code. The authoritative EpiSOA-EA v1.5 target is [`docs/method_framework.md`](docs/method_framework.md) plus [`docs/annotation_guidelines.md`](docs/annotation_guidelines.md). The isolated EA package implements its offline contracts with synthetic tests, but the six-event Pilot, human Gold, real-API comparison runs, and Formal results remain future evidence gates.
+
 ## Project Overview
 
 EpiSOA is a reproducible research framework for Evidence-grounded Stakeholder Opinion Attribution in public events. The output schema is `<Event, Stakeholder, Opinion, Sentiment, Rationale, EventChain, EvidenceIDs>`. It targets Chinese-language public events (urban renewal, public safety, etc.) with a toolchain that collects web evidence, builds event chains, generates stakeholder-opinion tuples, and verifies them via LLM-assisted faithfulness checks.

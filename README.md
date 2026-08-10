@@ -2,6 +2,10 @@
 
 EpiSOA is a reproducible research framework for Evidence-grounded Stakeholder Opinion Attribution in public events.
 
+> **Implementation-status boundary:** The workflow below primarily describes the legacy `soe_v3` implementation. The frozen EpiSOA-EA v1.5 contract is defined in [`docs/method_framework.md`](docs/method_framework.md) and [`docs/annotation_guidelines.md`](docs/annotation_guidelines.md). The isolated `src/episoa/ea/` path contains offline Document Understanding, APCF/Fusion, Event Dossier, Gold, baseline-adapter, and evaluation tooling; this is synthetic-test implementation, not six-event Pilot evidence, human Gold, real-API results, or Formal paper readiness.
+
+M5 starts from the frozen [`docs/m5_pilot_protocol.md`](docs/m5_pilot_protocol.md), the six-event rationale in [`docs/m5_event_selection.md`](docs/m5_event_selection.md), and the machine-readable registry [`configs/ea_pilot_events.yaml`](configs/ea_pilot_events.yaml). Gold sheets and adjudication rules are documented in [`docs/m5_gold_template_guide.md`](docs/m5_gold_template_guide.md). Do not start real-model inference before the pre-pilot freeze manifest and tag have been created.
+
 The core output schema is:
 
 ```text
@@ -13,6 +17,20 @@ extraction: `stakeholder_cluster_id`, `stakeholder_aliases`,
 `canonical_tuple`, `opinion_split_reason`,
 `stakeholder_candidate_match_status`, `matched_stakeholder_candidate`,
 `stage_candidate_ids`, and `attribution_pass`.
+
+## Parallel EpiSOA-EA v1.5 path
+
+The EA path is isolated from legacy data, caches, schemas, and outputs. Its offline stages are:
+
+```text
+python -m episoa.cli prepare-ea
+python -m episoa.cli run-ea --stage m2
+python -m episoa.cli run-ea --stage m3
+python -m episoa.cli run-ea --stage fusion --fusion-method apcf
+python -m episoa.cli run-ea --stage dossier
+```
+
+Running `run-ea` without `--stage` executes M2 → M3 → APCF → Dossier and blocks if prepared Documents are absent. Exact, Embedding, and LLM Pairwise fusion outputs are experiment artifacts and do not overwrite the formal APCF Canonical/Dossier files. Real API execution and the six-event Pilot remain intentionally blocked by missing Pilot inputs and frozen-readiness gates.
 
 ## Event-First Paper Workflow
 

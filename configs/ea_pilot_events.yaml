@@ -1,0 +1,147 @@
+registry_version: ea-m5-pilot-events-v1
+status: frozen_before_model_inference
+sampling_strategy:
+  - criterion-based purposive sampling
+  - maximum variation sampling
+selection_date: 2026-08-10
+selection_constraints:
+  event_count: 6
+  one_event_per_domain: true
+  earliest_event_date: 2023-01-01
+  target_documents_per_event: 6-8
+  minimum_primary_source_lineages: 3
+  pilot_excluded_from_formal_test: true
+events:
+  - event_id: PILOT-UR-001
+    domain: urban_renewal
+    title: 广州市城中村改造条例公开征求意见至正式施行事件
+    location: 广东省广州市
+    time_window:
+      start: 2023-07-17
+      end: 2024-05-01
+    trigger: 广州市住房和城乡建设局公开征集城中村改造条例意见
+    anchor_urls:
+      - https://www.gz.gov.cn/zwfw/zxfw/zffw/content/post_9113184.html
+      - https://zfcj.gz.gov.cn/hdjl/jgfk/content/post_9188079.html
+      - https://ghzyj.gz.gov.cn/sjb/zw/zcfg/content/mpost_9972127.html
+    stress_profile:
+      source_volume: low_to_medium
+      document_heterogeneity: official_public_feedback_media_expert
+      effect_types: [stance, emotion, action]
+      explanation_forms: [explicit, cross_sentence]
+      holder_structures: [self_attribution, external_attribution]
+      cross_source_relations: [equivalent, additional, explicitly_contradicted]
+      stage_structure: multi_stage
+      complexity: medium
+
+  - event_id: PILOT-ED-001
+    domain: education
+    title: 华中农业大学学生联合举报黄飞若学术不端及后续处理事件
+    location: 湖北省武汉市
+    time_window:
+      start: 2024-01-16
+      end: 2024-10-11
+    trigger: 11名硕博研究生公开提交学术不端实名举报材料
+    anchor_urls:
+      - https://news.cctv.com/2024/01/19/ARTIyO1LHkJcEHa8LmBQVBYt240119.shtml
+      - https://www.news.cn/20240206/640174e07a894f3fbe59254128d41e79/c.html
+      - https://www.nsfc.gov.cn/p1/2812/2816/71093.html
+    stress_profile:
+      source_volume: high
+      document_heterogeneity: complainant_university_regulator_media_public_discussion
+      effect_types: [stance, emotion, action]
+      explanation_forms: [explicit, cross_sentence, implicit]
+      holder_structures: [self_attribution, external_attribution]
+      cross_source_relations: [equivalent, additional, explicitly_contradicted, unresolved]
+      stage_structure: multi_stage
+      complexity: high
+
+  - event_id: PILOT-HC-001
+    domain: healthcare
+    title: 无锡虹桥医院涉嫌欺诈骗保举报与飞行检查事件
+    location: 江苏省无锡市
+    time_window:
+      start: 2024-09-21
+      end: 2024-10-08
+    trigger: 医务人员公开举报医院涉嫌伪造材料和欺诈骗取医保基金
+    anchor_urls:
+      - https://news.cnr.cn/dj/20240922/t20240922_526913243.shtml
+      - https://www.nhsa.gov.cn/art/2024/9/23/art_14_13933.html
+      - https://www.nhsa.gov.cn/art/2024/10/8/art_14_14102.html
+      - https://www.nhsa.gov.cn/art/2024/10/8/art_14_14104.html
+    stress_profile:
+      source_volume: medium
+      document_heterogeneity: whistleblower_local_regulator_national_regulator_media
+      effect_types: [stance, emotion, action]
+      explanation_forms: [explicit, cross_sentence]
+      holder_structures: [self_attribution, external_attribution]
+      cross_source_relations: [equivalent, additional, unresolved]
+      stage_structure: multi_stage
+      complexity: medium
+
+  - event_id: PILOT-PS-001
+    domain: public_safety
+    title: 齐齐哈尔第三十四中学体育馆屋顶坍塌及事故调查事件
+    location: 黑龙江省齐齐哈尔市龙沙区
+    time_window:
+      start: 2023-07-23
+      end: 2024-03-11
+    trigger: 齐齐哈尔市第三十四中学校体育馆屋顶发生坍塌
+    anchor_urls:
+      - https://www.hlj.gov.cn/hlj/c107856/202307/c00_31652312.shtml
+      - https://www.gl.gov.cn/xjwz/zwgkml/zdlyxxgk/aqsc_1/sgfxjyd/202402/t20240223_4781121.htm
+      - https://zfcxjst.hlj.gov.cn/zfcxjst/c114971/202403/c00_31716338.shtml
+    stress_profile:
+      source_volume: high
+      document_heterogeneity: emergency_response_family_media_investigation_enforcement
+      effect_types: [stance, emotion, action]
+      explanation_forms: [explicit, cross_sentence, implicit]
+      holder_structures: [self_attribution, external_attribution]
+      cross_source_relations: [equivalent, additional, explicitly_contradicted, unresolved]
+      stage_structure: multi_stage
+      complexity: high
+
+  - event_id: PILOT-TR-001
+    domain: urban_transport
+    title: 北京地铁昌平线12·14列车追尾及事故调查事件
+    location: 北京市海淀区至昌平区昌平线区间
+    time_window:
+      start: 2023-12-14
+      end: 2024-02-05
+    trigger: 昌平线西二旗站至生命科学园站区间两列车发生追尾
+    anchor_urls:
+      - https://www.beijing.gov.cn/ywdt/yaowen/202312/t20231215_3501371.html
+      - https://yjglj.beijing.gov.cn/art/2024/2/5/art_4520_652.html
+      - https://yjglj.beijing.gov.cn/attach/0/%E5%8C%97%E4%BA%AC%E5%9C%B0%E9%93%81%E6%98%8C%E5%B9%B3%E7%BA%BF%E2%80%9C12%C2%B714%E2%80%9D%E5%88%97%E8%BD%A6%E8%BF%BD%E5%B0%BE%E4%BA%8B%E6%95%85%E8%B0%83%E6%9F%A5%E6%8A%A5%E5%91%8A.pdf
+    stress_profile:
+      source_volume: high
+      document_heterogeneity: operator_passenger_government_investigation_media
+      effect_types: [stance, emotion, action]
+      explanation_forms: [explicit, cross_sentence]
+      holder_structures: [self_attribution, external_attribution]
+      cross_source_relations: [equivalent, additional, explicitly_contradicted]
+      stage_structure: multi_stage
+      complexity: high
+
+  - event_id: PILOT-DG-001
+    domain: digital_governance
+    title: 国家网络身份认证公共服务管理办法征求意见至公布事件
+    location: 中国全国
+    time_window:
+      start: 2024-07-26
+      end: 2025-05-23
+    trigger: 公安部和国家互联网信息办公室公开征求网号网证管理办法意见
+    anchor_urls:
+      - https://www.cac.gov.cn/2024-07/26/c_1723675813897966.htm
+      - https://www.xinhuanet.com/politics/20240726/64dfa15e818747659208cb41605b715e/c.html
+      - https://www.cac.gov.cn/2025-05/23/c_1749711107832483.htm
+      - https://www.nrta.gov.cn/art/2025/5/23/art_113_70826.html?xxgkhide=1
+    stress_profile:
+      source_volume: high
+      document_heterogeneity: regulator_platform_expert_media_public_commentary
+      effect_types: [stance, emotion, action]
+      explanation_forms: [explicit, cross_sentence, implicit]
+      holder_structures: [self_attribution, external_attribution]
+      cross_source_relations: [equivalent, additional, explicitly_contradicted, unresolved]
+      stage_structure: multi_stage
+      complexity: high

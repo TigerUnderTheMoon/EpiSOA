@@ -1,0 +1,49 @@
+manifest_version: ea-prepilot-fairness-v1
+status: method_contract_frozen_data_hash_pending_collection
+method_version: EpiSOA-EA-v1.5-prepilot
+event_registry: configs/ea_pilot_events.yaml
+shared_controls:
+  model: deepseek-v4-flash
+  model_version: DeepSeek-V4-Flash-2026-04-24
+  provider: DeepSeek official API
+  base_url: https://api.deepseek.com
+  thinking_mode: disabled
+  temperature: 0.0
+  max_output_tokens_per_call: 8192
+  response_format_mode: json_object
+  normalized_text_policy: frozen_content_hash
+  prompt_version: ea-v1.5-prepilot-prompt-v1
+  semantic_pair_prompt_version: ea-v1.5-prepilot-semantic-pair-v1
+  decoding_version: deepseek-v4-flash-nonthinking-temperature-0-json-object-v1
+  evaluator_version: ea-evaluator-v1
+  candidate_policy: fixed_shared_candidate_universe
+  capacity_policy: no_silent_truncation
+main_comparison_methods:
+  - long_context_event_llm
+  - long_context_event_llm_evidence
+  - direct_pair_classification
+  - original_episoa
+  - episoa_ea
+complete_dossier_methods:
+  - long_context_event_llm
+  - long_context_event_llm_evidence
+  - episoa_ea
+fusion_methods:
+  - exact
+  - embedding
+  - llm_pairwise
+  - apcf
+shared_semantic_resource:
+  required_for: [llm_pairwise, apcf]
+  judgment_resource_id: pending-m5-frozen-pair-resource
+  same_model: true
+  same_prompt: true
+  same_temperature: true
+  same_decoding: true
+pilot_execution_scope:
+  first_real_run_methods: [episoa_ea]
+  baselines_deferred_until_engineering_gate: true
+formal_placeholders:
+  document_set_hash: pending_until_60_formal_events_are_frozen
+  gold_version: pending_formal_gold
+  split_version: pending_formal_split
