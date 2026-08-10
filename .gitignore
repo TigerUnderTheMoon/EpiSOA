@@ -29,6 +29,7 @@ data/pubevent_soa_lite/gold_*_report.json
 data/**/*.bak*
 data/**/*.backup_*
 data/**/*.before_*
+data/pubevent_soa_ea/
 
 .mypy_cache/
 .ruff_cache/

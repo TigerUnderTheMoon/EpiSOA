@@ -23,3 +23,4 @@ Layer限定为：`collection`、`document`、`effect`、`claim`、`evidence`、`
 | Issue ID | Date | Event/Document | Layer | Reproduction artifact | Severity | Decision | Version impact | Rerun scope | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | M5-LEGACY-001 | 2026-08-10 | legacy workspace | infrastructure | 3 tests listed in `m5_pilot_protocol.md` | non-EA | missing ignored historical fixtures; do not fabricate | none | none | closed_no_change |
+| M5-001 | 2026-08-10 | all Pilot events, before collection | infrastructure | `configs/ea_pilot.yaml` data paths versus `.gitignore` | local deterministic bug | add `data/pubevent_soa_ea/` ignore rule before first write | repo patch tag `EpiSOA-EA-v1.5.1-prepilot` | collection preparation | patch_approved |
