@@ -1,0 +1,103 @@
+freeze_id: EpiSOA-EA-v1.5-prepilot
+freeze_date: 2026-08-10
+git:
+  implementation_commit: 00445a6e5710a726fa550b9c0e30e52b309653ca
+  local_tag: EpiSOA-EA-v1.5-prepilot
+  tag_policy: tag points to the commit that adds this freeze manifest
+
+status:
+  implementation_frozen: true
+  engineering_validation_passed: true
+  empirical_validation_started: false
+  real_api_called: false
+  pilot_gold_started: false
+  formal_collection_started: false
+
+versions:
+  method: EpiSOA-EA-v1.5-prepilot
+  schema: ea-schema-v1.5
+  pilot_event_registry: ea-m5-pilot-events-v1
+  pilot_protocol: m5-pilot-protocol-v1
+  extraction_prompt: ea-v1.5-prepilot-prompt-v1
+  semantic_pair_prompt: ea-v1.5-prepilot-semantic-pair-v1
+  semantic_equivalence_rules: ea-semantic-equivalence-v1
+  base_model: deepseek-v4-flash
+  base_model_release: DeepSeek-V4-Flash-2026-04-24
+  decoding: deepseek-v4-flash-nonthinking-temperature-0-json-object-v1
+
+model_contract:
+  provider: openai_compatible
+  base_url: https://api.deepseek.com
+  context_window_tokens: 1000000
+  reserved_output_tokens: 8192
+  temperature: 0.0
+  max_tokens: 8192
+  thinking_mode: disabled
+  response_format_mode: json_object
+  max_api_concurrency: 1
+  no_silent_truncation: true
+
+pilot_contract:
+  event_count: 6
+  domains:
+    - urban_renewal
+    - education
+    - healthcare
+    - public_safety
+    - urban_transport
+    - digital_governance
+  target_documents_per_event: 6-8
+  maximum_documents: 48
+  excluded_from_formal_test: true
+  blocking_recall_threshold: 0.98
+  gold_workflow: independent_A_B_then_C_disagreement_only
+  first_real_run_scope: EpiSOA-EA_only
+  baseline_runs_deferred_until_hard_gates_pass: true
+
+validation:
+  ea_tests:
+    command: python -m pytest tests/test_ea_m1.py tests/test_ea_m2.py tests/test_ea_m3.py tests/test_ea_m4.py tests/test_ea_v15.py -q
+    passed: 62
+    failed: 0
+  runnable_regression:
+    command: python -m pytest -q with the three unavailable legacy-fixture tests deselected
+    passed: 497
+    skipped: 1
+    failed: 0
+  lint:
+    command: python -m ruff check src/episoa/ea src/episoa/cli.py tests/test_ea_m1.py tests/test_ea_m2.py tests/test_ea_m3.py tests/test_ea_m4.py tests/test_ea_v15.py
+    passed: true
+  full_pytest:
+    passed: 497
+    skipped: 1
+    failed: 3
+    failure_class: non-EA legacy regression unavailable due to missing ignored historical fixtures
+    unavailable_tests:
+      - tests/test_data_io.py::test_validate_paper_data_defaults_to_human_gold_v2
+      - tests/test_data_io.py::test_validate_paper_data_script_uses_checkout_package
+      - tests/test_manuscript_builder.py::test_supporting_data_package_contains_manifest_and_omits_raw_fulltext
+
+file_sha256:
+  configs/ea_pilot.yaml: 0efb9febeca771a91b9227b389195a9c9d1743892bb59b531c6b3509dd627ebf
+  configs/ea_ablation.yaml: 6664dae93e5d9c5c0ddfd3f85e0aed4c3ffcef0650394a6d0287f38c48006fc4
+  configs/ea_pilot_events.yaml: bcde7fc2fed97ec51d24feeefc0de60c46d20ee674b7649b6d00222fdac7b110
+  configs/ea_pre_pilot_fairness.yaml: e8015db34eb5fda2c948078b3c3c7fcbdd3d6b664e991a586c65f9c8a0148161
+  configs/ea_semantic_equivalence_v1.yaml: 146e3543a1119fa97a8579f1524554f74a303d56dcd46d2d1c884de515b65b2b
+  docs/method_framework.md: e3938e276a7cd6ab963746b7c2ec71b8d15219526f9ca15c0f6201f8b82fa499
+  docs/annotation_guidelines.md: 5e528ba1dd2a09ceca55e194da86df0644067f63721fd490465794fbff8ee48c
+  docs/m5_pilot_protocol.md: bc0ce480f2a68c4913c25188c1bb204223527fd1f0d39a7a026c3a22d772a2ed
+  src/episoa/ea/schema.py: 849ece42cb9a65bfba620b7b32add650bf19b041d9d531ad2861f8916ae8d1a4
+  src/episoa/ea/extraction.py: 4e11a4c141fd0ef4f5295276b3595c08b292b79fd1d4056ffce792def9981e8e
+  src/episoa/ea/m3.py: 12f6d25c32cc307312edaa5b0577868896bf2c81609356e97eaa11bbea6d8744
+  src/episoa/ea/fusion.py: 56c771db1f6040ff47047b6bec9526e234545987fa0377cf493b9f78bef15a02
+  src/episoa/ea/dossier.py: a2f949ae9b96c7d83e1096d0f3875ef3f825ac4f2c1853508e2963279b2852cd
+  src/episoa/ea/commands.py: 6bdf774e7e33aaeed766f184e1b3098235b5d6c75376a71a3108dd8c2e86c1a9
+
+next_authorized_step:
+  action: collect and prepare 6-8 documents for each frozen Pilot event
+  first_command_after_input_creation: python -m episoa.cli prepare-ea --config configs/ea_pilot.yaml
+  prohibited_until_inputs_and_gold_are_ready:
+    - formal_event_selection
+    - formal_experiment
+    - baseline_sweep
+    - paper_performance_claims

@@ -13,6 +13,7 @@ Authoritative specifications:
 - `docs/m5_pilot_protocol.md` — six-event Pilot execution, hard gates, stop rules, and review decisions.
 - `configs/ea_pilot_events.yaml` — frozen six-event Pilot registry and authoritative anchor URLs.
 - `configs/ea_pre_pilot_fairness.yaml` — pre-pilot shared-model and comparison-method contract.
+- `configs/ea_pre_pilot_freeze.yaml` — commit, version, hash, validation, and empirical-status freeze manifest.
 
 These documents define the **v1.5 target design**, not paper-readiness status. The legacy `soe_v3` pipeline remains available, while the isolated `src/episoa/ea/` path implements the offline Document Understanding, source-record verification, APCF/Fusion, Event Dossier, Gold, baseline-adapter, and evaluation contracts with synthetic tests. This does not constitute six-event Pilot evidence, validated human Gold, real-API baseline results, or Formal results. Do not claim paper-experiment readiness until the M5 Pilot and all later frozen gates pass.
 

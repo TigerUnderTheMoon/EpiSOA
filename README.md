@@ -4,7 +4,7 @@ EpiSOA is a reproducible research framework for Evidence-grounded Stakeholder Op
 
 > **Implementation-status boundary:** The workflow below primarily describes the legacy `soe_v3` implementation. The frozen EpiSOA-EA v1.5 contract is defined in [`docs/method_framework.md`](docs/method_framework.md) and [`docs/annotation_guidelines.md`](docs/annotation_guidelines.md). The isolated `src/episoa/ea/` path contains offline Document Understanding, APCF/Fusion, Event Dossier, Gold, baseline-adapter, and evaluation tooling; this is synthetic-test implementation, not six-event Pilot evidence, human Gold, real-API results, or Formal paper readiness.
 
-M5 starts from the frozen [`docs/m5_pilot_protocol.md`](docs/m5_pilot_protocol.md), the six-event rationale in [`docs/m5_event_selection.md`](docs/m5_event_selection.md), and the machine-readable registry [`configs/ea_pilot_events.yaml`](configs/ea_pilot_events.yaml). Gold sheets and adjudication rules are documented in [`docs/m5_gold_template_guide.md`](docs/m5_gold_template_guide.md). Do not start real-model inference before the pre-pilot freeze manifest and tag have been created.
+M5 starts from the frozen [`docs/m5_pilot_protocol.md`](docs/m5_pilot_protocol.md), the six-event rationale in [`docs/m5_event_selection.md`](docs/m5_event_selection.md), and the machine-readable registry [`configs/ea_pilot_events.yaml`](configs/ea_pilot_events.yaml). Gold sheets and adjudication rules are documented in [`docs/m5_gold_template_guide.md`](docs/m5_gold_template_guide.md). The auditable implementation, model, test, and file-hash snapshot is [`configs/ea_pre_pilot_freeze.yaml`](configs/ea_pre_pilot_freeze.yaml).
 
 The core output schema is:
 
